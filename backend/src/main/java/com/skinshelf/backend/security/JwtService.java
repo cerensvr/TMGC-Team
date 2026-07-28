@@ -20,6 +20,8 @@ public class JwtService {
     private static final Base64.Decoder BASE64_URL_DECODER = Base64.getUrlDecoder();
     private static final Pattern SUBJECT_PATTERN = Pattern.compile("\"sub\"\\s*:\\s*(\\d+)");
     private static final Pattern EXPIRATION_PATTERN = Pattern.compile("\"exp\"\\s*:\\s*(\\d+)");
+    private static final long MIN_EXPIRATION_SECONDS = 300;
+    private static final long MAX_EXPIRATION_SECONDS = 31_536_000;
 
     private final String secret;
     private final long expirationSeconds;
@@ -29,6 +31,14 @@ public class JwtService {
             @Value("${app.jwt.expiration-seconds:604800}") long expirationSeconds) {
         if (secret == null || secret.length() < 32) {
             throw new IllegalStateException("app.jwt.secret en az 32 karakter olmalıdır.");
+        }
+        String normalizedSecret = secret.trim().toUpperCase();
+        if (normalizedSecret.contains("CHANGE_ME") || normalizedSecret.contains("REPLACE_WITH")) {
+            throw new IllegalStateException("app.jwt.secret örnek değer olamaz; güçlü ve rastgele bir secret kullanın.");
+        }
+        if (expirationSeconds < MIN_EXPIRATION_SECONDS || expirationSeconds > MAX_EXPIRATION_SECONDS) {
+            throw new IllegalStateException(
+                    "app.jwt.expiration-seconds 300 ile 31536000 arasında olmalıdır.");
         }
         this.secret = secret;
         this.expirationSeconds = expirationSeconds;

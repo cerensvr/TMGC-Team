@@ -9,6 +9,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://skinshelf-backend.onrender.com/api/auth"
+      },
       "android": {
         "buildType": "apk"
       }
