@@ -29,3 +29,7 @@ Sprint 3 ilerledikce asagidaki kanitlar bu klasore eklenecektir:
 - AI analiz ve rutin onerisi calisir gosterilmeli
 - Kullanici urun dolabi kalici veriyle calismali
 - README ve proje yonetimi klasorleri eksiksiz baglanmali
+
+## Backend Test Kaniti
+
+- [Izole backend test profili ve Flyway dogrulama raporu](backend-test-profile-report.md)
