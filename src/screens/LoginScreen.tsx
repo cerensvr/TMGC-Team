@@ -1,5 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, Text, StyleSheet, ImageBackground, TouchableOpacity, SafeAreaView } from 'react-native';
+import {
+  Animated,
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowRight, Sparkles } from 'lucide-react-native';
@@ -14,6 +24,8 @@ const BACKGROUND_URI =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQQnHT9ZdUvZSeofbui3TKtAoCwdfWtYSN5_pv8ABzEIsTEVftdAnhiCwe74SN_Y1W9LftGh0ZlUzHT1a8YcAlFlMAYJCZeWvqH1s6WW9dTR2A4TpBMT3tjKXrRyvu6kZA5UJfG7sHqhWU5YzrwzXIhWM5G0dbUlc4snDk1Y7tlGNLR6kGm7qbrrBcHNQ_ZeSFTWGrKoUbumkyxTzN1X3pAQpNOhwLCMhZVSGEkfkoRrcZs60bUC7P1w';
 
 export default function LoginScreen({ navigation }: Props) {
+  const { height } = useWindowDimensions();
+  const isCompact = height < 720;
   const introAnim = useRef(new Animated.Value(0)).current;
   const buttonAnim = useRef(new Animated.Value(0)).current;
 
@@ -34,23 +46,35 @@ export default function LoginScreen({ navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={[styles.container, isCompact && styles.containerCompact]}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           <Animated.View
-            style={[styles.header, { opacity: introAnim, transform: [{ translateY: introTranslateY }] }]}
+            style={[
+              styles.header,
+              isCompact && styles.headerCompact,
+              { opacity: introAnim, transform: [{ translateY: introTranslateY }] },
+            ]}
           >
-            <View style={styles.brandMark}>
+            <View style={[styles.brandMark, isCompact && styles.brandMarkCompact]}>
               <Sparkles size={15} color={colors.gold} />
               <Text style={styles.brandMarkText}>AKILLI CİLT BAKIM RAFI</Text>
             </View>
-            <Text style={styles.title}>SkinShelf</Text>
-            <View style={styles.titleRule} />
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, isCompact && styles.titleCompact]}>SkinShelf</Text>
+            <View style={[styles.titleRule, isCompact && styles.titleRuleCompact]} />
+            <Text style={[styles.subtitle, isCompact && styles.subtitleCompact]}>
               Ürünlerini rafına ekle;{'\n'}uyumunu, rutinini ve cildini{'\n'}Shelly ile birlikte takip et.
             </Text>
           </Animated.View>
 
           <Animated.View
-            style={[styles.buttonContainer, { opacity: buttonAnim, transform: [{ translateY: buttonTranslateY }] }]}
+            style={[
+              styles.buttonContainer,
+              isCompact && styles.buttonContainerCompact,
+              { opacity: buttonAnim, transform: [{ translateY: buttonTranslateY }] },
+            ]}
           >
             <TouchableOpacity activeOpacity={0.88} onPress={() => navigation.navigate('SignIn')}>
               <LinearGradient
@@ -68,7 +92,7 @@ export default function LoginScreen({ navigation }: Props) {
             </TouchableOpacity>
             <Text style={styles.footnote}>Cilt bakımında sade, bilinçli ve kişisel bir başlangıç.</Text>
           </Animated.View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </ImageBackground>
   );
@@ -77,8 +101,14 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   background: { flex: 1, resizeMode: 'cover' },
   safeArea: { flex: 1 },
-  container: { flex: 1, justifyContent: 'space-between', padding: 28 },
+  container: { flexGrow: 1, justifyContent: 'space-between', padding: 28 },
+  containerCompact: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 12,
+  },
   header: { marginTop: 130, alignItems: 'center' },
+  headerCompact: { marginTop: 34 },
   brandMark: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -91,6 +121,7 @@ const styles = StyleSheet.create({
     borderColor: colors.lineGold,
     marginBottom: 22,
   },
+  brandMarkCompact: { marginBottom: 14 },
   brandMarkText: {
     fontFamily: fonts.sansExtraBold,
     fontSize: 10,
@@ -104,6 +135,10 @@ const styles = StyleSheet.create({
     color: colors.forest,
     textAlign: 'center',
   },
+  titleCompact: {
+    fontSize: 46,
+    lineHeight: 52,
+  },
   titleRule: {
     width: 46,
     height: 2,
@@ -112,12 +147,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 18,
   },
+  titleRuleCompact: {
+    marginTop: 10,
+    marginBottom: 12,
+  },
   subtitle: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 16,
     lineHeight: 26,
     color: colors.inkSoft,
     textAlign: 'center',
+  },
+  subtitleCompact: {
+    fontSize: 14,
+    lineHeight: 21,
   },
   buttonContainer: {
     backgroundColor: 'rgba(255,255,255,0.92)',
@@ -127,6 +170,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.9)',
     ...shadows.floating,
+  },
+  buttonContainerCompact: {
+    padding: 18,
+    marginTop: 28,
+    marginBottom: 0,
   },
   primaryButton: {
     flexDirection: 'row',
