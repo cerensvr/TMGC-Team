@@ -195,8 +195,10 @@ public class GeminiApiClient {
 
         ObjectNode generationConfig = root.putObject("generationConfig");
 
-        generationConfig.put("temperature", 0.25);
-        generationConfig.put("maxOutputTokens", 8192);
+        generationConfig.put("temperature", 0.2);
+        generationConfig.put("topP", 0.85);
+        generationConfig.put("candidateCount", 1);
+        generationConfig.put("maxOutputTokens", 4096);
         generationConfig.put("responseMimeType", "application/json");
 
         return objectMapper.writeValueAsString(root);
