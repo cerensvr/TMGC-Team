@@ -87,6 +87,7 @@ class ShellyPromptServiceTest {
         assertEquals("INTEGER",
                 properties.path("recommendedProducts").path("items")
                         .path("properties").path("id").path("type").asText());
+        assertTrue(schema.path("required").toString().contains("\"detectedIssue\""));
         assertTrue(schema.path("required").toString().contains("\"suggestion\""));
         assertTrue(schema.path("required").toString().contains("\"warning\""));
     }

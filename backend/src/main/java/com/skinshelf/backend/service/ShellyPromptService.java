@@ -89,7 +89,7 @@ public class ShellyPromptService {
         properties.set("tags", stringArraySchema());
 
         schema.putArray("required")
-                .add("intentType").add("mode").add("title").add("summary").add("analysis")
+                .add("intentType").add("detectedIssue").add("mode").add("title").add("summary").add("analysis")
                 .add("suggestion").add("warning").add("riskLevel");
 
         return schema;
@@ -201,7 +201,7 @@ public class ShellyPromptService {
         for (int i = chatHistory.size() - 1; i >= 0; i--) {
             String issue = chatHistory.get(i).getDetectedIssue();
             if (issue != null && !issue.isBlank()) {
-                activeIssue = issue;
+                activeIssue = shorten(issue.replaceAll("\\s+", " "), 120);
                 break;
             }
         }
