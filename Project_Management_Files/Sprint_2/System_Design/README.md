@@ -27,3 +27,29 @@ Sprint 2 sonunda proje, Sprint 1'deki frontend prototipinden fullstack mimariye 
 - Rutin planlayici, kullanicinin dolabindaki aktif urunleri kaynak kabul edecek sekilde ayrildi.
 - Cilt takibi ayri bir aggregate olarak modellendi; ileride gelisim grafigi ve haftalik ozet icin genisletilebilir hale getirildi.
 
+## Mimari Karar Tablosu
+
+| Karar | Gerekce | Risk kontrolu |
+| --- | --- | --- |
+| Mobil istemci Supabase'e dogrudan baglanmaz | Auth, veri sahipligi ve servis kurallari tek API sinirindan yonetilir | JWT, controller-service-repository ayrimi |
+| Urun verisi icin Open Beauty Facts kullanilir | Barkodla urun adi, marka, kategori ve icerik verisi acik kaynaktan alinabilir | Veri eksikse manuel onay ve Gemini enrichment fallback'i |
+| Urun gorselleri ayri katalogdan eslesir | Acik urun bilgisindeki gorsel kalitesi tutarsiz olabilir | Ekip tarafindan genisletilebilir cutout/PNG katalog, yoksa kategori temsili |
+| Shelly cevaplari guardrail'den gecer | Cilt bakimi tibbi risk siniri tasir | Tani/tedavi iddiasi yok; ciddi reaksiyonda profesyonel destek yonlendirmesi |
+| Rutin planlayici yalnizca aktif urunleri kullanir | Kullanici dolabinda olan ama kullanmadigi urunler rutini kirletmez | `isActive` alaninin backend ve mobil state ile senkron tutulmasi |
+| Smoke API testi manuel kosulur | Canli Supabase uzerinde test verisi olusturur | CI yalnizca build ve backend testlerini otomatik kosar |
+
+## Degerlendirilebilir Kod Yapisi
+
+Kod, juri veya dis degerlendiricinin proje mimarisini hizli okuyabilmesi icin asagidaki sinirlara ayrilmistir:
+
+| Soru | Bakilacak yer |
+| --- | --- |
+| Mobil ekranlar nerede? | `src/screens` |
+| Uygulama state'i nerede? | `src/context` |
+| Mobil API istekleri nerede? | `src/api`, `src/services` |
+| Backend HTTP sozlesmeleri nerede? | `backend/src/main/java/com/skinshelf/backend/controller` |
+| Is kurallari ve AI servisleri nerede? | `backend/src/main/java/com/skinshelf/backend/service` |
+| Kalici veri modeli nerede? | `backend/src/main/java/com/skinshelf/backend/entity`, `backend/src/main/resources/db/migration` |
+| Test profili nerede? | `backend/src/test/resources/application-test.properties` |
+
+Bu ayrim, Sprint 2 kapsaminda UI prototipinden fullstack urune gecildigini ve kodun sonraki sprintte deploy/test genisletmesine hazir oldugunu gosterir.

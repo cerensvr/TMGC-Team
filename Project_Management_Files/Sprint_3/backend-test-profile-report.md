@@ -23,7 +23,7 @@ bir geliştirme ortamında Spring context testi başlatılamıyordu.
 
 ```text
 ./mvnw test
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

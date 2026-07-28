@@ -55,6 +55,8 @@ Sprint 2 kapanisinda API, canli Spring Boot sunucusu ve Supabase test verisiyle 
 
 Smoke test; health endpointini, test kullanicisi oturumunu, profil bilgisini, urun kaydini, ingredient analiz seviyesini, onerilen kullanim zamanini ve Shelly chat niyetini kontrol eder.
 
+Shelly'nin farkli urun, rutin ve guvenlik senaryolarindaki beklenen davranislari icin: [../Shelly_AI_Scenarios.md](../Shelly_AI_Scenarios.md)
+
 Gemini client, Temmuz 2026 itibariyla stabil `gemini-3.6-flash` modeliyle
 calisir. JSON cevabi yarim veya parse edilemez gelirse ayni istek bir kez daha
 kisa ve tamamlanmis JSON talimatiyla denenir.
@@ -66,3 +68,4 @@ kisa ve tamamlanmis JSON talimatiyla denenir.
 - Paylasilabilir kurulum icin `backend/src/main/resources/application.properties.example` kullanilir.
 - Protected endpointler icin JWT zorunludur; sadece health, login ve register public tutulur.
 - Hesap silme akisinda kullaniciya bagli asistan mesajlari, cilt kayitlari, urunler ve profil kaydi birlikte temizlenir.
+- Shelly tani veya tedavi iddiasi kurmaz; ciddi reaksiyonlarda rutin onermek yerine profesyonel destek sinirini belirtir.

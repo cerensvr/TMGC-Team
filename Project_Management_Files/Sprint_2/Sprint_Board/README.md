@@ -33,6 +33,21 @@ Asagidaki gorseller 20 Temmuz 2026'da canli Notion Product Backlog sayfasindan a
 
 Detayli puan dagilimi: [../sprint2-story-points.md](../sprint2-story-points.md)
 
+## Notion Kart Ozellikleri Kontrol Listesi
+
+Juri Notion board icinde story point alanini dogrudan gormek isterse asagidaki property'ler kartlarda acik gorunmelidir. GitHub tarafinda puan dagilimi kalici olarak [../sprint2-story-points.md](../sprint2-story-points.md) dosyasinda tutulur; Notion tarafinda ise ayni mantigin kart property'leriyle gorunmesi beklenir.
+
+| Property | Beklenen kullanim |
+| --- | --- |
+| `Status` | Product Backlog, To Do, Progress, Done |
+| `Sprint` | Sprint 1, Sprint 2, Sprint 3 |
+| `Point` | Fibonacci benzeri story point degeri |
+| `Assignee` | Karttan sorumlu ekip uyesi |
+| `Priority` | Kritik, Yuksek, Orta, Dusuk |
+| `Evidence` | GitHub dosyasi, screenshot veya test sonucu linki |
+
+Canli ekran goruntusu alinirken en az bir board gorunumunde kolonlar, kart adlari ve point/property alani okunabilir olmalidir. Close-up bir kart ekraninda `Point`, `Status`, `Sprint` ve `Assignee` alanlarinin ayni anda gorunmesi puan kirilma riskini azaltir.
+
 ## Kanit Notu
 
 Daily scrum ve board ekran goruntuleri takim tarafindan Notion/Imgur uzerinden saklanir. GitHub tarafinda bu klasor, board'un hangi kolon/kart mantigiyla kullanildigini, puanlarin nasil dagitildigini ve canli Notion gorunumunun nasil takip edildigini aciklayan kalici teslim kanitidir.
