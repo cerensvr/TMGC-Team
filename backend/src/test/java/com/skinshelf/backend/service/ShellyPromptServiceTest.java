@@ -71,8 +71,8 @@ class ShellyPromptServiceTest {
                 List.of(earlier, latest),
                 "Bugün nasıl ilerleyeyim?");
 
-        assertTrue(prompt.contains("aktif cilt derdi/hedefi: Kızarıklık"));
-        assertFalse(prompt.contains("aktif cilt derdi/hedefi: Kuruluk"));
+        assertTrue(prompt.contains("activeIssue: Kızarıklık"));
+        assertFalse(prompt.contains("activeIssue: Kuruluk"));
         assertTrue(prompt.contains("bastan sorma"));
     }
 
@@ -90,6 +90,9 @@ class ShellyPromptServiceTest {
         assertTrue(schema.path("required").toString().contains("\"detectedIssue\""));
         assertTrue(schema.path("required").toString().contains("\"suggestion\""));
         assertTrue(schema.path("required").toString().contains("\"warning\""));
+        assertTrue(schema.path("required").toString().contains("\"recommendedProducts\""));
+        assertTrue(schema.path("required").toString().contains("\"followUpQuestions\""));
+        assertTrue(schema.path("required").toString().contains("\"tags\""));
     }
 
     @Test
@@ -119,9 +122,9 @@ class ShellyPromptServiceTest {
                 List.of(message),
                 "Devam edelim");
 
-        assertTrue(prompt.contains("Sohbet Gecmisi (Hafiza)"));
+        assertTrue(prompt.contains("Son 4 Konusma Turu"));
         assertTrue(prompt.contains("…"));
-        assertTrue(prompt.length() < 11_000);
+        assertTrue(prompt.length() < 14_000);
     }
 
     @Test
@@ -152,6 +155,44 @@ class ShellyPromptServiceTest {
         assertTrue(prompt.contains("Son 24 saatte yeni urun: Evet"));
         assertTrue(prompt.contains("Fotograftaki cilt gorunumunu degerlendir"));
         assertTrue(prompt.contains("Teshis koyma"));
+
+        JsonNode schema = service.buildSkinPhotoResponseSchema();
+        assertTrue(schema.path("required").toString().contains("\"visibleChanges\""));
+        assertEquals("OBJECT", schema.path("properties").path("visibleChanges").path("type").asText());
+    }
+
+    @Test
+    void structuredMemoryKeepsExplicitConstraintsAndReactionStatements() {
+        AssistantMessage constraint = messageWithIssue("Hassasiyet");
+        constraint.setPrompt("Parfüme alerjim var, parfümlü ürün istemiyorum.");
+        AssistantMessage reaction = messageWithIssue("Kızarıklık");
+        reaction.setPrompt("Dünkü serum yüzümü kızardı ve kuruttu.");
+
+        String prompt = service.buildChatPrompt(
+                profile(),
+                List.of(product()),
+                List.of(),
+                List.of(constraint, reaction),
+                "Bugün ne yapayım?");
+
+        assertTrue(prompt.contains("confirmedUserConstraints: [Parfüme alerjim var"));
+        assertTrue(prompt.contains("recentReactionStatements: [Dünkü serum yüzümü kızardı"));
+        assertTrue(prompt.contains("activeIssue: Kızarıklık"));
+    }
+
+    @Test
+    void promptIncludesOnlyExamplesForTheSelectedMode() {
+        String prompt = service.buildChatPrompt(
+                profile(),
+                List.of(product()),
+                List.of(),
+                List.of(),
+                "Sabah rutinimin sırası nasıl olmalı?");
+
+        assertTrue(prompt.contains("Secilmis cevap modu: ROUTINE_CHECK"));
+        assertTrue(prompt.contains("Sabah Rutinini Sadeleştirelim"));
+        assertFalse(prompt.contains("Satın Almadan Önce İçeriği Kontrol Edelim"));
+        assertEquals(2, prompt.split("<example>", -1).length - 1);
     }
 
     private AssistantMessage messageWithIssue(String issue) {

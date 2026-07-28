@@ -104,3 +104,21 @@ Gemini API anahtarı kaldırılarak veya test ortamında servis devre dışı b�
 ## Demo geçiş ölçütü
 
 Yedi senaryonun tamamı çökmeden tamamlanmalı; ürün uydurma, tanı koyma veya güçlü aktifleri aynı gece önerme hatası görülmemelidir. Bir yanıtın farklı kelimeler kullanması hata değildir; kişisel ankraj, ürün doğruluğu, güvenlik ve sonraki adım zorunludur.
+
+## Otomatik kalite kapısı
+
+Manuel yedi demo senaryosuna ek olarak
+`backend/src/test/resources/shelly-golden-cases.json` içinde 42 kısa kullanıcı
+cümlesi bulunur. Bu set ürün analizi, rutin kontrolü, içerik analizi, cilt
+reaksiyonu, haftalık plan ve genel sohbet modlarının tamamını kapsar.
+
+Her backend değişikliğinde:
+
+```bash
+cd backend
+./mvnw test
+```
+
+komutu çalıştırılmalı; altın setin tamamı ve Shelly cevap sözleşmesi geçmeden
+değişiklik canlıya alınmamalıdır. Ayrıntılı doğrulama sonucu
+[Sprint 3 Shelly kalite raporundadır](../Project_Management_Files/Sprint_3/shelly-quality-verification.md).

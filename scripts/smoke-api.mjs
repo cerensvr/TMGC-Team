@@ -31,6 +31,7 @@ const scenarios = [
       isFavorite: true,
     },
     prompt: 'Cildim kızardı ve tepki verdi',
+    expectedMode: 'SKIN_REACTION',
   },
   {
     emailPrefix: 'test-yagli',
@@ -60,6 +61,7 @@ const scenarios = [
       isFavorite: false,
     },
     prompt: 'Bu iki ürün birlikte kullanılır mı?',
+    expectedMode: 'INGREDIENT_ANALYSIS',
   },
   {
     emailPrefix: 'test-karma',
@@ -90,6 +92,7 @@ const scenarios = [
       isFavorite: true,
     },
     prompt: 'Bugünkü rutinim ağır mı?',
+    expectedMode: 'ROUTINE_CHECK',
   },
 ];
 
@@ -238,6 +241,14 @@ for (const scenario of scenarios) {
       body: { message: scenario.prompt },
     });
     assert(assistant.aiResponse, `Assistant response is empty for ${email}`);
+    assert(
+      assistant.mode === scenario.expectedMode,
+      `Assistant mode mismatch for ${email}: expected ${scenario.expectedMode}, got ${assistant.mode}`,
+    );
+    assert(
+      assistant.summary?.includes(updatedDisplayName),
+      `Assistant summary is not personalized with ${updatedDisplayName}`,
+    );
     const assistantHistory = await request('/assistant/history', { headers });
     assert(
       assistantHistory.some((entry) => entry.prompt === scenario.prompt),
@@ -294,6 +305,7 @@ for (const scenario of scenarios) {
       ingredientAnalysisLevel: ingredientAnalysis.compatibilityLevel,
       suggestedTimeOfDay: ingredientAnalysis.suggestedTimeOfDay,
       assistantIntent: assistant.intentType,
+      assistantMode: assistant.mode,
       assistantHistoryCount: assistantHistory.length,
       weeklySkinLogCount: weeklySummary.logCount,
       cleanup: 'account, product and skin log deleted',

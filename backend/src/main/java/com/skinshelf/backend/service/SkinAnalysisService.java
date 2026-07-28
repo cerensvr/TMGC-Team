@@ -138,7 +138,12 @@ public class SkinAnalysisService {
                     profile, products, recentLogs,
                     request.getSkinFeeling(), request.getUsedNewProduct(), request.getUserNote());
 
-            var result = geminiApiClient.generateJsonWithStatus(prompt, request.getImageBase64(), request.getImageMimeType());
+            var result = geminiApiClient.generateJsonWithStatus(
+                    ShellyPromptService.SYSTEM_PROMPT,
+                    prompt,
+                    request.getImageBase64(),
+                    request.getImageMimeType(),
+                    shellyPromptService.buildSkinPhotoResponseSchema());
             if (result.json().isPresent()) {
                 return parseAnalysis(result.json().get());
             }
