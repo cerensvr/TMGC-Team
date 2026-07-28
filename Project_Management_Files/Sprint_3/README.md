@@ -45,3 +45,4 @@ guvenlik ve fallback senaryolari:
 ## Backend Test Kaniti
 
 - [Izole backend test profili ve Flyway dogrulama raporu](backend-test-profile-report.md)
+- [Canli Render/Supabase/Gemini API smoke test raporu](live-api-smoke-report.md)

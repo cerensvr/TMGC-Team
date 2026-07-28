@@ -33,6 +33,8 @@ gerektirmiyor ve production verisine yazmıyor.
 
 ## Production sınırı
 
-Production bağlantısının geçerliliği yalnızca barındırma ortamındaki güncel
-`DB_URL`, `DB_USERNAME` ve `DB_PASSWORD` secret'larıyla canlı smoke test
-sırasında doğrulanmalıdır. Bu değerler test profilinde veya Git'te tutulmaz.
+Production bağlantısı Render'daki güncel `DB_URL`, `DB_USERNAME` ve
+`DB_PASSWORD` secret'larıyla doğrulandı. Canlı servis Supabase PostgreSQL 17.6
+üzerinde Flyway migration'larını tamamladı ve uçtan uca smoke testi geçti.
+Detaylar [live-api-smoke-report.md](live-api-smoke-report.md) dosyasındadır.
+Bu değerler test profilinde veya Git'te tutulmaz.

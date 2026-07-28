@@ -50,6 +50,19 @@ curl https://BACKEND_DOMAIN/api/health
 API_BASE_URL=https://BACKEND_DOMAIN/api npm run smoke:api
 ```
 
+Current production backend:
+
+- `https://skinshelf-backend.onrender.com`
+- Health: `https://skinshelf-backend.onrender.com/api/health`
+- Render Docker port: `10000` (`PORT` and `SERVER_PORT`)
+- Source branch: `main`; Render auto-deploys backend changes on every commit.
+
+Repository collaborators do not need Render workspace access for routine
+development or deployment. They can use the shared production API and push
+reviewed backend changes to `main`; Render continues the deployment in the
+cloud even when the workspace owner's computer is offline. Workspace access is
+only needed for secrets, logs, and manual service administration.
+
 ## Mobile/Web Production Build
 
 The Expo production setup is deploy-ready with:
@@ -115,9 +128,10 @@ npx eas-cli build --profile production --platform ios
 
 ## Current Blockers
 
-- Real backend deploy requires a logged-in hosting account and host-level secret entry for all `sync: false` values in `render.yaml`.
 - EAS cloud build requires Expo account login and project credentials.
 - Real device testing requires a connected physical Android/iOS device.
+- Render Hobby workspaces cannot invite additional workspace members without a
+  Pro plan; Supabase organization access remains independent.
 
 ## Legal Documents
 
