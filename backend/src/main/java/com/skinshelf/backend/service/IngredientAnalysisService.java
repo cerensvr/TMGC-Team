@@ -21,14 +21,17 @@ public class IngredientAnalysisService {
     private final GeminiApiClient geminiApiClient;
     private final ProductRepository productRepository;
     private final UserProfileRepository userProfileRepository;
+    private final IngredientKnowledgeBase knowledgeBase;
 
     public IngredientAnalysisService(
             GeminiApiClient geminiApiClient,
             ProductRepository productRepository,
-            UserProfileRepository userProfileRepository) {
+            UserProfileRepository userProfileRepository,
+            IngredientKnowledgeBase knowledgeBase) {
         this.geminiApiClient = geminiApiClient;
         this.productRepository = productRepository;
         this.userProfileRepository = userProfileRepository;
+        this.knowledgeBase = knowledgeBase;
     }
 
     public IngredientAnalysisResponse analyze(User user, IngredientAnalysisRequest request) {
@@ -46,10 +49,15 @@ public class IngredientAnalysisService {
     }
 
     private String buildPrompt(UserProfile profile, List<Product> shelfProducts, IngredientAnalysisRequest request) {
+        String searchText = String.join(" ",
+                emptyIfNull(request.getActiveIngredients())) + " " + value(request.getDescription());
         return """
                 SkinShelf icin kozmetik urun icerik analizi yap.
                 Tani koyma, medikal iddia uretme, dermatolog uyarisi gereken yerlerde guvenli dil kullan.
                 Cevabi yalnizca JSON olarak don (doğrudan { ile basla).
+                """
+                + "\n" + knowledgeBase.relevantRulesAsPromptSection(searchText)
+                + """
 
                 JSON semasi:
                 {
@@ -126,10 +134,14 @@ public class IngredientAnalysisService {
         String joined = String.join(" ", ingredients).toLowerCase(Locale.forLanguageTag("tr-TR"));
         String category = value(request.getCategory()).toLowerCase(Locale.forLanguageTag("tr-TR"));
 
-        boolean hasRetinoid = containsAny(joined, "retinol", "retinal", "retinoid", "tretinoin");
-        boolean hasAcid = containsAny(joined, "salicylic", "salisilik", "glycolic", "glikolik", "lactic", "laktik", "aha", "bha");
-        boolean hasVitaminC = containsAny(joined, "ascorbic", "askorbik", "vitamin c");
-        boolean hasNiacinamide = containsAny(joined, "niacinamide", "niasinamid");
+        // Aynı alias/kural listesini burada tekrar tanımlamak yerine tek doğrulanmış
+        // kaynağa (IngredientKnowledgeBase) sorulur; retinol, AHA, BHA, C vitamini,
+        // niacinamide kuralları oradan gelir.
+        var matchedRules = knowledgeBase.matchRules(joined);
+        boolean hasRetinoid = matchedRules.containsKey("retinol") || matchedRules.containsKey("tretinoin");
+        boolean hasAcid = matchedRules.containsKey("AHA") || matchedRules.containsKey("BHA");
+        boolean hasVitaminC = matchedRules.containsKey("C vitamini");
+        boolean hasNiacinamide = matchedRules.containsKey("niacinamide");
         boolean sensitive = value(profile == null ? null : profile.getSensitivity())
                 .toLowerCase(Locale.forLanguageTag("tr-TR"))
                 .contains("sık");
@@ -205,15 +217,6 @@ public class IngredientAnalysisService {
             return normalized;
         }
         return value(category).toLowerCase(Locale.forLanguageTag("tr-TR")).contains("güneş") ? "morning" : "both";
-    }
-
-    private boolean containsAny(String text, String... values) {
-        for (String value : values) {
-            if (text.contains(value)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private String formatShelf(List<Product> products) {

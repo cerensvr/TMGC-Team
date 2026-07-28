@@ -1,5 +1,9 @@
 package com.skinshelf.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.SkinLog;
 import com.skinshelf.backend.entity.UserProfile;
@@ -30,6 +34,7 @@ public class ShellyPromptService {
     }
 
     private final IngredientKnowledgeBase knowledgeBase;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ShellyPromptService(IngredientKnowledgeBase knowledgeBase) {
         this.knowledgeBase = knowledgeBase;
@@ -58,6 +63,76 @@ public class ShellyPromptService {
             - Turkce samimi ve guven veren bir dille yanit ver.
             """;
 
+    /**
+     * Shelly'nin sohbet yanitinin Gemini responseSchema karsiligi. Prompt
+     * metnindeki JSON semasiyla ayni alanlari tanimlar; farkla ki artik model
+     * bunu API seviyesinde uymak zorunda, sadece rica degil.
+     */
+    public JsonNode buildChatResponseSchema() {
+        ObjectNode schema = objectMapper.createObjectNode();
+        schema.put("type", "OBJECT");
+        ObjectNode properties = schema.putObject("properties");
+
+        enumField(properties, "intentType", "INFO", "ISSUE");
+        nullableStringField(properties, "detectedIssue");
+        enumField(properties, "mode", "PRODUCT_ANALYSIS", "ROUTINE_CHECK", "INGREDIENT_ANALYSIS",
+                "SKIN_REACTION", "WEEKLY_PLAN", "GENERAL_CHAT");
+        stringField(properties, "title");
+        stringField(properties, "summary");
+        stringField(properties, "analysis");
+        stringField(properties, "suggestion");
+        stringField(properties, "warning");
+        properties.set("recommendedProducts", productSuggestionArraySchema());
+        properties.set("avoidProducts", productSuggestionArraySchema());
+        properties.set("followUpQuestions", stringArraySchema());
+        enumField(properties, "riskLevel", "low", "medium", "high");
+        properties.set("tags", stringArraySchema());
+
+        schema.putArray("required")
+                .add("intentType").add("detectedIssue").add("mode").add("title").add("summary").add("analysis")
+                .add("suggestion").add("warning").add("riskLevel");
+
+        return schema;
+    }
+
+    private void stringField(ObjectNode properties, String name) {
+        properties.putObject(name).put("type", "STRING");
+    }
+
+    private void nullableStringField(ObjectNode properties, String name) {
+        ObjectNode field = properties.putObject(name);
+        field.put("type", "STRING");
+        field.put("nullable", true);
+    }
+
+    private void enumField(ObjectNode properties, String name, String... values) {
+        ObjectNode field = properties.putObject(name);
+        field.put("type", "STRING");
+        ArrayNode enumValues = field.putArray("enum");
+        for (String value : values) {
+            enumValues.add(value);
+        }
+    }
+
+    private ObjectNode stringArraySchema() {
+        ObjectNode array = objectMapper.createObjectNode();
+        array.put("type", "ARRAY");
+        array.putObject("items").put("type", "STRING");
+        return array;
+    }
+
+    private ObjectNode productSuggestionArraySchema() {
+        ObjectNode array = objectMapper.createObjectNode();
+        array.put("type", "ARRAY");
+        ObjectNode item = array.putObject("items");
+        item.put("type", "OBJECT");
+        ObjectNode itemProperties = item.putObject("properties");
+        itemProperties.putObject("id").put("type", "INTEGER");
+        itemProperties.putObject("reason").put("type", "STRING");
+        item.putArray("required").add("id").add("reason");
+        return array;
+    }
+
     private static final String RESPONSE_POLICY = """
             Shelly cevap standardi:
             - Yanitini her zaman verilen userProfile, userProducts, recentSkinLogs ve sohbet gecmisiyle sinirla.
@@ -80,7 +155,7 @@ public class ShellyPromptService {
             List<AssistantMessage> chatHistory,
             String userMessage) {
         return SYSTEM_PROMPT
-                + "\n" + knowledgeBase.asPromptSection()
+                + "\n" + knowledgeBase.relevantRulesAsPromptSection(searchableContext(products, userMessage))
                 + "\n" + RESPONSE_POLICY
                 + "\nCevabi YALNIZCA su zengin JSON semasiyla don (baska hicbir aciklama ekleme, doğrudan { ile basla ve } ile bitir):\n"
                 + """
@@ -117,11 +192,29 @@ public class ShellyPromptService {
         if (chatHistory == null || chatHistory.isEmpty()) {
             return "Aktif Konusma Durumu (State): Kullanici ile ilk kez konusuluyor. Cilt yapisini ve seçecegi hedefi analiz etmeye basla.";
         }
-        return """
-                Aktif Konusma Durumu (State):
-                - Kullanici ile aktif bir sohbet sureci yurutuluyor.
-                - Gemini, onceki mesajlari analiz ederek kullanicinin o anki aktif cilt derdini, sivilce/tahris durumunu ve anlik hedeflerini aklimda tutmali ve buna gore yonlendirmelidir.
-                """;
+
+        // Onceki mesajlarda tespit edilen en guncel cilt derdi/hedefi (detectedIssue
+        // her mesajda kaydediliyor ama daha once hic geri okunmuyordu). Bunu
+        // gercek bir "state" olarak Gemini'ye aktariyoruz, boylece sohbet
+        // ilerledikce ayni konuyu takip edebiliyor.
+        String activeIssue = null;
+        for (int i = chatHistory.size() - 1; i >= 0; i--) {
+            String issue = chatHistory.get(i).getDetectedIssue();
+            if (issue != null && !issue.isBlank()) {
+                activeIssue = shorten(issue.replaceAll("\\s+", " "), 120);
+                break;
+            }
+        }
+
+        StringBuilder builder = new StringBuilder("Aktif Konusma Durumu (State):\n");
+        builder.append("- Kullanici ile aktif bir sohbet sureci yurutuluyor.\n");
+        if (activeIssue != null) {
+            builder.append("- Su ana kadar tespit edilen aktif cilt derdi/hedefi: ").append(activeIssue).append(".\n");
+            builder.append("- Kullanici konuyu degistirmedikce bu derde odaklanmaya devam et, bastan sorma.\n");
+        } else {
+            builder.append("- Henuz net bir cilt derdi/hedefi tespit edilmedi; kullanicinin son mesajindan cikar.\n");
+        }
+        return builder.toString();
     }
 
     public String buildSkinPhotoPrompt(
@@ -132,7 +225,8 @@ public class ShellyPromptService {
             Boolean usedNewProduct,
             String userNote) {
         return SYSTEM_PROMPT
-                + "\n" + knowledgeBase.asPromptSection()
+                + "\n" + knowledgeBase.relevantRulesAsPromptSection(
+                        searchableContext(products, value(skinFeeling) + " " + value(userNote)))
                 + "\n" + RESPONSE_POLICY
                 + "\nCevabi YALNIZCA su JSON semasiyla don:\n"
                 + """
@@ -254,6 +348,24 @@ public class ShellyPromptService {
 
     private String value(String value) {
         return value == null || value.isBlank() ? "-" : value.trim();
+    }
+
+    /**
+     * Bilgi tabanı kural eşleştirmesi için aranacak metni oluşturur: kullanıcının
+     * mesajı/notu + rafındaki ürünlerin aktif içerikleri. Böylece hem "retinol
+     * kullanabilir miyim" gibi doğrudan sorularda hem de kullanıcı ürünün adını
+     * anmasa bile rafındaki ürünlere göre ilgili kurallar eşleşir.
+     */
+    private String searchableContext(List<Product> products, String freeText) {
+        StringBuilder builder = new StringBuilder(freeText == null ? "" : freeText).append(' ');
+        if (products != null) {
+            products.stream().limit(15).forEach(product -> {
+                if (product.getActiveIngredients() != null) {
+                    builder.append(String.join(" ", product.getActiveIngredients())).append(' ');
+                }
+            });
+        }
+        return builder.toString();
     }
 
     private String listValue(List<String> values) {

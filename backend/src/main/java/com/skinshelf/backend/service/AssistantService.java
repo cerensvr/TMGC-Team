@@ -115,7 +115,8 @@ public class AssistantService {
             String fullPrompt = shellyPromptService.buildChatPrompt(profile, products, recentLogs, lastMessages,
                     prompt);
 
-            var result = geminiApiClient.generateJsonWithStatus(fullPrompt, null, null);
+            var result = geminiApiClient.generateJsonWithStatus(
+                    fullPrompt, null, null, shellyPromptService.buildChatResponseSchema());
             if (result.json().isPresent()) {
                 return parseGeminiResponse(result.json().get(), profile, products);
             }

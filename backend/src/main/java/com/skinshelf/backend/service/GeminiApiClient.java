@@ -66,25 +66,39 @@ public class GeminiApiClient {
     }
 
     public Optional<JsonNode> generateJson(String prompt) {
-        return generateJsonWithStatus(prompt, null, null).json();
+        return generateJsonWithStatus(prompt, null, null, null).json();
     }
 
     public Optional<JsonNode> generateJson(String prompt,
             String base64Image,
             String imageMimeType) {
-        return generateJsonWithStatus(prompt, base64Image, imageMimeType).json();
+        return generateJsonWithStatus(prompt, base64Image, imageMimeType, null).json();
     }
 
     public GeminiJsonResult generateJsonWithStatus(String prompt,
             String base64Image,
             String imageMimeType) {
 
-        return generateJsonWithStatus(prompt, base64Image, imageMimeType, true);
+        return generateJsonWithStatus(prompt, base64Image, imageMimeType, null);
+    }
+
+    /**
+     * responseSchema verilirse, Gemini'ye "JSON dondur" diye prompt metniyle rica
+     * etmek yerine, alanlari/tiplerini/enum degerlerini API seviyesinde zorunlu
+     * kilariz. responseSchema null ise eski davranis (yalniz prompt'a guveniyor) aynen surer.
+     */
+    public GeminiJsonResult generateJsonWithStatus(String prompt,
+            String base64Image,
+            String imageMimeType,
+            JsonNode responseSchema) {
+
+        return generateJsonWithStatus(prompt, base64Image, imageMimeType, responseSchema, true);
     }
 
     private GeminiJsonResult generateJsonWithStatus(String prompt,
             String base64Image,
             String imageMimeType,
+            JsonNode responseSchema,
             boolean retryOnJsonParseError) {
 
         if (!isConfigured()) {
@@ -99,7 +113,7 @@ public class GeminiApiClient {
                     .timeout(Duration.ofSeconds(60))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(
-                            buildRequest(prompt, base64Image, imageMimeType)))
+                            buildRequest(prompt, base64Image, imageMimeType, responseSchema)))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -141,6 +155,7 @@ public class GeminiApiClient {
                             buildRetryPrompt(prompt),
                             base64Image,
                             imageMimeType,
+                            responseSchema,
                             false);
                 }
                 log.warn("Gemini JSON parse edilemedi: {}", e.getOriginalMessage());
@@ -171,7 +186,8 @@ public class GeminiApiClient {
 
     private String buildRequest(String prompt,
             String base64Image,
-            String imageMimeType) throws Exception {
+            String imageMimeType,
+            JsonNode responseSchema) throws Exception {
 
         ObjectNode root = objectMapper.createObjectNode();
 
@@ -202,6 +218,9 @@ public class GeminiApiClient {
         generationConfig.put("candidateCount", 1);
         generationConfig.put("maxOutputTokens", 4096);
         generationConfig.put("responseMimeType", "application/json");
+        if (responseSchema != null) {
+            generationConfig.set("responseSchema", responseSchema);
+        }
 
         return objectMapper.writeValueAsString(root);
     }

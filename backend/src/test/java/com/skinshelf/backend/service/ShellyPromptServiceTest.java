@@ -1,5 +1,6 @@
 package com.skinshelf.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.skinshelf.backend.entity.AssistantMessage;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.SkinLog;
@@ -7,8 +8,10 @@ import com.skinshelf.backend.entity.UserProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShellyPromptServiceTest {
@@ -40,6 +43,67 @@ class ShellyPromptServiceTest {
         assertTrue(prompt.contains("Ilk cumlede kullanicinin adini"));
         assertTrue(prompt.contains("En fazla 2 takip sorusu"));
         assertTrue(prompt.contains("yalnizca userProducts icindeki gercek ID'leri"));
+    }
+
+    @Test
+    void chatPromptFiltersKnowledgeBaseToConversationAndShelf() {
+        String prompt = service.buildChatPrompt(
+                profile(),
+                List.of(product()),
+                List.of(),
+                List.of(),
+                "Bugünkü rutinim ağır mı?");
+
+        assertTrue(prompt.contains("- BHA:"));
+        assertFalse(prompt.contains("- retinol:"));
+        assertTrue(prompt.contains("Shelly cevap standardi"));
+    }
+
+    @Test
+    void conversationStateCarriesLatestDetectedIssue() {
+        AssistantMessage earlier = messageWithIssue("Kuruluk");
+        AssistantMessage latest = messageWithIssue("Kızarıklık");
+
+        String prompt = service.buildChatPrompt(
+                profile(),
+                List.of(product()),
+                List.of(),
+                List.of(earlier, latest),
+                "Bugün nasıl ilerleyeyim?");
+
+        assertTrue(prompt.contains("aktif cilt derdi/hedefi: Kızarıklık"));
+        assertFalse(prompt.contains("aktif cilt derdi/hedefi: Kuruluk"));
+        assertTrue(prompt.contains("bastan sorma"));
+    }
+
+    @Test
+    void responseSchemaKeepsThePersonalizedAnswerContract() {
+        JsonNode schema = service.buildChatResponseSchema();
+        JsonNode properties = schema.path("properties");
+
+        assertEquals("OBJECT", schema.path("type").asText());
+        assertTrue(properties.has("suggestion"));
+        assertTrue(properties.has("warning"));
+        assertEquals("INTEGER",
+                properties.path("recommendedProducts").path("items")
+                        .path("properties").path("id").path("type").asText());
+        assertTrue(schema.path("required").toString().contains("\"detectedIssue\""));
+        assertTrue(schema.path("required").toString().contains("\"suggestion\""));
+        assertTrue(schema.path("required").toString().contains("\"warning\""));
+    }
+
+    @Test
+    void extendedKnowledgeBaseUsesFilteredAndSafeRules() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        Map<String, List<String>> matched = knowledgeBase.matchRules(
+                "tretinoin, azelaik asit, peptit, zinc pca ve spf50");
+
+        assertTrue(matched.keySet().containsAll(
+                List.of("tretinoin", "azelaic acid", "peptide", "zinc", "SPF")));
+        String tretinoinFacts = String.join(" ", matched.get("tretinoin"));
+        assertTrue(tretinoinFacts.contains("sağlık profesyoneli"));
+        assertFalse(tretinoinFacts.contains("zorunludur"));
+        assertFalse(tretinoinFacts.contains("beklenen bir yan etkidir"));
     }
 
     @Test
@@ -88,6 +152,14 @@ class ShellyPromptServiceTest {
         assertTrue(prompt.contains("Son 24 saatte yeni urun: Evet"));
         assertTrue(prompt.contains("Fotograftaki cilt gorunumunu degerlendir"));
         assertTrue(prompt.contains("Teshis koyma"));
+    }
+
+    private AssistantMessage messageWithIssue(String issue) {
+        AssistantMessage message = new AssistantMessage();
+        message.setPrompt("Cildimde değişiklik var");
+        message.setAiResponse("Takip edelim");
+        message.setDetectedIssue(issue);
+        return message;
     }
 
     private UserProfile profile() {
