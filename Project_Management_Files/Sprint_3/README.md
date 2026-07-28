@@ -36,3 +36,7 @@ Final demo ve regression testinde kullanilacak kişisellestirme, urun dogrulugu,
 guvenlik ve fallback senaryolari:
 
 - [Shelly tutarli ve kisisel yanit senaryolari](../../docs/shelly-demo-scenarios.md)
+
+## Backend Test Kaniti
+
+- [Izole backend test profili ve Flyway dogrulama raporu](backend-test-profile-report.md)
