@@ -66,6 +66,24 @@ cilt günlüğü ve hesap silme adımlarını tamamladı. Ana modelin ücretsiz 
 yanıtı `429` olduğunda üç sohbetin üçü de yedek modelden `200` aldı; test
 verileri çalışma sonunda silindi.
 
+## Canlı Render doğrulaması
+
+Shelly iyileştirmelerini içeren `5596e0d` release commit'i
+`https://skinshelf-backend.onrender.com` adresine manuel olarak yayınlandı.
+Canlı sağlık kontrolü `HTTP 200` ve `status: ok` döndürdü.
+
+Ardından aynı üretim API'sinde üç sentetik profil ile tam smoke testi çalıştı:
+
+- Kuru/hassas profil: `SKIN_REACTION`
+- Yağlı/akne eğilimli profil: `INGREDIENT_ANALYSIS`
+- Karma/rutin odaklı profil: `ROUTINE_CHECK`
+
+Üç senaryonun üçünde de backend'in belirlediği cevap modu doğru geldi, Shelly
+özeti güncellenmiş profil adını içerdi ve dolaba eklenen ürün akış boyunca
+erişilebilir kaldı. Kayıt, giriş, profil, ürün, içerik analizi, sohbet geçmişi,
+cilt günlüğü, haftalık özet ve silme kontrollerinin tamamı geçti. Smoke betiği
+oluşturduğu hesapları, ürünleri ve cilt günlüklerini test sonunda sildi.
+
 ## Kapsam sınırı
 
 Shelly tıbbi teşhis veya tedavi üretmez. Şişlik, nefes darlığı, su toplama ve
