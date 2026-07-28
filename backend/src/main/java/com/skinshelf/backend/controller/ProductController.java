@@ -26,6 +26,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProducts(currentUser));
     }
 
+    @GetMapping("/{productId}")
+    public ResponseEntity<ProductResponse> getProduct(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long productId) {
+        return ResponseEntity.ok(productService.getProduct(currentUser, productId));
+    }
+
     @PostMapping
     public ResponseEntity<ProductResponse> addProduct(
             @AuthenticationPrincipal User currentUser,

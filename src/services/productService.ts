@@ -20,13 +20,16 @@ const toRequest = (product: Omit<Product, 'id'> | Partial<Product>) => ({
   expiryDate: product.expiryDate || null,
   activeIngredients: product.activeIngredients ?? [],
   isFavorite: product.isFavorite ?? false,
-  isActive: (product as any).isActive ?? (product as any).is_active ?? true,
-  is_active: (product as any).isActive ?? (product as any).is_active ?? true,
+  isActive: product.isActive ?? true,
 });
 
 export const productService = {
   getProducts: async (): Promise<Product[]> => {
     return apiFetch<Product[]>(API_PRODUCTS_URL);
+  },
+
+  getProduct: async (id: string): Promise<Product> => {
+    return apiFetch<Product>(`${API_PRODUCTS_URL}/${id}`);
   },
 
   addProduct: async (product: Omit<Product, 'id'>): Promise<Product> => {
@@ -54,14 +57,11 @@ export const productService = {
     const scanInput: ScanInput = typeof input === 'string' ? { imageData: input } : input;
 
     if (scanInput.barcode) {
-      try {
-        const product = await openBeautyFactsService.getProductByBarcode(scanInput.barcode);
-        if (product) return product;
-      } catch (error) {
-        warnDev('Open Beauty Facts lookup failed, using fallback product:', error);
-      }
+      const product = await openBeautyFactsService.getProductByBarcode(scanInput.barcode);
+      if (product) return product;
     }
 
+    warnDev('Product scan did not include a supported barcode or returned no result.');
     return null;
   },
 };

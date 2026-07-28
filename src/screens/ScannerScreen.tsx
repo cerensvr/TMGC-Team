@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, Linking } from 'react-native';
 import { CameraView, BarcodeScanningResult, useCameraPermissions } from 'expo-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, ProductDraft } from '../types';
@@ -48,7 +48,10 @@ export default function ScannerScreen({ navigation }: Props) {
       Alert.alert(
         'Ürün bulunamadı',
         'Open Beauty Facts üzerinde bu barkod için ürün bilgisi bulunamadı. Bilgileri manuel ekleyebilirsin.',
-        [{ text: 'Manuel ekle', onPress: openManualForm }]
+        [
+          { text: 'Manuel ekle', onPress: openManualForm },
+          { text: 'Tekrar dene', style: 'cancel', onPress: () => setLastCode(null) },
+        ]
       );
     } catch (error) {
       errorDev('Scan error:', error);
@@ -85,24 +88,41 @@ export default function ScannerScreen({ navigation }: Props) {
         <View style={styles.permissionPanel}>
           <CameraOff size={36} color={GOLD} />
           <Text style={styles.permissionTitle}>Kamera izni gerekli</Text>
-          <Text style={styles.permissionText}>Barkodu okutmak için kameraya izin ver.</Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission} activeOpacity={0.85}>
-            <Text style={styles.permissionButtonText}>İzin ver</Text>
+          <Text style={styles.permissionText}>
+            {permission.canAskAgain
+              ? 'Barkodu okutmak için kameraya izin ver.'
+              : 'Kamera izni kapalı. Cihaz ayarlarından SkinShelf için kamera erişimini açabilirsin.'}
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={() => {
+              if (permission.canAskAgain) {
+                void requestPermission();
+              } else {
+                void Linking.openSettings();
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.permissionButtonText}>
+              {permission.canAskAgain ? 'İzin ver' : 'Ayarları aç'}
+            </Text>
           </TouchableOpacity>
         </View>
       );
     }
 
     return (
-      <CameraView
-        style={styles.camera}
-        facing="back"
-        barcodeScannerSettings={{
-          barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'],
-        }}
-        onBarcodeScanned={isScanning ? undefined : handleBarcodeScanned}
-      >
-        <View style={styles.scannerFrame}>
+      <View style={styles.camera}>
+        <CameraView
+          style={styles.cameraPreview}
+          facing="back"
+          barcodeScannerSettings={{
+            barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'],
+          }}
+          onBarcodeScanned={isScanning ? undefined : handleBarcodeScanned}
+        />
+        <View style={styles.scannerFrame} pointerEvents="none">
           <View style={[styles.corner, styles.topLeft]} />
           <View style={[styles.corner, styles.topRight]} />
           <View style={[styles.corner, styles.bottomLeft]} />
@@ -120,7 +140,7 @@ export default function ScannerScreen({ navigation }: Props) {
             <Text style={styles.instruction}>Barkodu çerçevenin içine hizalayın</Text>
           )}
         </View>
-      </CameraView>
+      </View>
     );
   };
 
@@ -199,13 +219,17 @@ const styles = StyleSheet.create({
   camera: {
     width: '100%',
     aspectRatio: 3 / 4,
+    position: 'relative',
     overflow: 'hidden',
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
   },
+  cameraPreview: {
+    ...StyleSheet.absoluteFillObject,
+  },
   scannerFrame: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },

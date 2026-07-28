@@ -5,6 +5,7 @@ import {
   Image,
   PanResponder,
   Platform,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -20,7 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MainTabParamList, Product } from '../types';
 import { useProducts } from '../context/ProductContext';
 import { useUser } from '../context/UserContext';
-import { ArrowDownUp, Bell, Camera, Clock3, Plus, ScanLine, Sparkles } from 'lucide-react-native';
+import { AlertCircle, ArrowDownUp, Bell, Camera, Clock3, Plus, RotateCcw, ScanLine, Sparkles } from 'lucide-react-native';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { errorDev } from '../services/logger';
 import { colors, fonts, radius, shadows } from '../theme';
@@ -216,7 +217,7 @@ const CabinetShelfRow = ({ products, index, onDelete, onOpen, onReorder }: Cabin
 );
 
 export default function HomeScreen({ navigation }: Props) {
-  const { products, deleteProduct } = useProducts();
+  const { products, deleteProduct, loadProducts, isLoading, loadError } = useProducts();
   const { profile } = useUser();
   const [sortBy, setSortBy] = useState<SortMode>('category');
   const [shelfOrder, setShelfOrder] = useState<string[]>([]);
@@ -355,7 +356,34 @@ export default function HomeScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => void loadProducts()}
+            tintColor={colors.sage}
+            colors={[colors.sage]}
+          />
+        }
+      >
+        {loadError && (
+          <View style={styles.loadErrorBanner}>
+            <AlertCircle size={18} color={colors.danger} />
+            <Text style={styles.loadErrorText}>{loadError}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => void loadProducts()}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <RotateCcw size={15} color={colors.onDark} />
+              <Text style={styles.retryButtonText}>{isLoading ? 'Yenileniyor' : 'Tekrar Dene'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.cabinetHeaderRow}>
           <View style={styles.cabinetTitleLine}>
             <View style={styles.cabinetTitleBlock}>
@@ -562,6 +590,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
   },
   scrollContent: { paddingBottom: 170 },
+  loadErrorBanner: {
+    marginHorizontal: 22,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#F2C7C2',
+    backgroundColor: colors.dangerSurface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loadErrorText: {
+    flex: 1,
+    fontFamily: fonts.sansSemiBold,
+    color: colors.danger,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.forest,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  retryButtonText: {
+    fontFamily: fonts.sansBold,
+    color: colors.onDark,
+    fontSize: 11.5,
+  },
   cabinetHeaderRow: {
     marginHorizontal: 22,
     marginTop: 8,
