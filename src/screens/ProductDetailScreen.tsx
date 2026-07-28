@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable, ScrollView, Image, Switch, Platform, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, View, Text, StyleSheet, TouchableOpacity, Pressable, ScrollView, Image, Switch, Platform, StatusBar } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
-import { Sparkles, Droplets, Wind, Sun, Leaf, Edit2, Lightbulb, CheckCircle2, ThumbsDown, ThumbsUp, X } from 'lucide-react-native';
+import { Sparkles, Droplets, Wind, Sun, Leaf, Edit2, Lightbulb, CheckCircle2, Heart, ThumbsDown, ThumbsUp, Trash2, X } from 'lucide-react-native';
 import { useProducts } from '../context/ProductContext';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { getProductShellyComment, getProductStatus } from '../services/shellyInsights';
@@ -40,27 +40,85 @@ const isExpired = (dateString?: string) => {
 };
 
 export default function ProductDetailScreen({ navigation, route }: Props) {
-  const { products, updateProduct } = useProducts();
+  const { products, updateProduct, deleteProduct } = useProducts();
   const [imageFailed, setImageFailed] = useState(false);
   const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const product = products.find(p => p.id === route.params.productId);
 
-  const [isActive, setIsActive] = useState((product as any)?.isActive ?? (product as any)?.is_active ?? true);
+  const [isActive, setIsActive] = useState(product?.isActive ?? true);
+  const [isFavorite, setIsFavorite] = useState(product?.isFavorite ?? false);
+
+  useEffect(() => {
+    setIsActive(product?.isActive ?? true);
+    setIsFavorite(product?.isFavorite ?? false);
+  }, [product?.isActive, product?.isFavorite]);
 
   const handleToggleActive = async (value: boolean) => {
-    if (!product) return;
+    if (!product || isSavingStatus) return;
     setIsActive(value);
+    setIsSavingStatus(true);
     try {
-      await updateProduct(product.id, {
-        isActive: value,
-        is_active: value 
-      } as any);
+      await updateProduct(product.id, { isActive: value });
       logDev('Ürün aktiflik durumu güncellendi:', value);
     } catch (error) {
       errorDev('Aktiflik güncellenirken hata oluştu:', error);
       setIsActive(!value);
+      Alert.alert('Hata', 'Rutin kullanım durumu kaydedilemedi. Lütfen tekrar dene.');
+    } finally {
+      setIsSavingStatus(false);
     }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!product || isSavingStatus) return;
+    const nextFavorite = !isFavorite;
+    setIsFavorite(nextFavorite);
+    setIsSavingStatus(true);
+    try {
+      await updateProduct(product.id, { isFavorite: nextFavorite });
+    } catch (error) {
+      errorDev('Favori durumu güncellenirken hata oluştu:', error);
+      setIsFavorite(!nextFavorite);
+      Alert.alert('Hata', 'Favori durumu kaydedilemedi. Lütfen tekrar dene.');
+    } finally {
+      setIsSavingStatus(false);
+    }
+  };
+
+  const performDelete = async () => {
+    if (!product || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(product.id);
+      navigation.navigate('MainTabs');
+    } catch (error) {
+      errorDev('Ürün silinirken hata oluştu:', error);
+      Alert.alert('Hata', 'Ürün dolabından silinemedi. Lütfen tekrar dene.');
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!product) return;
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm(`${product.brand} - ${product.name} dolabından silinsin mi?`)) {
+        void performDelete();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Ürünü Sil',
+      `${product.brand} - ${product.name} dolabından kalıcı olarak silinsin mi?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Sil', style: 'destructive', onPress: () => void performDelete() },
+      ]
+    );
   };
 
   if (!product) {
@@ -109,9 +167,31 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
           <TouchableOpacity style={styles.editIconButton} onPress={handleClose}>
             <X size={20} color={colors.inkMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.editIconButton} onPress={handleEdit}>
-            <Edit2 size={20} color={colors.inkMuted} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.editIconButton, isFavorite && styles.favoriteIconButton]}
+              onPress={handleToggleFavorite}
+              disabled={isSavingStatus}
+              accessibilityLabel={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+            >
+              <Heart
+                size={20}
+                color={isFavorite ? colors.onDark : colors.sage}
+                fill={isFavorite ? colors.onDark : 'transparent'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.editIconButton} onPress={handleEdit}>
+              <Edit2 size={20} color={colors.inkMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editIconButton, styles.deleteIconButton]}
+              onPress={handleDelete}
+              disabled={isDeleting}
+              accessibilityLabel="Ürünü sil"
+            >
+              <Trash2 size={20} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
         
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -165,6 +245,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
               ios_backgroundColor="#e2e8e2"
               onValueChange={handleToggleActive}
               value={isActive}
+              disabled={isSavingStatus}
             />
           </View>
 
@@ -282,6 +363,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.soft,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  favoriteIconButton: {
+    backgroundColor: colors.forest,
+    borderColor: colors.forest,
+  },
+  deleteIconButton: {
+    backgroundColor: colors.dangerSurface,
+    borderColor: '#F2C7C2',
   },
   scrollContent: {
     paddingHorizontal: 24,

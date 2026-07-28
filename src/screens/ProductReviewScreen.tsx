@@ -17,14 +17,13 @@ type Props = {
 };
 
 const defaultProductData: ProductDraft = {
-  name: 'Effaclar duo+',
-  brand: 'La Roche-Posay',
-  category: 'Serum' as Category,
+  name: '',
+  brand: '',
+  category: 'Diğer' as Category,
   imageUrl: '',
-  cutoutImageUrl: 'local:la-roche-effaclar-kplus',
-  description: 'Niacinamide, Zinc PCA ve salisilik asit içeren hedefli bakım ürünü.',
-  activeIngredients: ['Niacinamide', 'Zinc PCA', 'Salicylic Acid'],
-  expiryDate: '2027-01',
+  description: '',
+  activeIngredients: [],
+  expiryDate: '',
   timeOfDay: 'both',
 };
 
@@ -66,6 +65,15 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   }, [productData.timeOfDay]);
 
   useEffect(() => {
+    if (!productData.name.trim() || !productData.brand.trim()) {
+      setAiAnalysis(null);
+      setConflictData(null);
+      setAiSuggestedTime(null);
+      setAnalysisError(null);
+      setAnalysisLoading(false);
+      return;
+    }
+
     let cancelled = false;
     const timer = setTimeout(async () => {
       setAnalysisLoading(true);
@@ -108,6 +116,10 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   const handleAddIngredient = () => {
     const nextIngredient = ingredientInput.trim();
     if (!nextIngredient) return;
+    if (activeIngredients.some(item => item.toLocaleLowerCase('tr-TR') === nextIngredient.toLocaleLowerCase('tr-TR'))) {
+      setIngredientInput('');
+      return;
+    }
 
     updateProductField('activeIngredients', [...activeIngredients, nextIngredient]);
     setIngredientInput('');
@@ -126,11 +138,22 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
       return;
     }
 
+    const expiryDate = productData.expiryDate?.trim();
+    if (expiryDate && !/^\d{4}-(0[1-9]|1[0-2])$/.test(expiryDate)) {
+      Alert.alert('Geçersiz tarih', 'Son kullanma tarihini YYYY-AA biçiminde gir.');
+      return;
+    }
+
     setLoading(true);
     try {
       // Sprint 2 backend note: Persist only structured product data and routine time; do not store raw camera images.
       const productToSave = {
         ...productData,
+        name: productData.name.trim(),
+        brand: productData.brand.trim(),
+        description: productData.description?.trim() || '',
+        expiryDate: expiryDate || undefined,
+        activeIngredients: activeIngredients.map(item => item.trim()).filter(Boolean),
         timeOfDay,
       };
       if (editingProductId) {
@@ -214,6 +237,33 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
                  </TouchableOpacity>
                ))}
              </View>
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.textAreaSection}>
+            <Text style={styles.label}>Ürün Açıklaması</Text>
+            <TextInput
+              style={styles.textArea}
+              value={productData.description || ''}
+              onChangeText={value => updateProductField('description', value)}
+              placeholder="Ürünün yapısı, kullanım amacı veya önemli notlar"
+              placeholderTextColor="#9aa49d"
+              multiline
+              textAlignVertical="top"
+              maxLength={1000}
+            />
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.detailRow}>
+            <Text style={styles.label}>Son Kullanma</Text>
+            <TextInput
+              style={styles.inputValue}
+              value={productData.expiryDate || ''}
+              onChangeText={value => updateProductField('expiryDate', value)}
+              placeholder="YYYY-AA"
+              placeholderTextColor="#9aa49d"
+              keyboardType="numbers-and-punctuation"
+              maxLength={7}
+            />
           </View>
           <View style={styles.separator} />
           <View style={styles.ingredientSection}>
@@ -408,6 +458,21 @@ const styles = StyleSheet.create({
   sourceNoticeText: { flex: 1, marginLeft: 8, fontFamily: fonts.sansSemiBold, color: colors.sage, fontSize: 12 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   label: { fontFamily: fonts.sansBold, fontSize: 13, color: colors.inkMuted },
+  textAreaSection: {
+    paddingVertical: 8,
+    gap: 10,
+  },
+  textArea: {
+    minHeight: 92,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontFamily: fonts.sans,
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   inputValue: {
     flex: 1,
     minHeight: 42,

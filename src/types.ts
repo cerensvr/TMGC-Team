@@ -13,6 +13,7 @@ export interface Product {
   expiryDate?: string;
   activeIngredients?: string[];
   isFavorite?: boolean;
+  isActive?: boolean;
 }
 
 export type ProductDraft = Omit<Product, 'id'>;

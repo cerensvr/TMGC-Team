@@ -5,6 +5,8 @@ import { errorDev } from '../services/logger';
 
 interface ProductContextType {
   products: Product[];
+  isLoading: boolean;
+  loadError: string | null;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -16,21 +18,28 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Giriş/kayıt sonrası çağrılır: kullanıcının gerçek rafını backend API'den çeker.
   const loadProducts = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await productService.getProducts();
       setProducts(data);
     } catch (error) {
       errorDev('Error loading products:', error);
+      setLoadError('Dolabın şu anda yenilenemedi. Bağlantını kontrol edip tekrar deneyebilirsin.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const addProduct = async (productData: Omit<Product, 'id'>) => {
     try {
       const newProduct = await productService.addProduct(productData);
-      setProducts(prev => [...prev, newProduct]);
+      setProducts(prev => [newProduct, ...prev]);
     } catch (error) {
       errorDev('Error adding product:', error);
       throw error;
@@ -62,10 +71,24 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const clearProducts = () => setProducts([]);
+  const clearProducts = () => {
+    setProducts([]);
+    setLoadError(null);
+  };
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, updateProduct, deleteProduct, loadProducts, clearProducts }}>
+    <ProductContext.Provider
+      value={{
+        products,
+        isLoading,
+        loadError,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        loadProducts,
+        clearProducts,
+      }}
+    >
       {children}
     </ProductContext.Provider>
   );
