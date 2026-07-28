@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -105,20 +106,24 @@ public class AssistantService {
         if (geminiApiClient.isConfigured()) {
             List<SkinLog> recentLogs = skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user);
 
-            // Sohbet geçmişini (hafıza) çekiyoruz
-            List<AssistantMessage> recentChats = assistantMessageRepository.findTop50ByUserOrderByCreatedAtDesc(user);
-            List<AssistantMessage> lastMessages = recentChats.stream()
-                    .limit(6)
+            // Uzun dönem hafızası için 50 mesaja kadar kullanıyoruz; prompt servisi
+            // ham konuşma metnini ayrıca son 4 turla sınırlar.
+            List<AssistantMessage> conversationHistory = assistantMessageRepository
+                    .findTop50ByUserOrderByCreatedAtDesc(user).stream()
                     .sorted(Comparator.comparing(AssistantMessage::getCreatedAt))
                     .toList();
 
-            String fullPrompt = shellyPromptService.buildChatPrompt(profile, products, recentLogs, lastMessages,
-                    prompt);
+            String fullPrompt = shellyPromptService.buildChatPrompt(
+                    profile, products, recentLogs, conversationHistory, prompt, mode);
 
             var result = geminiApiClient.generateJsonWithStatus(
-                    fullPrompt, null, null, shellyPromptService.buildChatResponseSchema());
+                    ShellyPromptService.SYSTEM_PROMPT,
+                    fullPrompt,
+                    null,
+                    null,
+                    shellyPromptService.buildChatResponseSchema());
             if (result.json().isPresent()) {
-                return parseGeminiResponse(result.json().get(), profile, products);
+                return parseGeminiResponse(result.json().get(), profile, products, mode);
             }
             rateLimited = result.isRateLimited();
         }
@@ -152,44 +157,66 @@ public class AssistantService {
     private AssistantChatResponse parseGeminiResponse(
             JsonNode json,
             UserProfile profile,
-            List<Product> products) {
+            List<Product> products,
+            ShellyMode expectedMode) {
         String intentType = json.path("intentType").asText("INFO").equals("ISSUE") ? "ISSUE" : "INFO";
         String detectedIssue = json.path("detectedIssue").isNull() ? null
-                : blankToNull(json.path("detectedIssue").asText(null));
-        String title = textOrDefault(json.path("title").asText(""), "Shelly'nin Yorumu");
-        String summary = personalizeSummary(json.path("summary").asText(""), profile, products);
-        String analysis = textOrDefault(
+                : boundedNullable(json.path("detectedIssue").asText(null), 120);
+        String title = boundedText(
+                textOrDefault(json.path("title").asText(""), "Shelly'nin Yorumu"), 100);
+        String summary = boundedText(
+                personalizeSummary(json.path("summary").asText(""), profile, products), 500);
+        String analysis = boundedText(textOrDefault(
                 json.path("analysis").asText(""),
-                defaultAnalysis(profile, products));
-        String explicitSuggestion = json.path("suggestion").asText("").trim();
+                defaultAnalysis(profile, products)), 1_200);
+        String explicitSuggestion = boundedText(json.path("suggestion").asText("").trim(), 500);
 
-        String detectedMode = normalizeMode(json.path("mode").asText("GENERAL_CHAT"));
+        // Modu backend belirler. Modelin yanlış sınıflandırması cevap sözleşmesini
+        // değiştiremez.
+        String detectedMode = (expectedMode == null ? ShellyMode.GENERAL_CHAT : expectedMode).name();
 
-        // Önerilen ürünleri veritabanı ID'leri ile doğrularken, kontrol için bir
-        // listeye de ekliyoruz
-        List<Product> recommendedList = new ArrayList<>();
-        List<String> recommendations = new ArrayList<>();
+        Map<Long, String> recommendationReasons = new LinkedHashMap<>();
         json.path("recommendedProducts").forEach(node -> {
             Long id = node.path("id").asLong();
-            String reason = node.path("reason").asText("");
+            String reason = boundedText(node.path("reason").asText("").trim(), 260);
             products.stream()
                     .filter(p -> p.getId().equals(id))
                     .findFirst()
-                    .ifPresent(p -> {
-                        recommendations.add("Önerilen: " + p.getBrand() + " " + p.getName() + " -> " + reason);
-                        recommendedList.add(p); // Doğrulanan ürünü güvenlik listesine ekle
-                    });
+                    .ifPresent(p -> recommendationReasons.putIfAbsent(
+                            id,
+                            reason.isBlank() ? "Profilin ve mevcut rutininle ilişkilendirilen raf ürünü." : reason));
         });
 
-        List<String> avoids = new ArrayList<>();
+        Map<Long, String> avoidReasons = new LinkedHashMap<>();
         json.path("avoidProducts").forEach(node -> {
             Long id = node.path("id").asLong();
-            String reason = node.path("reason").asText("");
+            String reason = boundedText(node.path("reason").asText("").trim(), 260);
             products.stream()
                     .filter(p -> p.getId().equals(id))
                     .findFirst()
-                    .ifPresent(p -> avoids.add("Kaçın: " + p.getBrand() + " " + p.getName() + " -> " + reason));
+                    .ifPresent(p -> avoidReasons.putIfAbsent(
+                            id,
+                            reason.isBlank() ? "Mevcut cilt durumu veya rutin yoğunluğu nedeniyle şimdilik ara ver." : reason));
         });
+
+        // Aynı ürün iki listede gelirse daha ihtiyatlı olan "kaçın/ara ver"
+        // kararı üstün gelir.
+        avoidReasons.keySet().forEach(recommendationReasons::remove);
+
+        List<Product> recommendedList = products.stream()
+                .filter(product -> recommendationReasons.containsKey(product.getId()))
+                .limit(3)
+                .toList();
+        List<String> recommendations = recommendedList.stream()
+                .map(product -> "Önerilen: " + product.getBrand() + " " + product.getName() + " -> "
+                        + recommendationReasons.get(product.getId()))
+                .toList();
+        List<String> avoids = products.stream()
+                .filter(product -> avoidReasons.containsKey(product.getId()))
+                .limit(3)
+                .map(product -> "Kaçın: " + product.getBrand() + " " + product.getName() + " -> "
+                        + avoidReasons.get(product.getId()))
+                .toList();
 
         List<String> followUps = new ArrayList<>();
         json.path("followUpQuestions").forEach(q -> {
@@ -199,8 +226,11 @@ public class AssistantService {
             }
         });
 
-        String warning = json.path("warning").asText("").trim();
+        String warning = boundedText(json.path("warning").asText("").trim(), 500);
         String riskLevel = normalizeRisk(json.path("riskLevel").asText("low"));
+        if ("high".equals(riskLevel) && warning.isBlank()) {
+            warning = "Belirti hızla artarsa veya şişlik, su toplama ya da açık yara varsa sağlık profesyoneline başvur.";
+        }
 
         boolean hasRetinoid = false;
         boolean hasAcidOrPeroxide = false;
@@ -381,46 +411,47 @@ public class AssistantService {
         };
     }
 
-    private String normalizeMode(String mode) {
-        try {
-            return ShellyMode.valueOf(mode == null ? "" : mode.trim().toUpperCase(Locale.ROOT)).name();
-        } catch (IllegalArgumentException exception) {
-            return ShellyMode.GENERAL_CHAT.name();
-        }
-    }
-
     private String personalizeSummary(String summary, UserProfile profile, List<Product> products) {
         String cleanSummary = summary == null ? "" : summary.trim();
         String nickname = profile == null ? "" : value(profile.getNickname());
         String skinType = profile == null ? "" : value(profile.getSkinTypeGuess());
         String mainGoal = profile == null ? "" : value(profile.getMainGoal());
+        String sensitivity = profile == null ? "" : value(profile.getSensitivity());
 
-        boolean alreadyPersonalized = containsIgnoreCase(cleanSummary, nickname)
-                || containsIgnoreCase(cleanSummary, skinType)
-                || containsIgnoreCase(cleanSummary, mainGoal);
-        if (alreadyPersonalized && !cleanSummary.isBlank()) {
+        boolean hasName = nickname.isBlank() || containsIgnoreCase(cleanSummary, nickname);
+        boolean hasProfileAnchor = containsIgnoreCase(cleanSummary, skinType)
+                || containsIgnoreCase(cleanSummary, mainGoal)
+                || containsIgnoreCase(cleanSummary, sensitivity);
+        if (hasName && hasProfileAnchor && !cleanSummary.isBlank()) {
             return cleanSummary;
         }
 
-        StringBuilder lead = new StringBuilder();
-        if (!nickname.isBlank()) {
-            lead.append(nickname).append(", ");
-        }
+        String profileAnchor;
         if (!skinType.isBlank() && !mainGoal.isBlank()) {
-            lead.append(skinType).append(" yapını ve ").append(mainGoal).append(" hedefini dikkate aldım.");
+            profileAnchor = skinType + " yapını ve " + mainGoal + " hedefini dikkate aldım.";
         } else if (!skinType.isBlank()) {
-            lead.append(skinType).append(" yapını dikkate aldım.");
+            profileAnchor = skinType + " yapını dikkate aldım.";
         } else if (!mainGoal.isBlank()) {
-            lead.append(mainGoal).append(" hedefini dikkate aldım.");
+            profileAnchor = mainGoal + " hedefini dikkate aldım.";
+        } else if (!sensitivity.isBlank()) {
+            profileAnchor = sensitivity + " hassasiyet bilgini dikkate aldım.";
         } else if (!products.isEmpty()) {
-            lead.append("rafındaki ").append(products.size()).append(" aktif ürünü birlikte değerlendirdim.");
+            profileAnchor = "Rafındaki " + products.size() + " aktif ürünü birlikte değerlendirdim.";
         } else {
-            lead.append("profilindeki mevcut bilgilerle güvenli bir değerlendirme yaptım.");
+            profileAnchor = "Profilindeki mevcut bilgilerle güvenli bir değerlendirme yaptım.";
         }
 
-        return cleanSummary.isBlank()
-                ? lead.toString()
-                : lead + " " + cleanSummary;
+        if (cleanSummary.isBlank()) {
+            return nickname.isBlank() ? profileAnchor : nickname + ", " + profileAnchor;
+        }
+        if (hasName && !hasProfileAnchor) {
+            return cleanSummary + " " + profileAnchor;
+        }
+
+        String prefix = nickname.isBlank() ? "" : nickname + ", ";
+        return hasProfileAnchor
+                ? prefix + cleanSummary
+                : prefix + profileAnchor + " " + cleanSummary;
     }
 
     private String defaultAnalysis(UserProfile profile, List<Product> products) {
@@ -458,6 +489,21 @@ public class AssistantService {
 
     private String textOrDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();
+    }
+
+    private String boundedText(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String clean = value.trim().replaceAll("\\s+", " ");
+        return clean.length() <= maxLength
+                ? clean
+                : clean.substring(0, maxLength).trim() + "…";
+    }
+
+    private String boundedNullable(String value, int maxLength) {
+        String bounded = boundedText(value, maxLength);
+        return bounded.isBlank() ? null : bounded;
     }
 
     private String value(String value) {

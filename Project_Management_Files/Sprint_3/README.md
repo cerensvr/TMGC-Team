@@ -41,6 +41,7 @@ guvenlik ve fallback senaryolari:
 
 - [Shelly tutarli ve kisisel yanit senaryolari](../../docs/shelly-demo-scenarios.md)
 - [Sprint 2 Shelly AI kanit senaryolari](../Sprint_2/Shelly_AI_Scenarios.md)
+- [Shelly yanit kalitesi ve ucretsiz kota dogrulama raporu](shelly-quality-verification.md)
 
 ## Backend Test Kaniti
 

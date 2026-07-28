@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Shelly'nin aktif içerik bilgi tabanı.
@@ -17,10 +18,22 @@ public class IngredientKnowledgeBase {
     public record IngredientRule(String name, List<String> aliases, List<String> facts) {
         boolean matches(String text) {
             String lower = text.toLowerCase(Locale.forLanguageTag("tr-TR"));
-            if (lower.contains(name.toLowerCase(Locale.forLanguageTag("tr-TR")))) {
+            if (containsTerm(lower, name)) {
                 return true;
             }
-            return aliases.stream().anyMatch(alias -> lower.contains(alias.toLowerCase(Locale.forLanguageTag("tr-TR"))));
+            return aliases.stream().anyMatch(alias -> containsTerm(lower, alias));
+        }
+    }
+
+    private record InteractionRule(
+            String name,
+            List<String> firstGroup,
+            List<String> secondGroup,
+            String guidance) {
+        boolean matches(String text) {
+            String lower = text.toLowerCase(Locale.forLanguageTag("tr-TR"));
+            return firstGroup.stream().anyMatch(term -> containsTerm(lower, term))
+                    && secondGroup.stream().anyMatch(term -> containsTerm(lower, term));
         }
     }
 
@@ -58,6 +71,15 @@ public class IngredientKnowledgeBase {
             new IngredientRule("hyaluronic acid", List.of("hyaluronik", "hiyalüronik"), List.of(
                     "Nem desteği sağlar.",
                     "Üzerine nemlendirici ile kapatılması önerilir.")),
+            new IngredientRule("glycerin", List.of("gliserin", "glycerol"), List.of(
+                    "Nem tutucu bir içeriktir ve çoğu rutinde kullanılabilir.",
+                    "Nemlendirici formül içinde bariyer desteğine yardımcı olabilir.")),
+            new IngredientRule("squalane", List.of("skualan"), List.of(
+                    "Yumuşatıcı ve nem kaybını azaltmaya yardımcı bir içeriktir.",
+                    "Çoğu aktif içerikle birlikte kullanılabilir; kişisel tolerans yine de izlenmelidir.")),
+            new IngredientRule("urea", List.of("üre"), List.of(
+                    "Formül yoğunluğuna bağlı olarak nem desteği veya pürüzlü görünüm için kullanılabilir.",
+                    "Tahriş olmuş ya da çatlamış ciltte batma yapabilir; ürün yüzdesi bilinmiyorsa kesin kullanım sıklığı verilmemelidir.")),
             new IngredientRule("ceramide", List.of("panthenol", "centella", "madecassoside", "cica"), List.of(
                     "Bariyer destekleyicidir.",
                     "Hassas ciltler için iyi seçeneklerdir.")),
@@ -71,6 +93,28 @@ public class IngredientKnowledgeBase {
                     "Sivilce benzeri görünüm için kullanılır.",
                     "Kurutucu olabilir.",
                     "Retinol ile birlikte kullanırken dikkat edilmelidir.")),
+            new IngredientRule("PHA", List.of("gluconolactone", "glukonolakton", "lactobionic", "laktobiyonik"), List.of(
+                    "Eksfolyan bir içerik grubudur.",
+                    "AHA/BHA'ya göre daha nazik olabilir ancak hassas ciltte yine kademeli başlanmalıdır.",
+                    "Başka eksfolyanlarla aynı rutinde üst üste kullanmak gereksiz tahriş oluşturabilir.")),
+            new IngredientRule("tranexamic acid", List.of("traneksamik asit", "tranexamic"), List.of(
+                    "Leke ve eşitsiz ton görünümünü hedefleyen kozmetik formüllerde kullanılabilir.",
+                    "Formülün tamamı ve diğer aktiflerle toplam rutin yoğunluğu dikkate alınmalıdır.")),
+            new IngredientRule("alpha arbutin", List.of("alfa arbutin", "arbutin"), List.of(
+                    "Eşitsiz ton ve leke görünümünü hedefleyen kozmetik içeriklerdendir.",
+                    "Tahriş riskini azaltmak için yeni aktifler rutine tek tek eklenmelidir.")),
+            new IngredientRule("kojic acid", List.of("kojik asit", "kojic"), List.of(
+                    "Eşitsiz ton görünümünü hedefleyen ürünlerde bulunabilir.",
+                    "Hassas ciltte iritasyon yapabileceği için düşük sıklık ve yama testi düşünülebilir.")),
+            new IngredientRule("bakuchiol", List.of("bakuchiol"), List.of(
+                    "Retinoid değildir; kozmetik ürünlerde ince çizgi ve ton görünümü hedefiyle kullanılabilir.",
+                    "Retinolle aynı etkiyi garanti ettiği söylenmemeli; kişisel tolerans izlenmelidir.")),
+            new IngredientRule("sulfur", List.of("kükürt", "kukurt"), List.of(
+                    "Yağlanma ve sivilce benzeri görünümü hedefleyen ürünlerde bulunabilir.",
+                    "Kurutucu olabileceği için diğer güçlü aktiflerle toplam rutin yoğunluğu dikkate alınmalıdır.")),
+            new IngredientRule("petrolatum", List.of("vazelin", "petroleum jelly"), List.of(
+                    "Su kaybını azaltmaya yardımcı kapatıcı bir içeriktir.",
+                    "Nem desteğini ciltte tutmaya yardımcı olabilir; tek başına su bazlı nem sağlamaz.")),
             new IngredientRule("SPF", List.of("güneş kremi", "sunscreen", "spf50", "spf30"), List.of(
                     "Sabah rutininin son adımı olarak kullanılır.",
                     "Retinoid, AHA/BHA veya C vitamini kullanılan dönemlerde gündüz kullanımı özellikle önemlidir.",
@@ -79,6 +123,30 @@ public class IngredientKnowledgeBase {
                     "Hassas ciltte reaksiyon riski oluşturabilir.")),
             new IngredientRule("alcohol denat", List.of("denatured alcohol"), List.of(
                     "Hassas veya kuru ciltte kurutucu olabilir.")));
+
+    private static final List<InteractionRule> INTERACTIONS = List.of(
+            new InteractionRule(
+                    "Retinoid + eksfolyan",
+                    List.of("retinol", "retinal", "retinoid", "tretinoin"),
+                    List.of("AHA", "BHA", "glycolic", "glikolik", "salicylic", "salisilik", "PHA",
+                            "gluconolactone"),
+                    "Aynı gece üst üste kullanmak tahriş riskini artırabilir; farklı gecelere ayırmak daha kontrollüdür."),
+            new InteractionRule(
+                    "Retinoid + benzoyl peroxide",
+                    List.of("retinol", "retinal", "retinoid", "tretinoin"),
+                    List.of("benzoyl peroxide", "benzoil peroksit"),
+                    "Birlikte kullanım ürün formülüne ve profesyonel yönlendirmeye bağlıdır; kendi kendine aynı rutinde "
+                            + "üst üste başlatmak yerine farklı zamanlara ayırmak daha ihtiyatlıdır."),
+            new InteractionRule(
+                    "Birden fazla eksfolyan",
+                    List.of("AHA", "glycolic", "glikolik", "lactic", "laktik", "mandelic"),
+                    List.of("BHA", "salicylic", "salisilik", "PHA", "gluconolactone"),
+                    "Birden fazla eksfolyanı aynı rutinde üst üste kullanmak hassasiyet ve kuruluk riskini artırabilir."),
+            new InteractionRule(
+                    "Nem + bariyer desteği",
+                    List.of("hyaluronic", "hyaluronik", "hiyalüronik", "glycerin", "gliserin"),
+                    List.of("ceramide", "panthenol", "centella", "squalane", "skualan", "petrolatum"),
+                    "Nem tutucu ve bariyer destekleyici içerikler çoğu rutinde birlikte katmanlanabilir."));
 
     /** Bilgi tabanının tamamını prompt'a eklenecek metin olarak döner. */
     public String asPromptSection() {
@@ -97,13 +165,20 @@ public class IngredientKnowledgeBase {
      */
     public String relevantRulesAsPromptSection(String context) {
         Map<String, List<String>> matched = matchRules(context);
-        if (matched.isEmpty()) {
+        List<InteractionRule> interactions = matchInteractions(context);
+        if (matched.isEmpty() && interactions.isEmpty()) {
             return "Aktif icerik kurallari: bu baglamda belirli bir aktif icerik eslesmesi tespit edilmedi; "
                     + "genel guvenli oneriler ver.\n";
         }
         StringBuilder builder = new StringBuilder("Aktif icerik kurallari (bu baglamla eslesen, dogrulanmis bilgi tabani):\n");
         matched.forEach((name, facts) -> builder.append("- ").append(name).append(": ")
                 .append(String.join(" ", facts)).append('\n'));
+        if (!interactions.isEmpty()) {
+            builder.append("Etkilesim kontrolleri:\n");
+            interactions.forEach(interaction -> builder.append("- ")
+                    .append(interaction.name()).append(": ")
+                    .append(interaction.guidance()).append('\n'));
+        }
         return builder.toString();
     }
 
@@ -119,5 +194,25 @@ public class IngredientKnowledgeBase {
             }
         }
         return matched;
+    }
+
+    private List<InteractionRule> matchInteractions(String text) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        return INTERACTIONS.stream()
+                .filter(rule -> rule.matches(text))
+                .toList();
+    }
+
+    private static boolean containsTerm(String normalizedText, String term) {
+        if (normalizedText == null || normalizedText.isBlank() || term == null || term.isBlank()) {
+            return false;
+        }
+        String normalizedTerm = term.toLowerCase(Locale.forLanguageTag("tr-TR"));
+        Pattern pattern = Pattern.compile(
+                "(?<![\\p{L}\\p{N}])" + Pattern.quote(normalizedTerm) + "(?![\\p{L}\\p{N}])",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        return pattern.matcher(normalizedText).find();
     }
 }
