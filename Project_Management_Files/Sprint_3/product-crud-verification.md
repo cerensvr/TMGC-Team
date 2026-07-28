@@ -34,11 +34,21 @@ Device: Medium_Phone Android emulator
   cross-client backend synchronization.
 - Barcode camera preview opened without the former `CameraView` children
   runtime warning.
+- An EAN-13 image for `3337875816847` was mounted on the Android Emulator
+  virtual-scene wall and read through the real camera/Expo barcode pipeline.
+- The scan opened the editable review screen with the expected La Roche-Posay
+  Cicaplast Baume B5+ name, brand, image, category, and ingredients.
+- Ingredient analysis returned successfully through the local backend.
+- The scanned product was saved to the cabinet; after Expo Go was force-stopped
+  and reopened, both the scanned product and the earlier manual product were
+  restored from the backend.
 - Manual fallback displayed editable brand, name, category, description,
   expiry date, ingredient, and routine fields.
 
-## Remaining hardware check
+## Hardware scope
 
-No physical Android device was connected during this run. The real-device
-physical barcode scan acceptance item remains pending; emulator and live Open
-Beauty Facts API verification passed.
+No USB-connected physical Android device was available during this run. Per the
+requested emulator test scope, the Android barcode acceptance was exercised with
+the emulator's virtual-scene camera rather than by injecting a barcode value
+directly. A physical-device smoke test is still recommended before a public
+store release, but it is not a blocker for this bootcamp build.
