@@ -1,13 +1,10 @@
 name: quality-check
 
 on:
-  push:
-    branches:
-      - main
-      - feature/product-crud-flow
-  pull_request:
-    branches:
-      - main
+  # GitHub Actions is temporarily manual because the repository owner's
+  # account is billing-locked. Restore push/pull_request triggers after GitHub
+  # re-enables hosted runners for the account.
+  workflow_dispatch:
 
 jobs:
   frontend-build:

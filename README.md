@@ -1,7 +1,5 @@
 # 🌿 TGC-Team
 
-[![quality-check](https://github.com/gismo-o/TMGC-Team/actions/workflows/quality-check.yml/badge.svg)](https://github.com/gismo-o/TMGC-Team/actions/workflows/quality-check.yml)
-
 > **YZTA Bootcamp 2026 Projesi**
 >
 > Yapay zekâ destekli kişiselleştirilmiş cilt bakım asistanı geliştirmeyi amaçlayan mobil uygulama projesi.
