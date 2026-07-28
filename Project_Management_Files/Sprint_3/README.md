@@ -29,3 +29,10 @@ Sprint 3 ilerledikce asagidaki kanitlar bu klasore eklenecektir:
 - AI analiz ve rutin onerisi calisir gosterilmeli
 - Kullanici urun dolabi kalici veriyle calismali
 - README ve proje yonetimi klasorleri eksiksiz baglanmali
+
+## Shelly Yanit Kalitesi
+
+Final demo ve regression testinde kullanilacak kişisellestirme, urun dogrulugu,
+guvenlik ve fallback senaryolari:
+
+- [Shelly tutarli ve kisisel yanit senaryolari](../../docs/shelly-demo-scenarios.md)
