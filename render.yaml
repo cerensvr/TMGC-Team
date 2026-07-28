@@ -8,6 +8,8 @@ services:
     envVars:
       - key: PORT
         value: "10000"
+      - key: SERVER_PORT
+        value: "10000"
       - key: DB_URL
         sync: false
       - key: DB_USERNAME
