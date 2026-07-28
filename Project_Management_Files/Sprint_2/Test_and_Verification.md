@@ -17,7 +17,22 @@ cd backend
 JAVA_HOME=$(/usr/libexec/java_home -v 24) ./mvnw test
 ```
 
-Son sonuc: Passed. `BackendApplicationTests` calisti; 1 test, 0 failure, 0 error.
+Son sonuc: Passed. Backend test profili H2 uzerinde calisti; 11 test, 0 failure, 0 error.
+
+## GitHub Actions CI
+
+```bash
+.github/workflows/quality-check.yml
+```
+
+CI her push ve pull request icin iki kritik kontrolu calistirir:
+
+| Job | Komut | Amac |
+| --- | --- | --- |
+| Frontend TypeScript build | `npm ci`, `npm run build` | Mobil istemci TypeScript sozlesmeleri ve import hatalari |
+| Backend tests | `./mvnw -B test` | Spring context, servis ve test profili dogrulamasi |
+
+`npm run smoke:api` canli Supabase uzerinde test verisi olusturdugu icin CI'da otomatik calistirilmez; sprint kapanisinda manuel kanit olarak saklanir.
 
 ## API Smoke Test
 
@@ -39,6 +54,8 @@ Kayitli cikti: [Backend_API/smoke-api-result.json](Backend_API/smoke-api-result.
 | 20 Temmuz 2026 | `JAVA_HOME=$(/usr/libexec/java_home -v 24) ./mvnw test` | Passed |
 | 20 Temmuz 2026 | `npm run smoke:api` | Passed |
 | 20 Temmuz 2026 | Android emulator live smoke | Passed: login, Dolabim, Rutinim, Shelly, Cilt Takibi, Profil |
+| 28 Temmuz 2026 | `npm run build` | Passed |
+| 28 Temmuz 2026 | `./mvnw -B test` | Passed: 11 test, 0 failure, 0 error |
 
 ## Dogrulanan Kapsam
 

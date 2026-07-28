@@ -9,7 +9,10 @@
     "web": "expo start --web",
     "build": "tsc --noEmit",
     "dev": "expo start --web --port 3000",
-    "smoke:api": "node scripts/smoke-api.mjs"
+    "smoke:api": "node scripts/smoke-api.mjs",
+    "validate:env": "node scripts/validate-env.mjs all",
+    "validate:env:backend": "node scripts/validate-env.mjs backend",
+    "validate:env:mobile": "node scripts/validate-env.mjs mobile"
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",

@@ -6,6 +6,7 @@ import com.skinshelf.backend.dto.ProductRequest;
 import com.skinshelf.backend.dto.ProductResponse;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.User;
+import com.skinshelf.backend.exception.ResourceNotFoundException;
 import com.skinshelf.backend.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,10 @@ public class ProductService {
                 .toList();
     }
 
+    public ProductResponse getProduct(User user, Long productId) {
+        return ProductResponse.from(findOwnedProduct(user, productId));
+    }
+
     public ProductResponse addProduct(User user, ProductRequest request) {
         Product product = new Product();
         product.setUser(user);
@@ -45,8 +50,7 @@ public class ProductService {
     }
 
     public ProductResponse updateProduct(User user, Long productId, ProductRequest request) {
-        Product product = productRepository.findByIdAndUserId(productId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı."));
+        Product product = findOwnedProduct(user, productId);
         applyRequest(product, request);
 
         enrichProductWithAi(product);
@@ -55,9 +59,13 @@ public class ProductService {
     }
 
     public void deleteProduct(User user, Long productId) {
-        Product product = productRepository.findByIdAndUserId(productId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı."));
+        Product product = findOwnedProduct(user, productId);
         productRepository.delete(product);
+    }
+
+    private Product findOwnedProduct(User user, Long productId) {
+        return productRepository.findByIdAndUserId(productId, user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ürün bulunamadı."));
     }
 
     private void applyRequest(Product product, ProductRequest request) {

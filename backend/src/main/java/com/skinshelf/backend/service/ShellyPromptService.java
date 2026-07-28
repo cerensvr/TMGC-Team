@@ -80,6 +80,8 @@ public class ShellyPromptService {
         stringField(properties, "title");
         stringField(properties, "summary");
         stringField(properties, "analysis");
+        stringField(properties, "suggestion");
+        stringField(properties, "warning");
         properties.set("recommendedProducts", productSuggestionArraySchema());
         properties.set("avoidProducts", productSuggestionArraySchema());
         properties.set("followUpQuestions", stringArraySchema());
@@ -87,7 +89,8 @@ public class ShellyPromptService {
         properties.set("tags", stringArraySchema());
 
         schema.putArray("required")
-                .add("intentType").add("mode").add("title").add("summary").add("analysis").add("riskLevel");
+                .add("intentType").add("mode").add("title").add("summary").add("analysis")
+                .add("suggestion").add("warning").add("riskLevel");
 
         return schema;
     }
@@ -130,6 +133,21 @@ public class ShellyPromptService {
         return array;
     }
 
+    private static final String RESPONSE_POLICY = """
+            Shelly cevap standardi:
+            - Yanitini her zaman verilen userProfile, userProducts, recentSkinLogs ve sohbet gecmisiyle sinirla.
+            - Ilk cumlede kullanicinin adini (varsa) ve soruyla ilgili en az bir profil bilgisini dogal bicimde kullan:
+              skinType, mainGoal veya sensitivityLevel. Ilgisiz profil bilgisini sirf kisisellestirmek icin ekleme.
+            - Raf bos degilse analizde en az bir gercek urun veya aktif icerik baglantisi kur. Raf bossa urun varmis gibi konusma.
+            - Onerilen ve kacinilacak urunlerde yalnizca userProducts icindeki gercek ID'leri kullan.
+            - summary 1-2 kisa cumle, analysis 2-4 kisa cumle, suggestion tek uygulanabilir sonraki adim olsun.
+            - warning yalniz gercek bir risk varsa dolu olsun; risk yoksa bos string dondur.
+            - En fazla 2 takip sorusu ve 4 kisa etiket uret.
+            - Ayni bilgiyi summary, analysis, suggestion ve warning alanlarinda tekrar etme.
+            - Kesin sonuc, teshis, tedavi veya garanti dili kullanma. Belirsizligi "olabilir", "gorunuyor" gibi acikca belirt.
+            - Yanit Turkce, sakin, somut ve yargilamayan bir tonda olsun.
+            """;
+
     public String buildChatPrompt(
             UserProfile profile,
             List<Product> products,
@@ -138,6 +156,7 @@ public class ShellyPromptService {
             String userMessage) {
         return SYSTEM_PROMPT
                 + "\n" + knowledgeBase.relevantRulesAsPromptSection(searchableContext(products, userMessage))
+                + "\n" + RESPONSE_POLICY
                 + "\nCevabi YALNIZCA su zengin JSON semasiyla don (baska hicbir aciklama ekleme, doğrudan { ile basla ve } ile bitir):\n"
                 + """
                         {
@@ -157,6 +176,8 @@ public class ShellyPromptService {
                             "Bu kızarıklık ne zamandır var?",
                             "Son 2 gün içinde yeni bir ürün kullandın mı?"
                           ],
+                          "suggestion": "kullanicinin hemen uygulayabilecegi tek net adim",
+                          "warning": "yalniz gercek risk varsa kisa uyari; yoksa bos string",
                           "riskLevel": "low|medium|high",
                           "tags": ["kisa etiketler"]
                         }
@@ -206,6 +227,7 @@ public class ShellyPromptService {
         return SYSTEM_PROMPT
                 + "\n" + knowledgeBase.relevantRulesAsPromptSection(
                         searchableContext(products, value(skinFeeling) + " " + value(userNote)))
+                + "\n" + RESPONSE_POLICY
                 + "\nCevabi YALNIZCA su JSON semasiyla don:\n"
                 + """
                         {
@@ -240,12 +262,21 @@ public class ShellyPromptService {
         if (profile == null) {
             builder.append("- (profil bulunamadi)\n");
         } else {
+            builder.append("- nickname: ").append(value(profile.getNickname())).append('\n');
             builder.append("- skinType: ").append(value(profile.getSkinTypeGuess())).append('\n');
             builder.append("- sensitivityLevel: ").append(value(profile.getSensitivity())).append('\n');
             builder.append("- mainGoal: ").append(value(profile.getMainGoal())).append('\n');
             builder.append("- experienceLevel: ").append(value(profile.getExperience())).append('\n');
             builder.append("- ageRange: ").append(value(profile.getAgeRange())).append('\n');
             builder.append("- reactionHistory: ").append(value(profile.getReactionHistory())).append('\n');
+            builder.append("- currentRoutine: ").append(listValue(profile.getCurrentRoutine())).append('\n');
+            builder.append("- recentActives: ").append(listValue(profile.getRecentActives())).append('\n');
+            builder.append("- concerns: ").append(listValue(profile.getConcerns())).append('\n');
+            builder.append("- allergens: ").append(listValue(profile.getAllergens())).append('\n');
+            builder.append("- conditions: ").append(listValue(profile.getConditions())).append('\n');
+            builder.append("- pregnancy: ")
+                    .append(Boolean.TRUE.equals(profile.getPregnant()) ? "Evet" : "Hayir/belirtilmedi")
+                    .append('\n');
         }
 
         builder.append("userProducts (Kullanicinin Rafındaki Urunler ve ID'leri):\n");
@@ -288,8 +319,8 @@ public class ShellyPromptService {
         }
         StringBuilder builder = new StringBuilder("Sohbet Gecmisi (Hafiza):\n");
         for (AssistantMessage msg : chatHistory) {
-            builder.append("- Kullanici: ").append(msg.getPrompt()).append('\n');
-            builder.append("- Shelly: ").append(msg.getAiResponse()).append('\n');
+            builder.append("- Kullanici: ").append(shorten(msg.getPrompt(), 350)).append('\n');
+            builder.append("- Shelly: ").append(shorten(msg.getAiResponse(), 900)).append('\n');
         }
         return builder.toString();
     }
@@ -335,6 +366,20 @@ public class ShellyPromptService {
             });
         }
         return builder.toString();
+    }
+
+    private String listValue(List<String> values) {
+        return values == null || values.isEmpty() ? "[]" : String.join(", ", values);
+    }
+
+    private String shorten(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        String trimmed = value.trim();
+        return trimmed.length() <= maxLength
+                ? trimmed
+                : trimmed.substring(0, maxLength).trim() + "…";
     }
 
     public ShellyMode detectMode(String message) {

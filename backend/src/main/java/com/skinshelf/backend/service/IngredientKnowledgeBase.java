@@ -31,10 +31,10 @@ public class IngredientKnowledgeBase {
                     "Kullanım döneminde gündüz SPF önemlidir.",
                     "Yeni başlayanlarda haftada 1-2 gece gibi düşük sıklık önerilir.")),
             new IngredientRule("tretinoin", List.of("tretinoın", "retin-a", "retin a"), List.of(
-                    "Reçeteli, güçlü bir retinoiddir; yalnızca gece kullanılır.",
-                    "Kullanım başlangıcında soyulma ve kuruluk beklenen bir yan etkidir.",
+                    "Reçeteli, güçlü bir retinoiddir; yalnızca sağlık profesyoneli yönlendirmesiyle kullanılır.",
+                    "Kullanım başlangıcında soyulma ve kuruluk görülebilir.",
                     "AHA/BHA ve benzoyl peroxide ile aynı gece kullanılması tahrişi artırır.",
-                    "Gündüz SPF kullanımı zorunludur.")),
+                    "Gündüz geniş spektrumlu SPF kullanımı özellikle önemlidir.")),
             new IngredientRule("AHA", List.of("glycolic", "glikolik", "lactic", "laktik", "mandelic"), List.of(
                     "Cilt dokusu ve leke görünümü için kullanılır.",
                     "Hassas ciltte tahriş riski vardır.",
@@ -47,7 +47,7 @@ public class IngredientKnowledgeBase {
             new IngredientRule("azelaic acid", List.of("azelaik asit", "azelaik"), List.of(
                     "Kızarıklık görünümü ve eşitsiz ton için kullanılır.",
                     "Genellikle diğer aktiflere göre daha az tahriş edicidir, hassas ciltte de tercih edilebilir.",
-                    "Retinoid ve asitlerle birlikte kullanılabilir ama kademeli başlanması önerilir.")),
+                    "Retinoid ve asitlerle birlikte kullanım kişisel toleransa bağlıdır; kademeli başlanması önerilir.")),
             new IngredientRule("C vitamini", List.of("vitamin c", "ascorbic", "askorbik"), List.of(
                     "Sabah kullanılabilir.",
                     "SPF ile iyi eşleşir.",
@@ -66,7 +66,7 @@ public class IngredientKnowledgeBase {
                     "Çoğu aktif içerikle uyumludur, sabah veya gece kullanılabilir.")),
             new IngredientRule("zinc", List.of("çinko", "zinc oxide", "zinc pca"), List.of(
                     "Yağ dengesi ve sivilce benzeri görünüm için destekleyicidir.",
-                    "Mineral SPF içeriğinde de bulunur; hassas ciltte iyi tolere edilir.")),
+                    "Mineral SPF içeriğinde de bulunur; bazı hassas ciltler tarafından iyi tolere edilebilir.")),
             new IngredientRule("benzoyl peroxide", List.of("benzoil peroksit"), List.of(
                     "Sivilce benzeri görünüm için kullanılır.",
                     "Kurutucu olabilir.",
@@ -74,7 +74,7 @@ public class IngredientKnowledgeBase {
             new IngredientRule("SPF", List.of("güneş kremi", "sunscreen", "spf50", "spf30"), List.of(
                     "Sabah rutininin son adımı olarak kullanılır.",
                     "Retinoid, AHA/BHA veya C vitamini kullanılan dönemlerde gündüz kullanımı özellikle önemlidir.",
-                    "Mineral (zinc/titanium dioxide) formüller hassas ciltte genelde daha iyi tolere edilir.")),
+                    "Mineral (zinc/titanium dioxide) formüller bazı hassas ciltlerde daha iyi tolere edilebilir.")),
             new IngredientRule("fragrance", List.of("parfum", "parfüm"), List.of(
                     "Hassas ciltte reaksiyon riski oluşturabilir.")),
             new IngredientRule("alcohol denat", List.of("denatured alcohol"), List.of(

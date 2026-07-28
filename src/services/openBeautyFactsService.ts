@@ -6,6 +6,7 @@ interface OpenBeautyFactsProduct {
   brands?: string;
   ingredients_text?: string;
   categories_tags?: string[];
+  image_front_url?: string;
 }
 
 interface OpenBeautyFactsResponse {
@@ -20,6 +21,7 @@ const fields = [
   'brands',
   'ingredients_text',
   'categories_tags',
+  'image_front_url',
 ].join(',');
 
 const normalizeCategory = (product: OpenBeautyFactsProduct): Category => {
@@ -63,7 +65,7 @@ const toProductDraft = (product: OpenBeautyFactsProduct): ProductDraft => {
     brand: product.brands || 'Bilinmeyen Marka',
     category,
     timeOfDay: getRoutineTime(category),
-    imageUrl: '',
+    imageUrl: product.image_front_url || '',
     cutoutImageUrl: matchProductCutout(product.brands, product.product_name),
     description: product.ingredients_text
       ? `Open Beauty Facts verisine göre içerik özeti: ${product.ingredients_text.slice(0, 220)}${product.ingredients_text.length > 220 ? '...' : ''}`
@@ -74,7 +76,12 @@ const toProductDraft = (product: OpenBeautyFactsProduct): ProductDraft => {
 
 export const openBeautyFactsService = {
   getProductByBarcode: async (barcode: string): Promise<ProductDraft | null> => {
-    const url = `${OPEN_BEAUTY_FACTS_BASE_URL}/product/${barcode}?fields=${fields}`;
+    const normalizedBarcode = barcode.replace(/\s+/g, '');
+    if (!/^\d{8,14}$/.test(normalizedBarcode)) {
+      throw new Error('Geçersiz barkod formatı.');
+    }
+
+    const url = `${OPEN_BEAUTY_FACTS_BASE_URL}/product/${encodeURIComponent(normalizedBarcode)}?fields=${fields}`;
     const response = await fetch(url);
 
     if (!response.ok) {

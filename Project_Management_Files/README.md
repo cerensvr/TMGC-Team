@@ -8,7 +8,7 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 | -------- | ---------- | -------------------------------------------------------------------------------------------------------------- | -------------------- |
 | Sprint 1 | Tamamlandi | Proje iskeleti, temel mobil ekranlar, onboarding, urun dolabi prototipi, AI/tarama demo akisi, dokumantasyon   | [Sprint_1](Sprint_1) |
 | Sprint 2 | Tamamlandi | Backend/database entegrasyonu, Open Beauty Facts barkod akisi, Gemini AI analiz servisleri, kalici urun verisi | [Sprint_2](Sprint_2) |
-| Sprint 3 | Planlandi  | Gelismis AI rutin onerileri, bildirimler, analiz gecmisi, test iyilestirmeleri, final demo                     | [Sprint_3](Sprint_3) |
+| Sprint 3 | Devam Ediyor | Gelismis AI rutin onerileri, bildirimler, analiz gecmisi, test iyilestirmeleri, final demo                   | [Sprint_3](Sprint_3) |
 
 ## Genel Dokumanlar
 
@@ -51,3 +51,15 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 | Sprint 2 Review ve Retrospective Raporu                   | Hazır | [Sprint_2/Review_and_Retrospective](Sprint_2/Review_and_Retrospective) |
 | Story Point Dağılımı                                      | Hazır | [Sprint_2/sprint2-story-points.md](Sprint_2/sprint2-story-points.md) |
 | Test Doğrulama                                            | Hazır | [Sprint_2/Test_and_Verification.md](Sprint_2/Test_and_Verification.md) |
+| Shelly AI Kanıt Senaryoları                               | Hazır | [Sprint_2/Shelly_AI_Scenarios.md](Sprint_2/Shelly_AI_Scenarios.md) |
+| Jüri Demo ve Kalite Kontrol Rehberi                       | Hazır | [Sprint_2/Jury_Readiness.md](Sprint_2/Jury_Readiness.md) |
+| GitHub Actions Kalite Kontrolü                            | Hazır | [../.github/workflows/quality-check.yml](../.github/workflows/quality-check.yml) |
+
+## Sprint 3 Kapanis Checklist
+
+| Kanit | Durum | Dosya |
+| --- | --- | --- |
+| Final hazirlik kontrolu | Hazir | [Sprint_3/Final_Readiness.md](Sprint_3/Final_Readiness.md) |
+| Backend test profili | Hazir | [Sprint_3/backend-test-profile-report.md](Sprint_3/backend-test-profile-report.md) |
+| Final ekran goruntuleri | Devam ediyor | [Sprint_3](Sprint_3) |
+| Sprint 3 board / burndown / review | Devam ediyor | [Sprint_3](Sprint_3) |

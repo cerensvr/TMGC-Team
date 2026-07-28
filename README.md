@@ -10,6 +10,23 @@
 
 ---
 
+## Jüri İçin Hızlı Özet
+
+SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shelly'nin ise bu rafı, cilt profilini, içerikleri ve rutin geçmişini birlikte yorumladığı AI destekli mobil cilt bakım dolabıdır.
+
+| Değerlendirme başlığı | Kanıt |
+| --- | --- |
+| Çalışan mobil ürün | [Sprint 2 canlı Android ekranları](Project_Management_Files/Sprint_2/Product_Screenshots) |
+| Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
+| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
+| Scrum/board kanıtı | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
+| Teknik kalite | [GitHub Actions kalite kontrolü](.github/workflows/quality-check.yml), [test doğrulama](Project_Management_Files/Sprint_2/Test_and_Verification.md) |
+| Final demo akışı | [Sprint 3 final hazırlık kontrolü](Project_Management_Files/Sprint_3/Final_Readiness.md) |
+
+**Rakiplerden ayrışan taraf:** SkinShelf yalnızca sohbet eden bir AI ekranı değildir. Ürün dolabı, ürün içerikleri, aktif/pasif rutin seçimi, haftalık rutin planı, cilt takibi ve Shelly yorumları aynı veri akışına bağlanmıştır. Bu nedenle demo sırasında bir ürünün dolaptaki durumu değiştiğinde rutin ve Shelly bağlamı da anlamlı şekilde değişir.
+
+---
+
 ## 👥 Takım Elemanları
 
 | İsim                 | Rol           |
@@ -168,7 +185,7 @@ AI servis planı: [AI_Service_Plan.md](Project_Management_Files/Sprint_1/System_
 
 ## Kurulum ve Çalıştırma
 
-Projeyi lokal ortamda çalıştırmak için:
+Mobil istemciyi lokal ortamda çalıştırmak için:
 
 ```bash
 npm install
@@ -179,6 +196,31 @@ TypeScript build/type kontrolü için:
 
 ```bash
 npm run build
+```
+
+Backend'i lokal ortamda çalıştırmak için:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Backend canlı Supabase ve Gemini ile çalıştırılacaksa gizli değerler Git'e eklenmeyen local env/config dosyalarında tutulmalıdır. Paylaşılabilir şablonlar:
+
+- `.env.example`
+- `.env.production.example`
+- `backend/src/main/resources/application.properties.example`
+
+Production env sözleşmesini doğrulamak için:
+
+```bash
+npm run validate:env
+```
+
+API smoke testi için backend açıkken:
+
+```bash
+npm run smoke:api
 ```
 
 Diğer Expo komutları:
@@ -199,11 +241,13 @@ Proje yönetimi dosyaları sprint bazlı olarak [Project_Management_Files](Proje
 | -------- | ---------- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Sprint 1 | Tamamlandı | Mobil prototip, temel ekranlar, ürün dolabı, AI/tarama demo akışı, Scrum dokümantasyonu | [Sprint_1](Project_Management_Files/Sprint_1) |
 | Sprint 2 | Tamamlandı | Backend, database, Open Beauty Facts barkod akışı, Gemini AI analiz servisleri          | [Sprint_2](Project_Management_Files/Sprint_2) |
-| Sprint 3 | Planlandı  | Gelişmiş rutin önerileri, analiz geçmişi, bildirimler, final demo ve testler            | [Sprint_3](Project_Management_Files/Sprint_3) |
+| Sprint 3 | Devam Ediyor | Gelişmiş rutin önerileri, analiz geçmişi, bildirimler, final demo ve testler          | [Sprint_3](Project_Management_Files/Sprint_3) |
 
 Sprint 1 kanıt indeksi: [Project_Management_Files/Sprint_1/README.md](Project_Management_Files/Sprint_1/README.md)
 
 Sprint 2 kanıt indeksi: [Project_Management_Files/Sprint_2/README.md](Project_Management_Files/Sprint_2/README.md)
+
+Sprint 3 final hazırlık kontrolü: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
 
 ## 📌 Sprint - 1
 
@@ -443,9 +487,11 @@ Sprint 2 kanit dosyalari:
 | Burndown / tamamlanma grafigi | [Burndown_Chart](Project_Management_Files/Sprint_2/Burndown_Chart) |
 | Backend API ve entegrasyon | [Backend_API](Project_Management_Files/Sprint_2/Backend_API) |
 | Sistem mimarisi | [System_Design](Project_Management_Files/Sprint_2/System_Design) |
+| Shelly AI kanıt senaryoları | [Shelly_AI_Scenarios.md](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
 | Urun durumu ve ekran akislari | [Product_Screenshots](Project_Management_Files/Sprint_2/Product_Screenshots) |
 | Review ve retrospective | [Review_and_Retrospective](Project_Management_Files/Sprint_2/Review_and_Retrospective) |
 | Test dogrulama | [Test_and_Verification.md](Project_Management_Files/Sprint_2/Test_and_Verification.md), [smoke-api-result.json](Project_Management_Files/Sprint_2/Backend_API/smoke-api-result.json) |
+| Sprint 2 demo hazirligi | [Jury_Readiness.md](Project_Management_Files/Sprint_2/Jury_Readiness.md) |
 
 ## Sprint Notları
 
@@ -530,6 +576,19 @@ Bu ekranlar 20 Temmuz 2026'da Android emulator uzerinde, Spring Boot API ve Supa
 | --- | --- | --- |
 | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-shelly.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-skin-tracking.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-profile.png" width="180"> |
 
+### Sprint 2 Shelly AI Değer Kanıtı
+
+Shelly, Sprint 2 sonunda kullanıcının rafındaki gerçek ürünleri, cilt profilini ve aktif içerik risklerini birlikte değerlendiren bir danışman akışına taşınmıştır.
+
+| Senaryo | Beklenen değer |
+| --- | --- |
+| `Bugünkü rutinim ağır mı?` | Dolaptaki ürünlere göre sabah/akşam rutinin yoğunluğunu yorumlar. |
+| `Bu iki ürün birlikte kullanılır mı?` | Retinol, BHA/peeling ve benzeri aktifleri aynı geceye yığmadan plan önerir. |
+| `Cildim kızardı ve tepki verdi` | Tanı koymadan rutini sadeleştirir ve ciddi belirti sınırında profesyonel destek yönlendirmesi yapar. |
+| Raf boşken rutin isteme | Marka/ürün uydurmaz; önce ürün ekleme ve temel kategori rutini önerir. |
+
+Detaylı demo senaryoları: [Shelly_AI_Scenarios.md](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md)
+
 ### 1. Dinamik Giriş ve Kayıt Akışı
 
 Kullanıcı kayıt ekranından (`SignUpScreen.tsx`) yeni hesap oluşturduğunda, ad-soyad bilgisi `firstName` ve `lastName` olarak ayrıştırılarak veritabanına kaydedilir. Başarılı kayıt sonrası sistem kullanıcının veritabanı ID'sini alarak onu doğrudan Onboarding ekranına taşır. Onboarding tamamlandığında, analiz verileri Supabase `user_profiles` tablosuna bu kullanıcı kimliğiyle kalıcı olarak yazılır.
@@ -610,20 +669,22 @@ Sprint 2 sonunda ekip, backend veritabanı bağlantısını ve otonom yapay zek�
   Ücretsiz Gemini API kotasının, özellikle geliştirme ve ardışık arayüz testleri sırasında dakikalık istek limiti (15 RPM) nedeniyle hızlıca dolması ve Google sunucularının geçici olarak 503 (Servis Meşgul) hatası döndürmesi ekibi zorlamıştır.
   - _Çözüm:_ Bu zorluk, sistemimizi çökmekten korumak için kod tarafında çok güçlü ve kararlı bir **Yedek/Cankurtaran (Fallback) Motoru** kurgulamamızı zorunlu kılmış ve uygulama kararlılığını en üst düzeye çıkarmıştır. Ayrıca testler için yedek API anahtarlarıyla çalışma pratikleri edinilmiştir.
 
-## 📌 Sprint - 3 (Planlanan)
+## 📌 Sprint - 3 (Devam Ediyor)
 
-Sprint 3'ün ana hedefi final demo kalitesine ulaşmak, gelişmiş AI/rutin özelliklerini tamamlamak ve test/deployment hazırlığını yapmaktır.
+Sprint 3'ün ana hedefi final demo kalitesine ulaşmak, gelişmiş AI/rutin özelliklerini tamamlamak ve test/deployment hazırlığını kapatmaktır.
 
-Planlanan işler:
+Kapanışa getirilen işler:
 
 - Analiz geçmişi ekranı
 - Bildirim ve ürün bitiş hatırlatmaları
 - Gelişmiş rutin öneri ekranları
 - AI yanıtlarının kullanıcı dostu hale getirilmesi
 - Final mobil UI/UX kontrolleri
-- Final demo video/link ve sunum hazırlığı
+- Final demo linki veya sabit ekran kanıt seti ve sunum hazırlığı
 - Sprint 3 board, burndown, daily scrum ve final ürün kanıtlarının eklenmesi
 
-Sprint 3 plan dosyası: [Project_Management_Files/Sprint_3/README.md](Project_Management_Files/Sprint_3/README.md)
+Sprint 3 dosyası: [Project_Management_Files/Sprint_3/README.md](Project_Management_Files/Sprint_3/README.md)
+
+Sprint 3 final kontrol listesi: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
 
 ---

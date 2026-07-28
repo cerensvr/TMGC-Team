@@ -31,12 +31,16 @@ public class GeminiApiClient {
 
     public GeminiApiClient(
             @Value("${app.gemini.api-key:}") String apiKey,
-            @Value("${app.gemini.model:gemini-flash-latest}") String model) {
+            @Value("${app.gemini.model:gemini-3.6-flash}") String model) {
 
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = (model == null || model.isBlank())
-                ? "gemini-flash-latest"
+                ? "gemini-3.6-flash"
                 : model.trim();
+        if (this.model.startsWith("gemini-2.0")) {
+            throw new IllegalStateException(
+                    "Gemini 2.0 modelleri kapatıldı; GEMINI_MODEL için güncel bir model kullanın.");
+        }
 
         this.objectMapper = new ObjectMapper();
 
@@ -211,8 +215,8 @@ public class GeminiApiClient {
 
         ObjectNode generationConfig = root.putObject("generationConfig");
 
-        generationConfig.put("temperature", 0.25);
-        generationConfig.put("maxOutputTokens", 8192);
+        generationConfig.put("candidateCount", 1);
+        generationConfig.put("maxOutputTokens", 4096);
         generationConfig.put("responseMimeType", "application/json");
         if (responseSchema != null) {
             generationConfig.set("responseSchema", responseSchema);
