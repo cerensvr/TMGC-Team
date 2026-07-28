@@ -1,9 +1,10 @@
 const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080/api';
-const password = 'Test123!';
+const password = 'SmokeTest123!';
+const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const scenarios = [
   {
-    email: 'test-kuru@example.com',
+    emailPrefix: 'test-kuru',
     firstName: 'Test',
     lastName: 'Kuru',
     profile: {
@@ -32,7 +33,7 @@ const scenarios = [
     prompt: 'Cildim kızardı ve tepki verdi',
   },
   {
-    email: 'test-yagli@example.com',
+    emailPrefix: 'test-yagli',
     firstName: 'Test',
     lastName: 'Yagli',
     profile: {
@@ -61,7 +62,7 @@ const scenarios = [
     prompt: 'Bu iki ürün birlikte kullanılır mı?',
   },
   {
-    email: 'test-karma@example.com',
+    emailPrefix: 'test-karma',
     firstName: 'Test',
     lastName: 'Karma',
     profile: {
@@ -132,55 +133,22 @@ const request = async (path, options = {}) => {
 
 const authHeaders = (token) => ({ Authorization: `Bearer ${token}` });
 
-const getSession = async (scenario) => {
+const expectStatus = async (status, path, options = {}) => {
   try {
-    const auth = await request('/auth/register', {
-      method: 'POST',
-      body: {
-        email: scenario.email,
-        password,
-        firstName: scenario.firstName,
-        lastName: scenario.lastName,
-      },
-    });
-    return { auth, mode: 'created' };
+    await request(path, options);
   } catch (error) {
-    const alreadyExists = error instanceof ApiError
-      && error.status === 400
-      && String(error.data?.message || '').includes('zaten');
-
-    if (!alreadyExists) {
-      throw error;
+    if (error instanceof ApiError && error.status === status) {
+      return;
     }
-
-    const auth = await request('/auth/login', {
-      method: 'POST',
-      body: {
-        email: scenario.email,
-        password,
-      },
-    });
-    return { auth, mode: 'existing' };
+    throw error;
   }
+  throw new Error(`${options.method || 'GET'} ${path} unexpectedly succeeded; expected ${status}`);
 };
 
-const upsertProduct = async (headers, product) => {
-  const products = await request('/products', { headers });
-  const existingProduct = products.find((item) => item.name === product.name && item.brand === product.brand);
-
-  if (!existingProduct) {
-    return request('/products', {
-      method: 'POST',
-      headers,
-      body: product,
-    });
+const assert = (condition, message) => {
+  if (!condition) {
+    throw new Error(message);
   }
-
-  return request(`/products/${existingProduct.id}`, {
-    method: 'PUT',
-    headers,
-    body: product,
-  });
 };
 
 const verified = [];
@@ -191,51 +159,153 @@ if (health?.status !== 'ok') {
 }
 
 for (const scenario of scenarios) {
-  const { auth, mode } = await getSession(scenario);
+  const email = `${scenario.emailPrefix}+${runId}@example.com`;
+  let token = null;
 
-  const headers = authHeaders(auth.token);
-  const profile = await request('/profiles/me', {
-    method: 'PUT',
-    headers,
-    body: scenario.profile,
-  });
+  try {
+    const registered = await request('/auth/register', {
+      method: 'POST',
+      body: {
+        email,
+        password,
+        firstName: scenario.firstName,
+        lastName: scenario.lastName,
+      },
+    });
+    assert(registered?.token, `Register did not return a token for ${email}`);
 
-  const product = await upsertProduct(headers, scenario.product);
-  const products = await request('/products', { headers });
-  const ingredientAnalysis = await request('/assistant/analyze-ingredients', {
-    method: 'POST',
-    headers,
-    body: {
-      name: scenario.product.name,
-      brand: scenario.product.brand,
-      category: scenario.product.category,
-      description: scenario.product.description,
-      activeIngredients: scenario.product.activeIngredients,
-    },
-  });
-  const assistant = await request('/assistant/chat', {
-    method: 'POST',
-    headers,
-    body: { message: scenario.prompt },
-  });
+    const auth = await request('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+    token = auth.token;
+    const headers = authHeaders(token);
 
-  if (!products.some((item) => item.id === product.id)) {
-    throw new Error(`Product is missing from product list for ${scenario.email}`);
+    const me = await request('/auth/me', { headers });
+    assert(me.email === email, `Authenticated user mismatch for ${email}`);
+
+    await request('/profiles/me', {
+      method: 'PUT',
+      headers,
+      body: scenario.profile,
+    });
+    const updatedDisplayName = `${scenario.profile.displayName} Smoke`;
+    const updatedProfile = await request('/profiles/me', {
+      method: 'PUT',
+      headers,
+      body: { ...scenario.profile, displayName: updatedDisplayName },
+    });
+    const profile = await request('/profiles/me', { headers });
+    assert(updatedProfile.displayName === updatedDisplayName, `Profile update failed for ${email}`);
+    assert(profile.displayName === updatedDisplayName, `Profile read failed for ${email}`);
+
+    const product = await request('/products', {
+      method: 'POST',
+      headers,
+      body: scenario.product,
+    });
+    const updatedProduct = await request(`/products/${product.id}`, {
+      method: 'PUT',
+      headers,
+      body: { ...scenario.product, isFavorite: !scenario.product.isFavorite },
+    });
+    assert(
+      updatedProduct.isFavorite === !scenario.product.isFavorite,
+      `Product update failed for ${email}`,
+    );
+    const products = await request('/products', { headers });
+    assert(
+      products.some((item) => item.id === product.id),
+      `Product is missing from product list for ${email}`,
+    );
+
+    const ingredientAnalysis = await request('/assistant/analyze-ingredients', {
+      method: 'POST',
+      headers,
+      body: {
+        name: scenario.product.name,
+        brand: scenario.product.brand,
+        category: scenario.product.category,
+        description: scenario.product.description,
+        activeIngredients: scenario.product.activeIngredients,
+      },
+    });
+    assert(ingredientAnalysis.summary, `Ingredient analysis is empty for ${email}`);
+
+    const assistant = await request('/assistant/chat', {
+      method: 'POST',
+      headers,
+      body: { message: scenario.prompt },
+    });
+    assert(assistant.aiResponse, `Assistant response is empty for ${email}`);
+    const assistantHistory = await request('/assistant/history', { headers });
+    assert(
+      assistantHistory.some((entry) => entry.prompt === scenario.prompt),
+      `Assistant history is missing the smoke prompt for ${email}`,
+    );
+
+    const skinAnalysis = await request('/skin-logs/analyze', {
+      method: 'POST',
+      headers,
+      body: {
+        skinFeeling: 'Bugün hafif hassas ve kuru',
+        usedNewProduct: true,
+        userNote: `Smoke test ${runId}`,
+        discardPhoto: true,
+      },
+    });
+    assert(skinAnalysis.logId, `Skin analysis did not create a log for ${email}`);
+    const skinLogs = await request('/skin-logs', { headers });
+    assert(
+      skinLogs.some((entry) => entry.id === skinAnalysis.logId),
+      `Skin log list is missing the created entry for ${email}`,
+    );
+    const weeklySummary = await request('/skin-logs/summary/weekly', { headers });
+    assert(weeklySummary.logCount >= 1, `Weekly summary did not count the skin log for ${email}`);
+
+    await request(`/skin-logs/${skinAnalysis.logId}`, { method: 'DELETE', headers });
+    const skinLogsAfterDelete = await request('/skin-logs', { headers });
+    assert(
+      !skinLogsAfterDelete.some((entry) => entry.id === skinAnalysis.logId),
+      `Skin log delete failed for ${email}`,
+    );
+
+    await request(`/products/${product.id}`, { method: 'DELETE', headers });
+    const productsAfterDelete = await request('/products', { headers });
+    assert(
+      !productsAfterDelete.some((item) => item.id === product.id),
+      `Product delete failed for ${email}`,
+    );
+
+    await request('/auth/me', { method: 'DELETE', headers });
+    token = null;
+    await expectStatus(401, '/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+
+    verified.push({
+      email,
+      userId: String(auth.user.id),
+      displayName: profile.displayName,
+      skinType: profile.skinType,
+      mainGoal: profile.mainGoal,
+      productName: product.name,
+      ingredientAnalysisLevel: ingredientAnalysis.compatibilityLevel,
+      suggestedTimeOfDay: ingredientAnalysis.suggestedTimeOfDay,
+      assistantIntent: assistant.intentType,
+      assistantHistoryCount: assistantHistory.length,
+      weeklySkinLogCount: weeklySummary.logCount,
+      cleanup: 'account, product and skin log deleted',
+    });
+  } finally {
+    if (token) {
+      await request('/auth/me', {
+        method: 'DELETE',
+        headers: authHeaders(token),
+      }).catch(() => {});
+    }
   }
-
-  verified.push({
-    email: scenario.email,
-    mode,
-    userId: String(auth.user.id),
-    displayName: profile.displayName,
-    skinType: profile.skinType,
-    mainGoal: profile.mainGoal,
-    productName: product.name,
-    productId: product.id,
-    ingredientAnalysisLevel: ingredientAnalysis.compatibilityLevel,
-    suggestedTimeOfDay: ingredientAnalysis.suggestedTimeOfDay,
-    assistantIntent: assistant.intentType,
-  });
 }
 
 console.log(JSON.stringify({ apiBaseUrl, health, verified }, null, 2));
