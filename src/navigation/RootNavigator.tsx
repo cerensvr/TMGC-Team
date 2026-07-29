@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Calendar, Camera, Home, User } from 'lucide-react-native';
@@ -10,6 +10,7 @@ import { colors, fonts, tabBarStyle } from '../theme';
 import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { useProducts } from '../context/ProductContext';
+import { syncAllNotifications, attachNotificationResponseListener } from '../services/notificationScheduler';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignInScreen from '../screens/SignInScreen';
@@ -30,6 +31,8 @@ import SkinAnalysisResultScreen from '../screens/SkinAnalysisResultScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
 const navTheme = {
   ...DefaultTheme,
   colors: {
@@ -41,6 +44,13 @@ const navTheme = {
 };
 
 function MainTabs() {
+  const { profile } = useUser();
+  const { products } = useProducts();
+
+  useEffect(() => {
+    syncAllNotifications(profile.reminderPreferences, products);
+  }, [profile.reminderPreferences, products]);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -130,6 +140,14 @@ export default function RootNavigator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = attachNotificationResponseListener((screen, params) => {
+      if (!navigationRef.isReady()) return;
+      (navigationRef.navigate as any)(screen, params);
+    });
+    return unsubscribe;
+  }, []);
+
   if (bootState === 'checking') {
     return (
       <View style={styles.splash}>
@@ -140,7 +158,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator
         initialRouteName={bootState === 'authenticated' ? 'MainTabs' : 'Login'}
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
