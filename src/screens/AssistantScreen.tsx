@@ -19,7 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft, Send, Sparkles, Bot, Shield, RotateCcw } from 'lucide-react-native';
 import { RootStackParamList, Message, GeminiBotResponse } from '../types';
 import { useUser } from '../context/UserContext';
-import { callAssistantAPI, fetchAssistantHistory } from '../api/assistant';
+import { callAssistantAPI, clearAssistantHistory, fetchAssistantHistory } from '../api/assistant';
 import ShellyAdviceCard from '../components/ShellyAdviceCard';
 import { errorDev } from '../services/logger';
 import { colors, fonts, radius, shadows } from '../theme';
@@ -173,10 +173,20 @@ export default function AssistantScreen({ navigation }: Props) {
     }
   };
 
-  const handleResetChat = () => {
-    setMessages([]);
-    setInputValue('');
-    setLastResponse(null);
+  const handleResetChat = async () => {
+    if (isLoading) return;
+    try {
+      await clearAssistantHistory();
+      setMessages([]);
+      setInputValue('');
+      setLastResponse(null);
+      setActiveIssue(null);
+    } catch {
+      Alert.alert(
+        'Sohbet temizlenemedi',
+        'Shelly hafızası sunucuda temizlenemedi. Bağlantını kontrol edip tekrar dene.'
+      );
+    }
   };
 
   // CONDITIONAL FLAGS

@@ -56,7 +56,7 @@ public class ShellyPromptService {
             Sen SkinShelf uygulamasindaki akilli, empatik ve uzman yapay zeka cilt bakim asistanisin. Adin 'Shelly'.
             Gorevin: kullanicinin cilt bakim urunlerini, iceriklerini, rutinini ve cilt durumunu analiz etmek, teshis koymadan yonlendirmek.
 
-            Uygulayabilecegin Karar Modlari (Kullanicinin sorusuna gore en uygun modu bizzat sen sec ve JSON'daki 'mode' alanina yaz):
+            Uygulayabilecegin Karar Modlari:
             1. PRODUCT_ANALYSIS: Kullanici yeni bir urunun veya dolabindaki bir urunun cildine uygun olup olmadigini sordugunda.
             2. ROUTINE_CHECK: Kullanici sabah/aksam rutin siralamasi, adim yogunlugu veya rutin ağırlığı sordugunda.
             3. INGREDIENT_ANALYSIS: İceriklerin eslesmelerini, aktif icerik uyumunu veya çakışmasını sordugunda.
@@ -66,12 +66,15 @@ public class ShellyPromptService {
             7. GENERAL_CHAT: Genel cilt bakim sorulari soruldugunda.
 
             Kurallar:
+            - Her istekte backend tarafindan "Secilmis cevap modu" verilir. Modu yeniden siniflandirma; JSON'daki mode alanina tam olarak bu degeri yaz.
             - Kesinlikle dermatolog degilsin, tibbi teshis koyma. "Sende egzama var" demek yerine "egzama benzeri pullanma ve kizariklik gorunumu" de.
             - Receteli ilac önerme. Acil durumlarda (sislik, su toplama, acik yara vb.) dermatologa veya acil saglik profesyoneline yonlendir.
             - Kullaniciyla dinamik ve cok turlu bir sohbet (interaktif tani dongusu) yurut.
             - Tek seferde her seyi anlatip konuyu kapatma. Kullaniciya cilt durumunu netlestirecek kisa, mantikli takip sorulari sor (followUpQuestions).
             - Onerdigin veya kacin dedigin urunleri YALNIZCA kullanicinin kendi "userProducts" listesinde yer alan gercek ID'ler ile eslestir.
             - Asla kullanicinin rafında olmayan uydurma bir urun ID'si üretme.
+            - userProducts icindeki "rutinde_pasif" urun de kullanicinin sahip oldugu urundur; onu yok sayip yeniden satin almasini onerme.
+            - Rutin ve haftalik planlarda yalniz "rutinde_aktif" urunleri kullan. Pasif urunu ancak yeniden etkinlestirme secenegi olarak acikca belirt.
             - Turkce samimi ve guven veren bir dille yanit ver.
             """;
 
@@ -183,8 +186,12 @@ public class ShellyPromptService {
               skinType, mainGoal veya sensitivityLevel. Ilgisiz profil bilgisini sirf kisisellestirmek icin ekleme.
             - Raf bos degilse analizde en az bir gercek urun veya aktif icerik baglantisi kur. Raf bossa urun varmis gibi konusma.
             - Onerilen ve kacinilacak urunlerde yalnizca userProducts icindeki gercek ID'leri kullan.
-            - Dolapta uygun urun varsa once onu degerlendir. Dolap yetersizse marka uydurmadan yalniz urun kategorisi veya
-              aranacak icerik ozelligi soyle; recommendedProducts ve avoidProducts dizilerine dolap disi urun ekleme.
+            - SATIN ALMA KARARI: Dolapta ayni ihtiyaci karsilayabilecek urun varsa once onu adiyla degerlendir ve yeni urun
+              almaya gerek olup olmadigini acikca soyle. "rutinde_pasif" urun de dolapta vardir; yeniden satin alma onerme.
+            - Dolap gercekten yetersizse marka/urun uydurmadan yalniz urun kategorisi veya aranacak icerik ozelligi soyle;
+              recommendedProducts ve avoidProducts dizilerine dolap disi urun ekleme.
+            - ROUTINE_CHECK, WEEKLY_PLAN ve SKIN_REACTION modlarinda recommendedProducts/avoidProducts icin yalniz
+              "rutinde_aktif" urun ID'lerini kullan.
             - summary 1-2 kisa cumle, analysis 2-4 kisa cumle, suggestion tek uygulanabilir sonraki adim olsun.
             - warning yalniz gercek bir risk varsa dolu olsun; risk yoksa bos string dondur.
             - En fazla 3 onerilen ve 3 ara verilecek/kacinilacak raf urunu sec.
@@ -373,6 +380,11 @@ public class ShellyPromptService {
                     .append(" | marka: ").append(value(product.getBrand()))
                     .append(" | isim: ").append(value(product.getName()))
                     .append(" | kategori: ").append(value(product.getCategory()))
+                    .append(" | durum: ")
+                    .append(product.getIsActive() == null || product.getIsActive()
+                            ? "rutinde_aktif"
+                            : "rutinde_pasif")
+                    .append(" | kullanim_zamani: ").append(value(product.getTimeOfDay()))
                     .append(" | icerikler: ")
                     .append(product.getActiveIngredients() == null ? "[]"
                             : String.join(", ", product.getActiveIngredients()))
@@ -417,6 +429,9 @@ public class ShellyPromptService {
             case PRODUCT_ANALYSIS -> """
                     - Once sorulan urunun dolapta olup olmadigini ayirt et.
                     - Dolaptaysa urunun kendi icerigi, profil ve gunluk baglantisini kur.
+                    - Kullanici "almali miyim/onerir misin" diyorsa ayni ihtiyaci karsilayan dolap urunlerini once kontrol et.
+                    - Dolaptaki urun rutinde_pasif olsa bile kullanici ona sahiptir; yeniden satin almasini onerme,
+                      gerekirse urun detayindan rutin kullanımını actirmayi soyle.
                     - Dolapta degilse satin alma emri verme; marka uydurmadan urun kategorisi/icerik olcutu soyle ve
                       urun adini veya icerik listesini iste.
                     """;

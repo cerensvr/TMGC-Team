@@ -101,13 +101,32 @@ Gemini API anahtarı kaldırılarak veya test ortamında servis devre dışı b�
 - Kullanıcıya uygulanabilir tek bir sonraki adım verilmelidir.
 - Yanıt, yapay zekâ servisinin geçici durumunu korkutucu olmayan bir dille belirtmelidir.
 
+## Senaryo 8 — Dolap ürünü satın alma önceliği
+
+**Profil:** Ceren, Hassas Cilt, bariyer desteği hedefi
+
+**Dolap:** Seramidli nemlendirici (`rutinde_pasif`)
+
+**Soru:** “Yeni bir nemlendirici almalı mıyım?”
+
+**Beklenen davranış:**
+
+- Seramidli nemlendiricinin kullanıcının dolabında zaten bulunduğunu söylemelidir.
+- Yeni marka veya ürün satın almayı önermeden önce mevcut ürünü değerlendirmelidir.
+- Ürünün rutinde pasif olduğunu açıkça ayırmalı; kullanıcıya yeniden ürün
+  aldırmak yerine uygunsa ürün detayından rutin kullanımını açmayı önermelidir.
+- Pasif ürünü kendiliğinden sabah/akşam rutinine eklememelidir.
+
 ## Demo geçiş ölçütü
 
-Yedi senaryonun tamamı çökmeden tamamlanmalı; ürün uydurma, tanı koyma veya güçlü aktifleri aynı gece önerme hatası görülmemelidir. Bir yanıtın farklı kelimeler kullanması hata değildir; kişisel ankraj, ürün doğruluğu, güvenlik ve sonraki adım zorunludur.
+Sekiz senaryonun tamamı çökmeden tamamlanmalı; ürün uydurma, kullanıcıda bulunan
+ürünü yeniden satın aldırma, tanı koyma veya güçlü aktifleri aynı gece önerme
+hatası görülmemelidir. Bir yanıtın farklı kelimeler kullanması hata değildir;
+kişisel ankraj, ürün doğruluğu, güvenlik ve sonraki adım zorunludur.
 
 ## Otomatik kalite kapısı
 
-Manuel yedi demo senaryosuna ek olarak
+Manuel sekiz demo senaryosuna ek olarak
 `backend/src/test/resources/shelly-golden-cases.json` içinde 42 kısa kullanıcı
 cümlesi bulunur. Bu set ürün analizi, rutin kontrolü, içerik analizi, cilt
 reaksiyonu, haftalık plan ve genel sohbet modlarının tamamını kapsar.
