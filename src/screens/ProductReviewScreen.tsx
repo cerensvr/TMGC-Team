@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -89,6 +88,11 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
           message: analysis.compatibilityMessage,
         });
         setAiSuggestedTime(analysis.suggestedTimeOfDay);
+
+        // GÜNCELLEME: Yapay zekanın önerdiği en güvenli saati arayüz butonlarında otomatik olarak seçiyoruz (Dermatolog Kalkanı)
+        if (analysis.suggestedTimeOfDay) {
+          setTimeOfDay(analysis.suggestedTimeOfDay);
+        }
       } catch (error) {
         errorDev('Ingredient analysis error:', error);
         if (cancelled) return;
@@ -146,7 +150,6 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
 
     setLoading(true);
     try {
-      // Sprint 2 backend note: Persist only structured product data and routine time; do not store raw camera images.
       const productToSave = {
         ...productData,
         name: productData.name.trim(),
@@ -163,9 +166,12 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
       }
       logDev('Product saved successfully');
       navigation.navigate('MainTabs');
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Error adding product:', error);
-      Alert.alert('Hata', 'Ürün eklenirken bir hata oluştu.');
+      
+      // GÜNCELLEME: Kullanıcı dostu hata uyarı mesajı
+      const errorMessage = error?.message || 'Ürün dolabınıza kaydedilemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.';
+      Alert.alert('Hata', errorMessage);
     } finally {
       setLoading(false);
     }

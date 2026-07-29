@@ -49,24 +49,34 @@ export default function SignInScreen({ navigation }: Props) {
     try {
       const response = await authService.login({ email, password });
       let onboarded = false;
-      if (response.user?.id) {
+
+      // DÜZELTİLDİ: Spring Boot'tan dönen doğrudan kullanıcı nesnesi eşleştirildi (response.user katmanı kaldırıldı)
+      const userId = (response as any).id;
+
+      if (userId) {
         setAccount({
-          email: response.user.email,
-          firstName: response.user.firstName,
-          lastName: response.user.lastName,
+          email: (response as any).email,
+          firstName: (response as any).firstName,
+          lastName: (response as any).lastName,
         });
-        const [profileData] = await Promise.all([loadProfile(response.user.id), loadProducts()]);
+        
+        // Kullanıcının profilini ve dolabını yüklüyoruz
+        const [profileData] = await Promise.all([loadProfile(userId), loadProducts()]);
         onboarded = Boolean(profileData?.isOnboarded);
       }
 
       if (onboarded) {
         navigation.replace('MainTabs');
       } else {
-        navigation.replace('Onboarding');
+        // Eğer kullanıcı henüz onboarding yapmadıysa, ID'si ile birlikte onboarding'e yönlendirilir
+        (navigation as any).replace('Onboarding', { userId: userId });
       }
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Login error:', error);
-      Alert.alert('Hata', 'Giriş yapılamadı. Bilgilerinizi kontrol edin.');
+      
+      // GÜNCELLEME: Sunucudan (API'den) dönen "E-posta veya şifre hatalı" gibi kullanıcı dostu mesajı ekrana basar
+      const errorMessage = error?.message || 'Giriş yapılamadı. Lütfen bilgilerinizi ve internet bağlantınızı kontrol edin.';
+      Alert.alert('Hata', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -75,7 +85,7 @@ export default function SignInScreen({ navigation }: Props) {
   const handleForgotPassword = () => {
     Alert.alert(
       'Şifre Sıfırlama',
-      'Şifre sıfırlama e-postası için destek ekibiyle iletişime geçmen gerekiyor. Otomatik sıfırlama e-posta servisi prod ortamında ayrıca bağlanacak.'
+      'Şifre sıfırlama e-postası için destek ekibiyle iletişime geçmeniz gerekiyor. Otomatik sıfırlama e-posta servisi prod ortamında ayrıca bağlanacak.'
     );
   };
 

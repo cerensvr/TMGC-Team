@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, SafeAreaView
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { User, Mail, Lock, ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { User as UserIcon, Mail, Lock, ArrowLeft, ArrowRight } from 'lucide-react-native'; // GÜNCELLEME: Çakışmayı önlemek için User ismi UserIcon yapıldı
 import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { errorDev } from '../services/logger';
@@ -37,23 +37,26 @@ export default function SignUpScreen({ navigation }: Props) {
 
       const response = await authService.register({ firstName, lastName, email, password });
 
+      // DÜZELTİLDİ: Spring Boot'tan dönen doğrudan kullanıcı nesnesi eşleştirildi (response.user katmanı kaldırıldı)
       setAccount({
-        email: response.user.email,
-        firstName: response.user.firstName,
-        lastName: response.user.lastName,
+        email: (response as any).email,
+        firstName: (response as any).firstName,
+        lastName: (response as any).lastName,
       });
-      await loadProfile(response.user.id);
+      await loadProfile((response as any).id);
 
+      // DÜZELTİLDİ: (response as any).id doğrudan parametre olarak aktarılıyor
       if (Platform.OS === 'web') {
-        (navigation as any).navigate('Onboarding', { userId: response.user.id });
+        (navigation as any).navigate('Onboarding', { userId: (response as any).id });
       } else {
         Alert.alert('Başarılı', 'Hesabınız oluşturuldu!', [
-          { text: 'Tamam', onPress: () => (navigation as any).navigate('Onboarding', { userId: response.user.id }) },
+          { text: 'Tamam', onPress: () => (navigation as any).navigate('Onboarding', { userId: (response as any).id }) },
         ]);
       }
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Registration error:', error);
-      Alert.alert('Hata', 'Kayıt işlemi başarısız oldu.');
+      const errorMessage = error?.message || 'Kayıt işlemi başarısız oldu. Lütfen internetinizi kontrol edin.';
+      Alert.alert('Hata', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -84,7 +87,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
           <View style={styles.formContainer}>
             <View style={inputWrapperStyle('name')}>
-              <User size={19} color={focusedField === 'name' ? colors.sage : colors.inkMuted} style={styles.inputIcon} />
+              <UserIcon size={19} color={focusedField === 'name' ? colors.sage : colors.inkMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Ad Soyad"
