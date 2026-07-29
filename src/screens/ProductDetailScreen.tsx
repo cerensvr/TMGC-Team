@@ -48,14 +48,13 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   
   const product = products.find(p => p.id === route.params.productId);
 
-  // DÜZELTİLDİ: TypeScript hatasını önlemek için (product as any) esnetmeleri yapıldı
-  const [isActive, setIsActive] = useState((product as any)?.isActive ?? (product as any)?.is_active ?? true);
-  const [isFavorite, setIsFavorite] = useState((product as any)?.isFavorite ?? (product as any)?.is_favorite ?? false);
+  const [isActive, setIsActive] = useState(product?.isActive ?? true);
+  const [isFavorite, setIsFavorite] = useState(product?.isFavorite ?? false);
 
   useEffect(() => {
-    setIsActive((product as any)?.isActive ?? (product as any)?.is_active ?? true);
-    setIsFavorite((product as any)?.isFavorite ?? (product as any)?.is_favorite ?? false);
-  }, [(product as any)?.isActive, (product as any)?.is_active, (product as any)?.isFavorite, (product as any)?.is_favorite]);
+    setIsActive(product?.isActive ?? true);
+    setIsFavorite(product?.isFavorite ?? false);
+  }, [product?.isActive, product?.isFavorite]);
 
   const handleToggleActive = async (value: boolean) => {
     if (!product || isSavingStatus) return;

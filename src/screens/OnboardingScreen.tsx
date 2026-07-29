@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native'; // GÜNCELLEME: Alert eklendi
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft, ArrowRight, Camera, Check, PenLine, Sparkles } from 'lucide-react-native';
 import { ProductDraft, RootStackParamList } from '../types';
@@ -95,12 +95,11 @@ export default function OnboardingScreen({ navigation }: Props) {
     setSelected(withoutExclusive.includes(value) ? withoutExclusive.filter(item => item !== value) : [...withoutExclusive, value]);
   };
 
-  // GÜNCELLEME: Başarı durumuna göre Boolean (true/false) dönen güvenli yapı kuruldu
-  const saveProfile = async (): Promise<boolean> => {
+  const saveProfile = async () => {
     if (!userId) {
       warnDev('Oturum açmış kullanıcı ID bilgisi bulunamadı!');
-      Alert.alert('Hata', 'Oturum açmış kullanıcı bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
-      return false;
+      alert('Lütfen önce giriş yapın.');
+      return;
     }
 
     const profileData = {
@@ -125,40 +124,26 @@ export default function OnboardingScreen({ navigation }: Props) {
       logDev('Profil Spring Boot API ile kaydediliyor.');
       await userService.updateProfile(String(userId), profileData);
       logDev('Profil başarıyla kaydedildi.');
-      
-      // Yerel state'i sadece sunucu kaydı başarılıysa güncelliyoruz
-      await updateUserProfile(profileData, { persist: false });
-      return true;
-    } catch (error: any) {
+    } catch (error) {
       errorDev('Cilt profili kaydedilirken hata oluştu:', error);
-      
-      // GÜNCELLEME: Kullanıcı dostu hata uyarı kalkanı
-      const errorMessage = error?.message || 'Cilt profiliniz veritabanına kaydedilemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.';
-      Alert.alert('Hata', errorMessage);
-      return false; // Hata durumunda false döner, yönlendirmeyi bloke eder (Retry fırsatı sunar)
     }
+
+    await updateUserProfile(profileData, { persist: false });
   };
 
-  // GÜNCELLEME: Yönlendirmeler sadece saveProfile 'true' döndüğünde çalışacak şekilde kilitlendi (Doğal Retry)
   const completeToMain = async () => {
-    const success = await saveProfile();
-    if (success) {
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-    }
+    await saveProfile();
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
   };
 
   const completeToScanner = async () => {
-    const success = await saveProfile();
-    if (success) {
-      navigation.navigate('Scanner');
-    }
+    await saveProfile();
+    navigation.navigate('Scanner');
   };
 
   const completeToManualProduct = async () => {
-    const success = await saveProfile();
-    if (success) {
-      navigation.navigate('ProductReview', { scannedProduct: manualProductDraft, source: 'manual' });
-    }
+    await saveProfile();
+    navigation.navigate('ProductReview', { scannedProduct: manualProductDraft, source: 'manual' });
   };
 
   const canContinue = () => {

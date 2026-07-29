@@ -108,13 +108,10 @@ export default function AssistantScreen({ navigation }: Props) {
       const response = await callAssistantAPI(prompt);
       setLastResponse(response);
 
-      // GÜNCELLEME: Hem ai_response (snake_case) hem de aiResponse (camelCase) alanlarını güvenle okuyoruz
-      const textResponse = response.ai_response || (response as any).aiResponse || 'Shelly bir yanıt üretemedi.';
-
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         from: 'ai',
-        text: textResponse,
+        text: response.ai_response,
         structured: response.structured ?? undefined,
       };
       setMessages(prev => [...prev, aiMsg]);
@@ -132,6 +129,7 @@ export default function AssistantScreen({ navigation }: Props) {
   };
 
   const handleSendMessage = async (event?: any) => {
+    // Web'de form submit / sayfa yenileme yan etkilerini engelle
     if (event) {
       if (typeof event.preventDefault === 'function') event.preventDefault();
       if (typeof event.stopPropagation === 'function') event.stopPropagation();
@@ -149,11 +147,8 @@ export default function AssistantScreen({ navigation }: Props) {
     await sendPrompt(prompt);
   };
 
-  // GÜNCELLEME: detected_issue ve detectedIssue alanlarını güvenle okuyoruz
-  const activeDetectedIssue = lastResponse?.detected_issue || (lastResponse as any)?.detectedIssue;
-
   const handleToggleSafePlan = (value: boolean) => {
-    if (!activeDetectedIssue) return;
+    if (!lastResponse?.detected_issue) return;
 
     if (value) {
       Animated.sequence([
@@ -161,11 +156,11 @@ export default function AssistantScreen({ navigation }: Props) {
         Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
       ]).start();
 
-      setActiveIssue(activeDetectedIssue);
+      setActiveIssue(lastResponse.detected_issue);
 
       Alert.alert(
         'Güvenli Mod Aktif',
-        `"${activeDetectedIssue}" nedeniyle Güvenli Mod başlatıldı. Rutinim ekranında ürün filtreleri ve koruma bantları aktif oldu.`,
+        `"${lastResponse.detected_issue}" nedeniyle Güvenli Mod başlatıldı. Rutinim ekranında ürün filtreleri ve koruma bantları aktif oldu.`,
         [{ text: 'Tamam' }]
       );
     } else {
@@ -196,10 +191,7 @@ export default function AssistantScreen({ navigation }: Props) {
 
   // CONDITIONAL FLAGS
   const hasMessages = messages.length > 0;
-  
-  // GÜNCELLEME: Hem intent_type / intentType hem de detected_issue / detectedIssue alanları çift yönlü okunuyor
-  const activeIntentType = lastResponse?.intent_type || (lastResponse as any)?.intentType;
-  const showSafePlanButton = activeIntentType === 'ISSUE' && activeDetectedIssue && !isLoading;
+  const showSafePlanButton = lastResponse?.intent_type === 'ISSUE' && lastResponse?.detected_issue && !isLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -292,7 +284,7 @@ export default function AssistantScreen({ navigation }: Props) {
                     </View>
                   </View>
                   <Switch
-                    value={activeIssue === activeDetectedIssue}
+                    value={activeIssue === lastResponse?.detected_issue}
                     onValueChange={handleToggleSafePlan}
                     trackColor={{ false: colors.surfaceSage, true: colors.danger }}
                     thumbColor={colors.surface}
