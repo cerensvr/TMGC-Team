@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">SkinShelf app icon</title>
+  <defs>
+    <radialGradient id="background" cx="42%" cy="35%" r="76%">
+      <stop offset="0" stop-color="#FFFDF7"/>
+      <stop offset="1" stop-color="#EEF3E9"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#background)"/>
+  <image href="brand-mark.svg" x="138" y="138" width="748" height="748"/>
+</svg>
