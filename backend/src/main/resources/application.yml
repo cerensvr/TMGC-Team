@@ -7,9 +7,12 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
+      maximum-pool-size: 3
+      minimum-idle: 0
       max-lifetime: 300000
       keepalive-time: 120000
-      connection-timeout: 30000
+      idle-timeout: 60000
+      connection-timeout: 15000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -32,3 +35,4 @@ app:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.6-flash}
+    fallback-model: ${GEMINI_FALLBACK_MODEL:gemini-3.5-flash-lite}

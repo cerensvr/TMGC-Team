@@ -4,10 +4,10 @@
     "slug": "skinshelf",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-release.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-release.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
     "android": {
       "package": "com.skinshelf.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon-release.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
@@ -43,7 +43,8 @@
         "expo-image-picker",
         {
           "photosPermission": "SkinShelf cilt takibi için galerinden fotoğraf seçmene izin verir.",
-          "cameraPermission": "SkinShelf cilt takibi fotoğrafı çekmek için kamerayı kullanır."
+          "cameraPermission": "SkinShelf cilt takibi fotoğrafı çekmek için kamerayı kullanır.",
+          "microphonePermission": false
         }
       ]
     ],

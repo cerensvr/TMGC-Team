@@ -39,6 +39,12 @@ public class AssistantController {
         return ResponseEntity.ok(assistantService.history(currentUser));
     }
 
+    @DeleteMapping("/history")
+    public ResponseEntity<Void> clearHistory(@AuthenticationPrincipal User currentUser) {
+        assistantService.clearHistory(currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/analyze-ingredients")
     public ResponseEntity<IngredientAnalysisResponse> analyzeIngredients(
             @AuthenticationPrincipal User currentUser,

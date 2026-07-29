@@ -28,6 +28,7 @@ Bu dosya Sprint 2 sonunda mobil ve backend arasinda netlesen ana sozlesmeleri oz
 | --- | --- | --- |
 | POST | `/api/assistant/chat` | Shelly'nin kullanici mesaji, profil ve dolap baglamiyla cevap uretmesi |
 | GET | `/api/assistant/history` | Son konusmalarin mobil arayuze yuklenmesi |
+| DELETE | `/api/assistant/history` | Yeni sohbet baslatirken kalici Shelly hafizasini temizleme |
 | POST | `/api/assistant/analyze-ingredients` | Icerik listesi icin risk ve kullanim yorumu |
 
 ## Skin Tracking
@@ -38,4 +39,3 @@ Bu dosya Sprint 2 sonunda mobil ve backend arasinda netlesen ana sozlesmeleri oz
 | GET | `/api/skin-logs` | Cilt takip gecmisini listeleme |
 | GET | `/api/skin-logs/summary/weekly` | Haftalik cilt ozeti uretme |
 | DELETE | `/api/skin-logs/{logId}` | Kayit silme |
-

@@ -41,8 +41,15 @@ guvenlik ve fallback senaryolari:
 
 - [Shelly tutarli ve kisisel yanit senaryolari](../../docs/shelly-demo-scenarios.md)
 - [Sprint 2 Shelly AI kanit senaryolari](../Sprint_2/Shelly_AI_Scenarios.md)
+- [Shelly yanit kalitesi ve ucretsiz kota dogrulama raporu](shelly-quality-verification.md)
 
 ## Backend Test Kaniti
 
 - [Izole backend test profili ve Flyway dogrulama raporu](backend-test-profile-report.md)
 - [Canli Render/Supabase/Gemini API smoke test raporu](live-api-smoke-report.md)
+
+## Android Preview APK
+
+- [EAS build ve iki temiz emulator dogrulama raporu](android-preview-apk-verification.md)
+- [SkinShelf 1.0.0 (7) EAS build sayfasi](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697)
+- [Final Android kanit ekranlari](Product_Screenshots)

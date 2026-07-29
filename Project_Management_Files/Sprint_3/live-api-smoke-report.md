@@ -8,9 +8,10 @@ Tarih: 28 Temmuz 2026
 
 - Backend: `https://skinshelf-backend.onrender.com`
 - Veritabanı: SkinShelf Supabase, Frankfurt session pooler
-- AI modeli: `gemini-3.6-flash`
+- AI modelleri: ana `gemini-3.6-flash`, ücretsiz yedek
+  `gemini-3.5-flash-lite`
 - Kaynak branch: `main`
-- Doğrulanan release commit'i: `30653d8`
+- Doğrulanan release commit'i: `5596e0d`
 
 Gerçek DB şifresi, JWT secret ve Gemini API anahtarı yalnızca Render secret
 alanlarında tutuldu; bu rapora veya Git geçmişine eklenmedi.
@@ -24,8 +25,9 @@ status: ok
 service: skinshelf-backend
 ```
 
-Render başlangıç loglarında PostgreSQL 17.6 bağlantısı, Flyway V1-V6
-migration doğrulaması ve Spring Boot'un `10000` portunda başlaması görüldü.
+Render başlangıç loglarında PostgreSQL 17.6 bağlantısı, yedi Flyway
+migration'ının doğrulanması ve Spring Boot'un `10000` portunda başlaması
+görüldü.
 
 ## Smoke Komutu
 
@@ -43,11 +45,14 @@ API_BASE_URL=https://skinshelf-backend.onrender.com/api npm run smoke:api
 - Kullanıcı bilgisi
 - Profil oluşturma, güncelleme ve okuma
 - Ürün oluşturma, listeleme, güncelleme ve silme
-- Gemini destekli ingredient analysis
+- Yerel bilgi tabanı destekli ingredient analysis
 - Kişisel Shelly chat yanıtı ve chat geçmişi
 - Skin log oluşturma, listeleme, haftalık özet ve silme
 - Hesap silme ve silinen hesapla girişin reddedilmesi
 
-Gemini çağrıları Render loglarında HTTP 200 döndü. Smoke betiği her çalıştırmada
-benzersiz e-posta üretir ve oluşturduğu hesap, ürün ve skin log verilerini
-temizler. Sonuç: **Passed (3/3 senaryo)**.
+Shelly her profilde güncellenmiş kullanıcı adını kullandı ve beklenen modları
+döndürdü: kuru/hassas profilde `SKIN_REACTION`, yağlı/akne eğilimli profilde
+`INGREDIENT_ANALYSIS`, karma profilde `ROUTINE_CHECK`.
+
+Smoke betiği her çalıştırmada benzersiz e-posta üretir ve oluşturduğu hesap,
+ürün ve skin log verilerini temizler. Sonuç: **Passed (3/3 senaryo)**.

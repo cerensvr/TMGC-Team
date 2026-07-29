@@ -38,6 +38,13 @@ public class IngredientAnalysisService {
         Optional<UserProfile> profile = userProfileRepository.findByUserId(user.getId());
         List<Product> shelfProducts = productRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
 
+        // Doğrulanmış yerel bilgi tabanı içeriği tanıyorsa aynı sonucu üretmek
+        // için Gemini çağrısı harcamayız. Böylece ücretsiz kota Shelly sohbeti ve
+        // fotoğraf gibi gerçekten üretken modele ihtiyaç duyan akışlara kalır.
+        if (hasKnownIngredientContext(request)) {
+            return fallbackAnalysis(profile.orElse(null), shelfProducts, request);
+        }
+
         if (geminiApiClient.isConfigured()) {
             Optional<JsonNode> json = geminiApiClient.generateJson(buildPrompt(profile.orElse(null), shelfProducts, request));
             if (json.isPresent()) {
@@ -131,7 +138,8 @@ public class IngredientAnalysisService {
             List<Product> shelfProducts,
             IngredientAnalysisRequest request) {
         List<String> ingredients = emptyIfNull(request.getActiveIngredients());
-        String joined = String.join(" ", ingredients).toLowerCase(Locale.forLanguageTag("tr-TR"));
+        String joined = (String.join(" ", ingredients) + " " + value(request.getDescription()))
+                .toLowerCase(Locale.forLanguageTag("tr-TR"));
         String category = value(request.getCategory()).toLowerCase(Locale.forLanguageTag("tr-TR"));
 
         // Aynı alias/kural listesini burada tekrar tanımlamak yerine tek doğrulanmış
@@ -174,6 +182,12 @@ public class IngredientAnalysisService {
                 time,
                 ingredients,
                 warnings);
+    }
+
+    private boolean hasKnownIngredientContext(IngredientAnalysisRequest request) {
+        String context = String.join(" ", emptyIfNull(request.getActiveIngredients()))
+                + " " + value(request.getDescription());
+        return !knowledgeBase.matchRules(context).isEmpty();
     }
 
     private String buildCompatibilityMessage(List<Product> shelfProducts, boolean hasNiacinamide, boolean hasRetinoid, boolean hasAcid) {

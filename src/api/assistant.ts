@@ -75,3 +75,15 @@ export async function fetchAssistantHistory(): Promise<Message[]> {
     return [];
   }
 }
+
+/** Yeni sohbet başlatırken hem ekrandaki hem de backend hafızasındaki geçmişi temizler. */
+export async function clearAssistantHistory(): Promise<void> {
+  try {
+    await apiFetch<void>(`${API_BASE_URL}/assistant/history`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    errorDev('Assistant history clear error:', error);
+    throw error;
+  }
+}

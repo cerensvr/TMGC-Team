@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,20 +27,30 @@ public class GeminiApiClient {
 
     private final String apiKey;
     private final String model;
+    private final String fallbackModel;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
+    @Autowired
     public GeminiApiClient(
             @Value("${app.gemini.api-key:}") String apiKey,
-            @Value("${app.gemini.model:gemini-3.6-flash}") String model) {
+            @Value("${app.gemini.model:gemini-3.6-flash}") String model,
+            @Value("${app.gemini.fallback-model:gemini-3.5-flash-lite}") String fallbackModel) {
 
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = (model == null || model.isBlank())
                 ? "gemini-3.6-flash"
                 : model.trim();
+        this.fallbackModel = (fallbackModel == null || fallbackModel.isBlank())
+                ? ""
+                : fallbackModel.trim();
         if (this.model.startsWith("gemini-2.0")) {
             throw new IllegalStateException(
                     "Gemini 2.0 modelleri kapatıldı; GEMINI_MODEL için güncel bir model kullanın.");
+        }
+        if (this.fallbackModel.startsWith("gemini-2.0")) {
+            throw new IllegalStateException(
+                    "Gemini 2.0 modelleri kapatıldı; GEMINI_FALLBACK_MODEL için güncel bir model kullanın.");
         }
 
         this.objectMapper = new ObjectMapper();
@@ -47,6 +58,11 @@ public class GeminiApiClient {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+    }
+
+    /** Birim testleri ve bağımsız kullanım için geriye uyumlu kurucu. */
+    public GeminiApiClient(String apiKey, String model) {
+        this(apiKey, model, "gemini-3.5-flash-lite");
     }
 
     public enum FailureReason {
@@ -92,14 +108,49 @@ public class GeminiApiClient {
             String imageMimeType,
             JsonNode responseSchema) {
 
-        return generateJsonWithStatus(prompt, base64Image, imageMimeType, responseSchema, true);
+        // API seviyesinde şema varsa modelin geçerli JSON üretmesi beklenir. Böyle
+        // bir yanıtta ikinci çağrı yapmak ücretsiz kotayı gereksiz tüketir.
+        return generateJsonWithStatus(
+                null,
+                prompt,
+                base64Image,
+                imageMimeType,
+                responseSchema,
+                responseSchema == null,
+                model,
+                true);
     }
 
-    private GeminiJsonResult generateJsonWithStatus(String prompt,
+    /**
+     * Kimlik ve değişmez güvenlik kurallarını Gemini'nin özel systemInstruction
+     * alanında taşır. Kullanıcı bağlamından ayrı tutulması, kullanıcı metninin bu
+     * kuralları ezmesini zorlaştırır.
+     */
+    public GeminiJsonResult generateJsonWithStatus(String systemInstruction,
+            String prompt,
+            String base64Image,
+            String imageMimeType,
+            JsonNode responseSchema) {
+
+        return generateJsonWithStatus(
+                systemInstruction,
+                prompt,
+                base64Image,
+                imageMimeType,
+                responseSchema,
+                responseSchema == null,
+                model,
+                true);
+    }
+
+    private GeminiJsonResult generateJsonWithStatus(String systemInstruction,
+            String prompt,
             String base64Image,
             String imageMimeType,
             JsonNode responseSchema,
-            boolean retryOnJsonParseError) {
+            boolean retryOnJsonParseError,
+            String requestedModel,
+            boolean allowModelFallback) {
 
         if (!isConfigured()) {
             log.error("Gemini API Key bulunamadı.");
@@ -109,11 +160,11 @@ public class GeminiApiClient {
         try {
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(buildUri())
+                    .uri(buildUri(requestedModel))
                     .timeout(Duration.ofSeconds(60))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(
-                            buildRequest(prompt, base64Image, imageMimeType, responseSchema)))
+                            buildRequest(systemInstruction, prompt, base64Image, imageMimeType, responseSchema)))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -121,6 +172,21 @@ public class GeminiApiClient {
             log.info("Gemini Status : {}", response.statusCode());
 
             if (response.statusCode() == 429) {
+                if (allowModelFallback
+                        && !fallbackModel.isBlank()
+                        && !fallbackModel.equals(requestedModel)) {
+                    log.warn("Gemini {} kota sınırına ulaştı; ücretsiz yedek model {} deneniyor.",
+                            requestedModel, fallbackModel);
+                    return generateJsonWithStatus(
+                            systemInstruction,
+                            prompt,
+                            base64Image,
+                            imageMimeType,
+                            responseSchema,
+                            retryOnJsonParseError,
+                            fallbackModel,
+                            false);
+                }
                 log.warn("Gemini kota sınırına ulaşıldı.");
                 return new GeminiJsonResult(Optional.empty(), FailureReason.RATE_LIMITED);
             }
@@ -131,6 +197,13 @@ public class GeminiApiClient {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
+            JsonNode usage = root.path("usageMetadata");
+            if (!usage.isMissingNode()) {
+                log.info("Gemini token kullanımı - prompt: {}, yanıt: {}, toplam: {}",
+                        usage.path("promptTokenCount").asInt(0),
+                        usage.path("candidatesTokenCount").asInt(0),
+                        usage.path("totalTokenCount").asInt(0));
+            }
 
             String text = root.path("candidates")
                     .path(0)
@@ -152,11 +225,14 @@ public class GeminiApiClient {
                 if (retryOnJsonParseError) {
                     log.info("Gemini JSON parse edilemedi, kisa JSON icin tekrar deneniyor.");
                     return generateJsonWithStatus(
+                            systemInstruction,
                             buildRetryPrompt(prompt),
                             base64Image,
                             imageMimeType,
                             responseSchema,
-                            false);
+                            false,
+                            requestedModel,
+                            allowModelFallback);
                 }
                 log.warn("Gemini JSON parse edilemedi: {}", e.getOriginalMessage());
                 return new GeminiJsonResult(Optional.empty(), FailureReason.ERROR);
@@ -170,9 +246,9 @@ public class GeminiApiClient {
         }
     }
 
-    private URI buildUri() {
+    private URI buildUri(String requestedModel) {
 
-        String encodedModel = URLEncoder.encode(model, StandardCharsets.UTF_8);
+        String encodedModel = URLEncoder.encode(requestedModel, StandardCharsets.UTF_8);
 
         String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
 
@@ -184,12 +260,18 @@ public class GeminiApiClient {
 
     }
 
-    private String buildRequest(String prompt,
+    private String buildRequest(String systemInstruction,
+            String prompt,
             String base64Image,
             String imageMimeType,
             JsonNode responseSchema) throws Exception {
 
         ObjectNode root = objectMapper.createObjectNode();
+
+        if (systemInstruction != null && !systemInstruction.isBlank()) {
+            ObjectNode instruction = root.putObject("systemInstruction");
+            instruction.putArray("parts").addObject().put("text", systemInstruction);
+        }
 
         ArrayNode contents = root.putArray("contents");
 

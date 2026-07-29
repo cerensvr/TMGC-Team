@@ -23,7 +23,7 @@ Final demoda anlatilacak ana hikaye:
 | Notion board close-up | Status, Sprint, Point, Assignee alanlari okunur | Devam ediyor |
 | Sprint 3 burndown | Hedef/tamamlanan/kalan puan ozeti | Devam ediyor |
 | Daily scrum kanitlari | 2-4 ekran goruntusu veya ozet | Devam ediyor |
-| Final test | Frontend build, backend test, canlı API smoke geçti; APK temiz kurulum testi bekleniyor | Devam ediyor |
+| Final test | Frontend build, backend 22/22 test, canlı login ve iki temiz emülatörde APK kurulumu geçti | Tamamlandı |
 | Final sunum linki | Video olmadan da demo akisi ve ekran seti yeterli kanit sunmali | Devam ediyor |
 
 ## Zaten Hazir Teknik Kanitlar
@@ -38,6 +38,7 @@ Sprint 2'de tamamlanan fullstack altyapi final teslimin teknik temelini olusturu
 | Test ve CI dogrulama | [../Sprint_2/Test_and_Verification.md](../Sprint_2/Test_and_Verification.md) |
 | Canli Android ekran seti | [../Sprint_2/Product_Screenshots](../Sprint_2/Product_Screenshots) |
 | Canli Render/Supabase/Gemini smoke testi | [live-api-smoke-report.md](live-api-smoke-report.md) |
+| EAS preview APK ve temiz kurulum | [android-preview-apk-verification.md](android-preview-apk-verification.md) |
 
 ## Final Test Komutlari
 
