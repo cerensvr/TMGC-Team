@@ -8,7 +8,7 @@ import { AlertTriangle, Bot, Calendar, CheckCircle2, MessageCircle, Moon, Send, 
 import { MainTabParamList, Product, RootStackParamList } from '../types';
 import { useProducts } from '../context/ProductContext';
 import { useUser } from '../context/UserContext';
-import { buildWeekPlan, RoutineSlot } from '../services/routinePlanner';
+import { buildWeekPlan, detectConcern, RoutineSlot } from '../services/routinePlanner';
 import { getRoutineReview, getProductRole } from '../services/shellyInsights';
 import { colors, fonts, radius, shadows, tabBarStyle } from '../theme';
 
@@ -109,8 +109,14 @@ export default function RoutineScreen({ navigation }: Props) {
     }, [])
   );
 
-  const weekPlan = useMemo(() => buildWeekPlan(activeProducts, 'standard'), [products, updateTrigger]);
-  const todayPlan = weekPlan[0];
+  const concern = useMemo(() => {
+    if (activeIssue) return detectConcern(activeIssue);
+    if (profile.mainGoal) return detectConcern(profile.mainGoal);
+    return 'standard' as const;
+  }, [activeIssue, profile.mainGoal]);
+
+  const weekPlan = useMemo(() => buildWeekPlan(activeProducts, concern), [products, updateTrigger, concern]);
+    const todayPlan = weekPlan[0];
   
   const routineReview = useMemo(
     () => getRoutineReview(todayPlan?.morning || [], todayPlan?.evening || []),
