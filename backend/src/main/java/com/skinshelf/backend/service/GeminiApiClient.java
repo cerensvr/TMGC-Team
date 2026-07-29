@@ -31,6 +31,9 @@ public class GeminiApiClient {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
+    private static final int MAX_TRANSIENT_RETRIES = 2;
+    private static final long TRANSIENT_RETRY_DELAY_MS = 800;
+
     @Autowired
     public GeminiApiClient(
             @Value("${app.gemini.api-key:}") String apiKey,
@@ -118,7 +121,8 @@ public class GeminiApiClient {
                 responseSchema,
                 responseSchema == null,
                 model,
-                true);
+                true,
+                MAX_TRANSIENT_RETRIES);
     }
 
     /**
@@ -140,7 +144,8 @@ public class GeminiApiClient {
                 responseSchema,
                 responseSchema == null,
                 model,
-                true);
+                true,
+                MAX_TRANSIENT_RETRIES);
     }
 
     private GeminiJsonResult generateJsonWithStatus(String systemInstruction,
@@ -150,7 +155,8 @@ public class GeminiApiClient {
             JsonNode responseSchema,
             boolean retryOnJsonParseError,
             String requestedModel,
-            boolean allowModelFallback) {
+            boolean allowModelFallback,
+            int transientRetriesRemaining) {
 
         if (!isConfigured()) {
             log.error("Gemini API Key bulunamadı.");
@@ -185,13 +191,30 @@ public class GeminiApiClient {
                             responseSchema,
                             retryOnJsonParseError,
                             fallbackModel,
-                            false);
+                            false,
+                            MAX_TRANSIENT_RETRIES);
                 }
                 log.warn("Gemini kota sınırına ulaşıldı.");
                 return new GeminiJsonResult(Optional.empty(), FailureReason.RATE_LIMITED);
             }
 
             if (response.statusCode() != 200) {
+                boolean transientCapacityError = response.statusCode() == 500 || response.statusCode() == 503;
+                if (transientCapacityError && transientRetriesRemaining > 0) {
+                    log.warn("Gemini gecici kapasite hatasi (durum {}); {} deneme hakki kaldi, kisa bekleyip tekrar denenecek.",
+                            response.statusCode(), transientRetriesRemaining);
+                    sleepBeforeRetry();
+                    return generateJsonWithStatus(
+                            systemInstruction,
+                            prompt,
+                            base64Image,
+                            imageMimeType,
+                            responseSchema,
+                            retryOnJsonParseError,
+                            requestedModel,
+                            allowModelFallback,
+                            transientRetriesRemaining - 1);
+                }
                 log.error("Gemini Hata Body:\n{}", response.body());
                 return new GeminiJsonResult(Optional.empty(), FailureReason.ERROR);
             }
@@ -232,7 +255,8 @@ public class GeminiApiClient {
                             responseSchema,
                             false,
                             requestedModel,
-                            allowModelFallback);
+                            allowModelFallback,
+                            transientRetriesRemaining);
                 }
                 log.warn("Gemini JSON parse edilemedi: {}", e.getOriginalMessage());
                 return new GeminiJsonResult(Optional.empty(), FailureReason.ERROR);
@@ -325,5 +349,13 @@ public class GeminiApiClient {
         return prompt
                 + "\n\nCevabi yalnizca kisa, tamamlanmis ve gecerli JSON olarak dondur. "
                 + "Ek aciklama, markdown veya yarim kalan alan yazma.";
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            Thread.sleep(TRANSIENT_RETRY_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
