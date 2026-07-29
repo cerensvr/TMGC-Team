@@ -17,6 +17,7 @@ SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shel
 | Değerlendirme başlığı | Kanıt |
 | --- | --- |
 | Çalışan mobil ürün | [Sprint 2 canlı Android ekranları](Project_Management_Files/Sprint_2/Product_Screenshots) |
+| Kurulabilir Android APK | [SkinShelf 1.0.0 (7) EAS build](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
 | Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
 | AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
 | Scrum/board kanıtı | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
@@ -686,5 +687,7 @@ Kapanışa getirilen işler:
 Sprint 3 dosyası: [Project_Management_Files/Sprint_3/README.md](Project_Management_Files/Sprint_3/README.md)
 
 Sprint 3 final kontrol listesi: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
+
+Android preview APK: [EAS build sayfası](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697) · [iki temiz emülatör doğrulaması](Project_Management_Files/Sprint_3/android-preview-apk-verification.md)
 
 ---
