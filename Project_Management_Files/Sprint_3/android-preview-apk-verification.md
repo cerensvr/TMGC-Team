@@ -58,4 +58,4 @@ Her iki test oturumu da `wipe-data`, `read-only` ve snapshot kapalı olarak baş
 
 ## Render Notu
 
-Test sırasında Render free instance'ın 5 saniyelik health check'i kaçırdığı ve önceki instance'ın status `137` ile kapandığı görüldü. Free tier kararlılığı için JVM heap/metaspace sınırları ve Hikari pool boyutu küçültüldü. Bu ayarlar main deploy sonrasında tekrar canlı smoke test ile kontrol edilmelidir.
+Test sırasında Render free instance'ın 5 saniyelik health check'i kaçırdığı ve önceki instance'ın status `137` ile kapandığı görüldü. Free tier kararlılığı için JVM heap/metaspace sınırları ve Hikari pool boyutu küçültüldü. Main merge commit'i `cd31309` Render'a deploy edilip `Live` durumuna ulaştı; yeni instance üzerinde `/api/health` ve gerçek `/api/auth/login` istekleri `200` döndü. Smoke hesabı test sonrasında `204` ile silindi.
