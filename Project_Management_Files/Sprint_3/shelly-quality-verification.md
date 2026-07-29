@@ -1,6 +1,6 @@
 # Shelly Yanıt Kalitesi Doğrulama Raporu
 
-Tarih: 28 Temmuz 2026
+Tarih: 29 Temmuz 2026
 
 ## Amaç
 
@@ -23,6 +23,14 @@ da üretken AI yanıtının devam etmesi.
 - Önerilen ve ara verilecek ürün ID'leri kullanıcının dolabındaki gerçek
   ürünlerle doğrulanıyor. Aynı ürün iki listede gelirse ihtiyatlı karar üstün
   geliyor.
+- Dolaptaki sahiplik ile rutin aktifliği ayrıldı. `rutinde_pasif` ürünler de
+  kullanıcının sahip olduğu seçenekler olarak Shelly bağlamına giriyor; rutin ve
+  haftalık planlar yalnız `rutinde_aktif` ürünleri kullanıyor.
+- Kullanıcı bir ürün satın almayı sorduğunda aynı ihtiyacı karşılayan dolap ürünü
+  önce değerlendiriliyor. Model buna rağmen yeni satın alma önerirse backend
+  öneriyi mevcut dolap ürünüyle değiştiriyor.
+- “Yeni sohbet başlat” işlemi artık yalnız mobil ekranı değil, backend'deki
+  konuşma hafızasını da siliyor; eski konuşmalar yeni sohbeti etkilemiyor.
 - İçerik eşleştirmelerinde kelime sınırı kullanılıyor; örneğin `AHA`, `daha`
   kelimesi içinde yanlış eşleşmiyor.
 - Retinoid/eksfolyan, çoklu eksfolyan ve nem/bariyer etkileşim kontrolleri yerel
@@ -37,7 +45,7 @@ da üretken AI yanıtının devam etmesi.
 
 ```text
 ./mvnw test
-Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -45,6 +53,9 @@ BUILD SUCCESS
 - Altı sohbet modunun her biri için iki örneğin JSON sözleşmesi doğrulandı.
 - Uydurma ürün ID'si, çelişkili öneri/kaçınma kararı, yüksek riskte boş uyarı ve
   yanlış model modu senaryoları test edildi.
+- Pasif dolap ürününü yeniden satın alma önerisi, Gemini'nin yanlış satın alma
+  tavsiyesi, pasif ürünün rutine sızması ve kalıcı sohbet hafızasının gerçekten
+  temizlenmesi test edildi.
 - Bilinen içeriklerin Gemini kotası harcamadığı test edildi.
 
 ```text

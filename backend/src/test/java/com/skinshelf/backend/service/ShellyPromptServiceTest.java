@@ -40,6 +40,8 @@ class ShellyPromptServiceTest {
         assertTrue(prompt.contains("mainGoal: Leke görünümünü azaltmak"));
         assertTrue(prompt.contains("allergens: Parfüm"));
         assertTrue(prompt.contains("id: 42 | marka: SkinShelf Lab | isim: BHA Serum"));
+        assertTrue(prompt.contains("durum: rutinde_aktif"));
+        assertTrue(prompt.contains("kullanim_zamani: evening"));
         assertTrue(prompt.contains("Ilk cumlede kullanicinin adini"));
         assertTrue(prompt.contains("En fazla 2 takip sorusu"));
         assertTrue(prompt.contains("yalnizca userProducts icindeki gercek ID'leri"));
@@ -193,6 +195,27 @@ class ShellyPromptServiceTest {
         assertTrue(prompt.contains("Sabah Rutinini Sadeleştirelim"));
         assertFalse(prompt.contains("Satın Almadan Önce İçeriği Kontrol Edelim"));
         assertEquals(2, prompt.split("<example>", -1).length - 1);
+    }
+
+    @Test
+    void inactiveShelfProductIsStillOwnedAndMustNotBeRepurchased() {
+        Product inactiveMoisturizer = product();
+        inactiveMoisturizer.setName("Seramid Nemlendirici");
+        inactiveMoisturizer.setCategory("Nemlendirici");
+        inactiveMoisturizer.setActiveIngredients(List.of("Ceramide"));
+        inactiveMoisturizer.setIsActive(false);
+
+        String prompt = service.buildChatPrompt(
+                profile(),
+                List.of(inactiveMoisturizer),
+                List.of(),
+                List.of(),
+                "Yeni bir nemlendirici almalı mıyım?");
+
+        assertTrue(prompt.contains("durum: rutinde_pasif"));
+        assertTrue(prompt.contains("rutinde_pasif olsa bile kullanici ona sahiptir"));
+        assertTrue(prompt.contains("yeniden satin almasini onerme"));
+        assertTrue(prompt.contains("ayni ihtiyaci karsilayan dolap urunlerini once kontrol et"));
     }
 
     private AssistantMessage messageWithIssue(String issue) {

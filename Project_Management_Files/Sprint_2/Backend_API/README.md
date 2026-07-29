@@ -30,6 +30,7 @@ Sprint 2'de Spring Boot backend katmani mobil uygulamanin gercek veri kaynagi ha
 | `DELETE /api/products/{id}` | Urun silme | `HomeScreen` |
 | `POST /api/assistant/chat` | Shelly sohbet cevabi uretme | `AssistantScreen`, `src/api/assistant.ts` |
 | `GET /api/assistant/history` | Son sohbet gecmisini cekme | `AssistantScreen` |
+| `DELETE /api/assistant/history` | Yeni sohbet icin kalici Shelly hafizasini temizleme | `AssistantScreen` |
 | `POST /api/assistant/analyze-ingredients` | Icerik/risk analizi | `IngredientAnalysisService` |
 | `POST /api/skin-logs/analyze` | Cilt fotograf notunu analiz edip kaydetme | `AddSkinPhotoScreen` |
 | `GET /api/skin-logs` | Cilt takip gecmisini listeleme | `SkinTrackingScreen` |

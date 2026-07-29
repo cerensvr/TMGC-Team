@@ -141,4 +141,221 @@ class AssistantServiceQualityTest {
         assertTrue(userPrompt.getValue().contains("Secilmis cevap modu: PRODUCT_ANALYSIS"));
         verify(assistantMessageRepository).save(any(AssistantMessage.class));
     }
+
+    @Test
+    void fallbackUsesInactiveOwnedProductBeforeSuggestingANewPurchase() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        Product moisturizer = product(77L, "Bariyer Nemlendirici", "Nemlendirici", false, "Ceramide");
+
+        stubFallbackContext(user, profile, List.of(moisturizer));
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Yeni bir nemlendirici almalı mıyım?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertEquals("PRODUCT_ANALYSIS", response.getMode());
+        assertTrue(response.getSummary().contains("zaten dolabında"));
+        assertTrue(response.getSuggestion().contains("Yeni ürün almadan önce"));
+        assertTrue(response.getSuggestion().contains("Bariyer Nemlendirici"));
+        assertTrue(response.getTags().contains("Rutinde pasif"));
+        assertFalse(response.getAiResponse().contains("satın almanı öneririm"));
+    }
+
+    @Test
+    void generalFallbackDoesNotBecomeIngredientAnalysisBecauseShelfContainsBha() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        Product bha = product(78L, "BHA Serum", "Serum", true, "Salicylic Acid");
+
+        stubFallbackContext(user, profile, List.of(bha));
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Merhaba Shelly, nasılsın?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertEquals("GENERAL_CHAT", response.getMode());
+        assertEquals("Shelly'nin Yorumu", response.getTitle());
+        assertFalse(response.getAiResponse().contains("İçerik Analizi"));
+        assertTrue(response.getReason().contains("gereksiz bir öneri"));
+    }
+
+    @Test
+    void routineResponseCannotRecommendAnInactiveShelfProduct() throws Exception {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        Product activeCleanser = product(81L, "Nazik Temizleyici", "Temizleyici", true, "Glycerin");
+        Product inactiveRetinol = product(82L, "Retinol Serum", "Serum", false, "Retinol");
+
+        JsonNode modelJson = new ObjectMapper().readTree("""
+                {
+                  "intentType": "INFO",
+                  "detectedIssue": "Sabah rutini",
+                  "mode": "GENERAL_CHAT",
+                  "title": "Sabah rutini",
+                  "summary": "Sabah rutinini sade tutabiliriz.",
+                  "analysis": "Ürünlerini kullanım zamanına göre değerlendirdim.",
+                  "recommendedProducts": [
+                    {"id": 81, "reason": "İlk temizleme adımı."},
+                    {"id": 82, "reason": "Model pasif ürünü yanlışlıkla önerdi."}
+                  ],
+                  "avoidProducts": [],
+                  "followUpQuestions": [],
+                  "suggestion": "Nazik bir sıra uygula.",
+                  "warning": "",
+                  "riskLevel": "low",
+                  "tags": ["Sabah"]
+                }
+                """);
+
+        when(safetyGuard.isRisky(anyString())).thenReturn(false);
+        when(userProfileRepository.findByUserId(anyLong())).thenReturn(Optional.of(profile));
+        when(productRepository.findByUserIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(List.of(activeCleanser, inactiveRetinol));
+        when(skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(assistantMessageRepository.findTop50ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(geminiApiClient.isConfigured()).thenReturn(true);
+        when(geminiApiClient.generateJsonWithStatus(
+                anyString(), anyString(), isNull(), isNull(), any(JsonNode.class)))
+                .thenReturn(new GeminiApiClient.GeminiJsonResult(
+                        Optional.of(modelJson),
+                        GeminiApiClient.FailureReason.NONE));
+        when(assistantMessageRepository.save(any(AssistantMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Sabah rutinimin sırası nasıl olmalı?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertEquals("ROUTINE_CHECK", response.getMode());
+        assertTrue(response.getAiResponse().contains("Nazik Temizleyici"));
+        assertFalse(response.getAiResponse().contains("Retinol Serum"));
+
+        ArgumentCaptor<String> userPrompt = ArgumentCaptor.forClass(String.class);
+        verify(geminiApiClient).generateJsonWithStatus(
+                anyString(), userPrompt.capture(), isNull(), isNull(), any(JsonNode.class));
+        assertTrue(userPrompt.getValue().contains("Retinol Serum"));
+        assertTrue(userPrompt.getValue().contains("durum: rutinde_pasif"));
+    }
+
+    @Test
+    void modelPurchaseSuggestionIsReplacedWhenUserAlreadyOwnsAMatchingProduct() throws Exception {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        Product moisturizer = product(91L, "Seramid Nemlendirici", "Nemlendirici", false, "Ceramide");
+
+        JsonNode modelJson = new ObjectMapper().readTree("""
+                {
+                  "intentType": "INFO",
+                  "detectedIssue": "Kuruluk",
+                  "mode": "PRODUCT_ANALYSIS",
+                  "title": "Nemlendirici seçimi",
+                  "summary": "Hassas cildin için nem desteği düşünebiliriz.",
+                  "analysis": "Seramid içeren ürünler bariyer desteğine yardımcı olabilir.",
+                  "recommendedProducts": [],
+                  "avoidProducts": [],
+                  "followUpQuestions": [],
+                  "suggestion": "Yeni bir seramidli krem satın alabilirsin.",
+                  "warning": "",
+                  "riskLevel": "low",
+                  "tags": ["Nem"]
+                }
+                """);
+
+        when(safetyGuard.isRisky(anyString())).thenReturn(false);
+        when(userProfileRepository.findByUserId(anyLong())).thenReturn(Optional.of(profile));
+        when(productRepository.findByUserIdOrderByCreatedAtDesc(anyLong())).thenReturn(List.of(moisturizer));
+        when(skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(assistantMessageRepository.findTop50ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(geminiApiClient.isConfigured()).thenReturn(true);
+        when(geminiApiClient.generateJsonWithStatus(
+                anyString(), anyString(), isNull(), isNull(), any(JsonNode.class)))
+                .thenReturn(new GeminiApiClient.GeminiJsonResult(
+                        Optional.of(modelJson),
+                        GeminiApiClient.FailureReason.NONE));
+        when(assistantMessageRepository.save(any(AssistantMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Yeni bir nemlendirici almalı mıyım?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertTrue(response.getSuggestion().contains("rafındaki SkinShelf Seramid Nemlendirici"));
+        assertTrue(response.getSuggestion().contains("rutinlerinde şu anda pasif"));
+        assertFalse(response.getSuggestion().contains("satın al"));
+    }
+
+    @Test
+    void clearHistoryDeletesPersistentConversationMemory() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+
+        service.clearHistory(user);
+
+        verify(assistantMessageRepository).deleteByUser(user);
+    }
+
+    private AssistantService service(IngredientKnowledgeBase knowledgeBase) {
+        return new AssistantService(
+                assistantMessageRepository,
+                geminiApiClient,
+                productRepository,
+                userProfileRepository,
+                skinLogRepository,
+                new ShellyPromptService(knowledgeBase),
+                safetyGuard,
+                knowledgeBase);
+    }
+
+    private void stubFallbackContext(User user, UserProfile profile, List<Product> products) {
+        when(safetyGuard.isRisky(anyString())).thenReturn(false);
+        when(userProfileRepository.findByUserId(anyLong())).thenReturn(Optional.of(profile));
+        when(productRepository.findByUserIdOrderByCreatedAtDesc(anyLong())).thenReturn(products);
+        when(skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(assistantMessageRepository.findTop50ByUserOrderByCreatedAtDesc(user)).thenReturn(List.of());
+        when(geminiApiClient.isConfigured()).thenReturn(false);
+        when(assistantMessageRepository.save(any(AssistantMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private User user() {
+        User user = new User();
+        user.setId(7L);
+        return user;
+    }
+
+    private UserProfile profile() {
+        UserProfile profile = new UserProfile();
+        profile.setNickname("Ceren");
+        profile.setSkinTypeGuess("Hassas Cilt");
+        profile.setMainGoal("Bariyeri korumak");
+        profile.setSensitivity("Hassas");
+        return profile;
+    }
+
+    private Product product(
+            Long id,
+            String name,
+            String category,
+            boolean active,
+            String... ingredients) {
+        Product product = new Product();
+        product.setId(id);
+        product.setBrand("SkinShelf");
+        product.setName(name);
+        product.setCategory(category);
+        product.setTimeOfDay("both");
+        product.setActiveIngredients(List.of(ingredients));
+        product.setIsActive(active);
+        return product;
+    }
 }
