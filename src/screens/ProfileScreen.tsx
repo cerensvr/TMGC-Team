@@ -35,7 +35,7 @@ export default function ProfileScreen({ navigation }: Props) {
       await authService.logout();
       clearProfile();
       clearProducts();
-      navigation.replace('Login');
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (error) {
       errorDev('Logout error:', error);
       Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu.');
@@ -56,8 +56,8 @@ export default function ProfileScreen({ navigation }: Props) {
               await authService.deleteAccount();
               clearProfile();
               clearProducts();
-              navigation.replace('Login');
-            } catch (error) {
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+             } catch (error) {
               errorDev('Delete account error:', error);
               Alert.alert('Hata', 'Hesap silinirken bir sorun oluştu. Lütfen tekrar deneyin.');
             }
