@@ -7,12 +7,16 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 3
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:2}
       minimum-idle: 0
       max-lifetime: 300000
       keepalive-time: 120000
       idle-timeout: 60000
       connection-timeout: 15000
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: ${JPA_REPOSITORY_BOOTSTRAP_MODE:lazy}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,6 +29,12 @@ spring:
 
 server:
   port: ${PORT:8080}
+  tomcat:
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:24}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:2}
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:100}
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:20}
 
 app:
   jwt:
