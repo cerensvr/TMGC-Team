@@ -51,5 +51,6 @@ guvenlik ve fallback senaryolari:
 ## Android Preview APK
 
 - [EAS build ve iki temiz emulator dogrulama raporu](android-preview-apk-verification.md)
+- [SkinShelf 1.0.0 (8) guncel EAS build kaydi](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25)
 - [SkinShelf 1.0.0 (7) EAS build sayfasi](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697)
 - [Final Android kanit ekranlari](Product_Screenshots)
