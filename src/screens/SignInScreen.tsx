@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   ImageBackground,
   KeyboardAvoidingView,
@@ -30,32 +31,60 @@ type Props = {
 const BACKGROUND_URI =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQQnHT9ZdUvZSeofbui3TKtAoCwdfWtYSN5_pv8ABzEIsTEVftdAnhiCwe74SN_Y1W9LftGh0ZlUzHT1a8YcAlFlMAYJCZeWvqH1s6WW9dTR2A4TpBMT3tjKXrRyvu6kZA5UJfG7sHqhWU5YzrwzXIhWM5G0dbUlc4snDk1Y7tlGNLR6kGm7qbrrBcHNQ_ZeSFTWGrKoUbumkyxTzN1X3pAQpNOhwLCMhZVSGEkfkoRrcZs60bUC7P1w';
 
+// Küçük ekranlarda ve butonlarda dokunma alanını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 export default function SignInScreen({ navigation }: Props) {
   const { height } = useWindowDimensions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+
+  // Klavye odak geçişi için ref
+  const passwordInputRef = useRef<TextInput>(null);
+
   const { loadProfile, setAccount } = useUser();
   const { loadProducts } = useProducts();
   const isCompactHeight = height < 620;
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+    // 1. Çift Kayıt / Çift Tıklama Koruması
+    if (loading) return;
+
+    const cleanEmail = email.trim();
+
+    // 2. Eksik Veri Kontrolü
+    if (!cleanEmail || !password) {
+      Alert.alert('Eksik Alan', 'Lütfen e-posta ve şifrenizi girin.');
       return;
     }
+
     setLoading(true);
+
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email: cleanEmail, password });
       let onboarded = false;
+
       if (response.user?.id) {
         setAccount({
           email: response.user.email,
           firstName: response.user.firstName,
           lastName: response.user.lastName,
         });
-        const [profileData] = await Promise.all([loadProfile(response.user.id), loadProducts()]);
+
+        // 3. Veri Yükleme Güvenliği (Sonsuz Yüklenmeyi Engeller)
+        const [profileData] = await Promise.all([
+          loadProfile(response.user.id).catch((err) => {
+            errorDev('Profile load failed during sign-in:', err);
+            return null;
+          }),
+          loadProducts().catch((err) => {
+            errorDev('Products load failed during sign-in:', err);
+            return null;
+          }),
+        ]);
+
         onboarded = Boolean(profileData?.isOnboarded);
       }
 
@@ -64,9 +93,39 @@ export default function SignInScreen({ navigation }: Props) {
       } else {
         navigation.replace('Onboarding');
       }
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Login error:', error);
-      Alert.alert('Hata', 'Giriş yapılamadı. Bilgilerinizi kontrol edin.');
+
+      const status = error?.response?.status || error?.status;
+      const errorMessage = error?.message || '';
+
+      let userFriendlyMessage = 'Giriş yapılamadı. Bilgilerinizi kontrol edip tekrar deneyin.';
+
+      // 1. authService veya sunucudan özel bir mesaj döndüyse doğrudan onu göster
+      if (
+        errorMessage &&
+        !errorMessage.toLowerCase().includes('network') &&
+        !errorMessage.toLowerCase().includes('status code')
+      ) {
+        userFriendlyMessage = errorMessage;
+      }
+      // 2. HTTP Status koduna göre (Axios ham hata verdiyse)
+      else if (status === 401 || status === 400) {
+        userFriendlyMessage = 'Girdiğiniz e-posta veya şifre hatalı.';
+      } else if (status >= 500) {
+        userFriendlyMessage = 'Sunucu kaynaklı bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.';
+      }
+      // 3. Ağ Bağlantısı Hatası
+      else if (
+        !error?.response &&
+        (errorMessage.toLowerCase().includes('network') ||
+          error?.code === 'ECONNABORTED' ||
+          error?.code === 'ERR_NETWORK')
+      ) {
+        userFriendlyMessage = 'İnternet bağlantısı kurulamadı. Lütfen bağlantınızı kontrol edin.';
+      }
+
+      Alert.alert('Giriş Yapılamadı', userFriendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -88,21 +147,26 @@ export default function SignInScreen({ navigation }: Props) {
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoidingView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
             contentContainerStyle={[styles.container, isCompactHeight && styles.containerCompact]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            {/* Geri Dön Butonu */}
             <TouchableOpacity
               style={[styles.backButton, isCompactHeight && styles.backButtonCompact]}
               onPress={() => navigation.goBack()}
               activeOpacity={0.8}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Geri Dön"
             >
               <ArrowLeft size={isCompactHeight ? 19 : 21} color={colors.forest} />
             </TouchableOpacity>
 
+            {/* Başlık Alanı */}
             <View style={[styles.header, isCompactHeight && styles.headerCompact]}>
               <Text style={[styles.overline, isCompactHeight && styles.overlineCompact]}>TEKRAR HOŞ GELDİN</Text>
               <Text style={[styles.title, isCompactHeight && styles.titleCompact]}>Giriş Yap</Text>
@@ -111,7 +175,9 @@ export default function SignInScreen({ navigation }: Props) {
               </Text>
             </View>
 
+            {/* Form Alanı */}
             <View style={[styles.formContainer, isCompactHeight && styles.formContainerCompact]}>
+              {/* E-POSTA INPUT */}
               <View
                 style={[
                   styles.inputWrapper,
@@ -129,9 +195,18 @@ export default function SignInScreen({ navigation }: Props) {
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
                   autoCapitalize="none"
+                  autoCorrect={false}
                   keyboardType="email-address"
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  blurOnSubmit={false}
+                  editable={!loading}
                 />
               </View>
+
+              {/* ŞİFRE INPUT */}
               <View
                 style={[
                   styles.inputWrapper,
@@ -141,6 +216,7 @@ export default function SignInScreen({ navigation }: Props) {
               >
                 <Lock size={19} color={focusedField === 'password' ? colors.sage : colors.inkMuted} style={styles.inputIcon} />
                 <TextInput
+                  ref={passwordInputRef}
                   style={styles.input}
                   placeholder="Şifre"
                   secureTextEntry
@@ -149,15 +225,31 @@ export default function SignInScreen({ navigation }: Props) {
                   onChangeText={setPassword}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
+                  textContentType="password"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignIn}
+                  editable={!loading}
                 />
               </View>
+
+              {/* ŞİFREMİ UNUTTUM */}
               <TouchableOpacity
                 style={[styles.forgotPassword, isCompactHeight && styles.forgotPasswordCompact]}
                 onPress={handleForgotPassword}
+                hitSlop={TOUCH_SLOP}
               >
                 <Text style={styles.forgotPasswordText}>Şifremi unuttum</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSignIn} disabled={loading} activeOpacity={0.88}>
+
+              {/* GİRİŞ BUTONU */}
+              <TouchableOpacity
+                onPress={handleSignIn}
+                disabled={loading}
+                activeOpacity={0.88}
+                accessibilityRole="button"
+                accessibilityState={{ busy: loading }}
+              >
                 <LinearGradient
                   colors={['#1C4630', '#0F2919']}
                   start={{ x: 0, y: 0 }}
@@ -168,15 +260,24 @@ export default function SignInScreen({ navigation }: Props) {
                     loading && styles.disabledButton,
                   ]}
                 >
-                  <Text style={styles.primaryButtonText}>{loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}</Text>
-                  {!loading && <ArrowRight size={17} color={colors.onDark} />}
+                  {loading ? (
+                    <ActivityIndicator size="small" color={colors.onDark} />
+                  ) : (
+                    <>
+                      <Text style={styles.primaryButtonText}>Giriş Yap</Text>
+                      <ArrowRight size={17} color={colors.onDark} />
+                    </>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
             </View>
 
+            {/* HESAP OLUŞTUR LINKI */}
             <TouchableOpacity
               onPress={() => navigation.replace('SignUp')}
               style={[styles.footerLink, isCompactHeight && styles.footerLinkCompact]}
+              hitSlop={TOUCH_SLOP}
+              disabled={loading}
             >
               <Text style={styles.footerText}>
                 Hesabın yok mu? <Text style={styles.footerTextStrong}>Hesap Oluştur</Text>
