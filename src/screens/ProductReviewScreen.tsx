@@ -1,10 +1,31 @@
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList, Category, ProductDraft } from '../types';
-import { ArrowLeft, Check, Sparkles, AlertCircle, AlertTriangle, Plus, X } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Check,
+  Sparkles,
+  AlertCircle,
+  AlertTriangle,
+  Plus,
+  X,
+  RotateCcw,
+} from 'lucide-react-native';
 import { useProducts } from '../context/ProductContext';
 import { analyzeProductIngredients } from '../services/productAnalysisService';
 import { getProductVisualSource } from '../services/productVisualCatalog';
@@ -27,34 +48,59 @@ const defaultProductData: ProductDraft = {
   timeOfDay: 'both',
 };
 
-const categoryOptions: Category[] = ['Temizleyici', 'Tonik', 'Serum', 'Göz Kremi', 'Nemlendirici', 'Güneş Kremi', 'Maske', 'Diğer'];
+const categoryOptions: Category[] = [
+  'Temizleyici',
+  'Tonik',
+  'Serum',
+  'Göz Kremi',
+  'Nemlendirici',
+  'Güneş Kremi',
+  'Maske',
+  'Diğer',
+];
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 export default function ProductReviewScreen({ navigation, route }: Props) {
   const { addProduct, updateProduct } = useProducts();
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'evening' | 'both'>('morning');
   const [loading, setLoading] = useState(false);
-  const [productData, setProductData] = useState<ProductDraft>(route.params?.scannedProduct || defaultProductData);
+  const [productData, setProductData] = useState<ProductDraft>(
+    route.params?.scannedProduct || defaultProductData
+  );
   const [productImageFailed, setProductImageFailed] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [conflictData, setConflictData] = useState<{ hasConflict: boolean, severity: 'high' | 'warning' | 'synergy', message: string, conflictingProduct?: string } | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+
+  const [conflictData, setConflictData] = useState<{
+    hasConflict: boolean;
+    severity: 'high' | 'warning' | 'synergy';
+    message: string;
+    conflictingProduct?: string;
+  } | null>(null);
+
   const [aiSuggestedTime, setAiSuggestedTime] = useState<'morning' | 'evening' | 'both' | null>(null);
   const [ingredientInput, setIngredientInput] = useState('');
+
   const editingProductId = route.params?.editingProductId;
   const entrySource = route.params?.source || 'manual';
   const activeIngredients = productData.activeIngredients || [];
   const ingredientKey = activeIngredients.join('|');
+
   const sourceBadgeLabel = editingProductId
     ? 'Dolaptan Düzenleniyor'
     : entrySource === 'barcode'
-      ? 'Barkod ile Bulundu'
-      : 'Manuel Giriş';
+    ? 'Barkod ile Bulundu'
+    : 'Manuel Giriş';
+
   const sourceNoticeText = editingProductId
     ? 'Ürün bilgilerini düzenleyip değişiklikleri kaydedebilirsin.'
     : entrySource === 'barcode'
-      ? 'Barkoddan gelen bilgiler onaydan önce düzenlenebilir.'
-      : 'Ürün bilgilerini manuel girip içerikleri düzenleyebilirsin.';
+    ? 'Barkoddan gelen bilgiler onaydan önce düzenlenebilir.'
+    : 'Ürün bilgilerini manuel girip içerikleri düzenleyebilirsin.';
 
   useEffect(() => {
     setProductImageFailed(false);
@@ -64,6 +110,7 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     setTimeOfDay(productData.timeOfDay || 'both');
   }, [productData.timeOfDay]);
 
+  // AI İÇERİK ANALİZİ
   useEffect(() => {
     if (!productData.name.trim() || !productData.brand.trim()) {
       setAiAnalysis(null);
@@ -107,16 +154,28 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [productData.name, productData.brand, productData.category, productData.description, ingredientKey]);
+  }, [
+    productData.name,
+    productData.brand,
+    productData.category,
+    productData.description,
+    ingredientKey,
+    retryTrigger,
+  ]);
 
   const updateProductField = <K extends keyof ProductDraft>(field: K, value: ProductDraft[K]) => {
-    setProductData(prev => ({ ...prev, [field]: value }));
+    setProductData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAddIngredient = () => {
     const nextIngredient = ingredientInput.trim();
     if (!nextIngredient) return;
-    if (activeIngredients.some(item => item.toLocaleLowerCase('tr-TR') === nextIngredient.toLocaleLowerCase('tr-TR'))) {
+
+    if (
+      activeIngredients.some(
+        (item) => item.toLocaleLowerCase('tr-TR') === nextIngredient.toLocaleLowerCase('tr-TR')
+      )
+    ) {
       setIngredientInput('');
       return;
     }
@@ -133,39 +192,50 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   };
 
   const handleSave = async () => {
+    // 1. Çift Kayıt / Çift Tıklama Koruması
+    if (loading) return;
+
     if (!productData.name.trim() || !productData.brand.trim()) {
-      Alert.alert('Eksik bilgi', 'Ürünü kaydetmek için marka ve ürün adını doldur.');
+      Alert.alert('Eksik Bilgi', 'Ürünü kaydetmek için marka ve ürün adını doldurun.');
       return;
     }
 
     const expiryDate = productData.expiryDate?.trim();
     if (expiryDate && !/^\d{4}-(0[1-9]|1[0-2])$/.test(expiryDate)) {
-      Alert.alert('Geçersiz tarih', 'Son kullanma tarihini YYYY-AA biçiminde gir.');
+      Alert.alert('Geçersiz Tarih', 'Son kullanma tarihini YYYY-AA biçiminde girin (Örn: 2026-08).');
       return;
     }
 
     setLoading(true);
+
     try {
-      // Sprint 2 backend note: Persist only structured product data and routine time; do not store raw camera images.
       const productToSave = {
         ...productData,
         name: productData.name.trim(),
         brand: productData.brand.trim(),
         description: productData.description?.trim() || '',
         expiryDate: expiryDate || undefined,
-        activeIngredients: activeIngredients.map(item => item.trim()).filter(Boolean),
+        activeIngredients: activeIngredients.map((item) => item.trim()).filter(Boolean),
         timeOfDay,
       };
+
       if (editingProductId) {
         await updateProduct(editingProductId, productToSave);
       } else {
         await addProduct(productToSave);
       }
+
       logDev('Product saved successfully');
       navigation.navigate('MainTabs');
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Error adding product:', error);
-      Alert.alert('Hata', 'Ürün eklenirken bir hata oluştu.');
+
+      let userMsg = 'Ürün eklenirken bir hata oluştu. Lütfen tekrar deneyin.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+
+      Alert.alert('Hata', userMsg);
     } finally {
       setLoading(false);
     }
@@ -173,224 +243,360 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={colors.sage} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{editingProductId ? 'Ürün Düzenle' : 'Ürün Ekle'}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.imageContainer}>
-          <Image 
-            source={getProductVisualSource(productData, productImageFailed)}
-            style={styles.image} 
-            resizeMode="contain"
-            onError={() => setProductImageFailed(true)}
-          />
-          <View style={styles.sourceBadge}>
-            <Check size={16} color={colors.onDark} />
-            <Text style={styles.sourceBadgeText}>{sourceBadgeLabel}</Text>
-          </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Geri Dön"
+          >
+            <ArrowLeft size={24} color={colors.sage} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{editingProductId ? 'Ürün Düzenle' : 'Ürün Ekle'}</Text>
+          <View style={{ width: 40 }} />
         </View>
 
-        <View style={styles.detailsContainer}>
-          <View style={styles.sourceNotice}>
-            <Check size={14} color={colors.sage} />
-            <Text style={styles.sourceNoticeText}>{sourceNoticeText}</Text>
-          </View>
-          <View style={styles.detailRow}>
-             <Text style={styles.label}>Marka</Text>
-             <TextInput
-               style={styles.inputValue}
-               value={productData.brand}
-               onChangeText={value => updateProductField('brand', value)}
-               placeholder="Marka"
-               placeholderTextColor="#9aa49d"
-             />
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.detailRow}>
-             <Text style={styles.label}>Ürün Adı</Text>
-             <TextInput
-               style={styles.inputValue}
-               value={productData.name}
-               onChangeText={value => updateProductField('name', value)}
-               placeholder="Ürün adı"
-               placeholderTextColor="#9aa49d"
-             />
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.categorySection}>
-             <Text style={styles.label}>Kategori</Text>
-             <View style={styles.categoryChips}>
-               {categoryOptions.map(category => (
-                 <TouchableOpacity
-                   key={category}
-                   style={[styles.categoryChip, productData.category === category && styles.categoryChipActive]}
-                   onPress={() => updateProductField('category', category)}
-                 >
-                   <Text style={[styles.categoryChipText, productData.category === category && styles.categoryChipTextActive]}>
-                     {category}
-                   </Text>
-                 </TouchableOpacity>
-               ))}
-             </View>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.textAreaSection}>
-            <Text style={styles.label}>Ürün Açıklaması</Text>
-            <TextInput
-              style={styles.textArea}
-              value={productData.description || ''}
-              onChangeText={value => updateProductField('description', value)}
-              placeholder="Ürünün yapısı, kullanım amacı veya önemli notlar"
-              placeholderTextColor="#9aa49d"
-              multiline
-              textAlignVertical="top"
-              maxLength={1000}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Ürün Görsel Alanı */}
+          <View style={styles.imageContainer}>
+            <Image
+              source={getProductVisualSource(productData, productImageFailed)}
+              style={styles.image}
+              resizeMode="contain"
+              onError={() => setProductImageFailed(true)}
             />
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.detailRow}>
-            <Text style={styles.label}>Son Kullanma</Text>
-            <TextInput
-              style={styles.inputValue}
-              value={productData.expiryDate || ''}
-              onChangeText={value => updateProductField('expiryDate', value)}
-              placeholder="YYYY-AA"
-              placeholderTextColor="#9aa49d"
-              keyboardType="numbers-and-punctuation"
-              maxLength={7}
-            />
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.ingredientSection}>
-            <Text style={styles.label}>Öne Çıkan İçerikler</Text>
-            <View style={styles.ingredientChips}>
-              {activeIngredients.length ? (
-                activeIngredients.map((ingredient, index) => (
-                  <TouchableOpacity
-                    key={`${ingredient}-${index}`}
-                    style={styles.ingredientChip}
-                    onPress={() => handleRemoveIngredient(index)}
-                  >
-                    <Text style={styles.ingredientChipText}>{ingredient}</Text>
-                    <X size={12} color={colors.sage} />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.emptyIngredientsText}>İçerik eklenmedi.</Text>
-              )}
+            <View style={styles.sourceBadge}>
+              <Check size={16} color={colors.onDark} />
+              <Text style={styles.sourceBadgeText}>{sourceBadgeLabel}</Text>
             </View>
-            <View style={styles.ingredientInputRow}>
+          </View>
+
+          {/* Ürün Detay Formu */}
+          <View style={styles.detailsContainer}>
+            <View style={styles.sourceNotice}>
+              <Check size={14} color={colors.sage} />
+              <Text style={styles.sourceNoticeText}>{sourceNoticeText}</Text>
+            </View>
+
+            {/* MARKA */}
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Marka</Text>
               <TextInput
-                style={styles.ingredientInput}
-                value={ingredientInput}
-                onChangeText={setIngredientInput}
-                onSubmitEditing={handleAddIngredient}
-                placeholder="İçerik ekle"
+                style={styles.inputValue}
+                value={productData.brand}
+                onChangeText={(value) => updateProductField('brand', value)}
+                placeholder="Marka"
                 placeholderTextColor="#9aa49d"
-                returnKeyType="done"
+                editable={!loading}
               />
-              <TouchableOpacity style={styles.addIngredientButton} onPress={handleAddIngredient}>
-                <Plus size={18} color={colors.onDark} />
-              </TouchableOpacity>
+            </View>
+            <View style={styles.separator} />
+
+            {/* ÜRÜN ADI */}
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Ürün Adı</Text>
+              <TextInput
+                style={styles.inputValue}
+                value={productData.name}
+                onChangeText={(value) => updateProductField('name', value)}
+                placeholder="Ürün adı"
+                placeholderTextColor="#9aa49d"
+                editable={!loading}
+              />
+            </View>
+            <View style={styles.separator} />
+
+            {/* KATEGORİ CHIPS */}
+            <View style={styles.categorySection}>
+              <Text style={styles.label}>Kategori</Text>
+              <View style={styles.categoryChips}>
+                {categoryOptions.map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.categoryChip,
+                      productData.category === category && styles.categoryChipActive,
+                    ]}
+                    onPress={() => updateProductField('category', category)}
+                    disabled={loading}
+                    hitSlop={TOUCH_SLOP}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        productData.category === category && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={styles.separator} />
+
+            {/* AÇIKLAMA */}
+            <View style={styles.textAreaSection}>
+              <Text style={styles.label}>Ürün Açıklaması</Text>
+              <TextInput
+                style={styles.textArea}
+                value={productData.description || ''}
+                onChangeText={(value) => updateProductField('description', value)}
+                placeholder="Ürünün yapısı, kullanım amacı veya önemli notlar"
+                placeholderTextColor="#9aa49d"
+                multiline
+                textAlignVertical="top"
+                maxLength={1000}
+                editable={!loading}
+              />
+            </View>
+            <View style={styles.separator} />
+
+            {/* SON KULLANMA TARİHİ */}
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Son Kullanma</Text>
+              <TextInput
+                style={styles.inputValue}
+                value={productData.expiryDate || ''}
+                onChangeText={(value) => updateProductField('expiryDate', value)}
+                placeholder="YYYY-AA"
+                placeholderTextColor="#9aa49d"
+                keyboardType="numbers-and-punctuation"
+                maxLength={7}
+                editable={!loading}
+              />
+            </View>
+            <View style={styles.separator} />
+
+            {/* ÖNE ÇIKAN İÇERİKLER */}
+            <View style={styles.ingredientSection}>
+              <Text style={styles.label}>Öne Çıkan İçerikler</Text>
+              <View style={styles.ingredientChips}>
+                {activeIngredients.length ? (
+                  activeIngredients.map((ingredient, index) => (
+                    <TouchableOpacity
+                      key={`${ingredient}-${index}`}
+                      style={styles.ingredientChip}
+                      onPress={() => handleRemoveIngredient(index)}
+                      disabled={loading}
+                      hitSlop={TOUCH_SLOP}
+                    >
+                      <Text style={styles.ingredientChipText}>{ingredient}</Text>
+                      <X size={12} color={colors.sage} />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.emptyIngredientsText}>İçerik eklenmedi.</Text>
+                )}
+              </View>
+
+              <View style={styles.ingredientInputRow}>
+                <TextInput
+                  style={styles.ingredientInput}
+                  value={ingredientInput}
+                  onChangeText={setIngredientInput}
+                  onSubmitEditing={handleAddIngredient}
+                  placeholder="İçerik ekle"
+                  placeholderTextColor="#9aa49d"
+                  returnKeyType="done"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.addIngredientButton}
+                  onPress={handleAddIngredient}
+                  disabled={loading || !ingredientInput.trim()}
+                  hitSlop={TOUCH_SLOP}
+                >
+                  <Plus size={18} color={colors.onDark} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.aiAnalysisCard}>
-          <View style={styles.aiAnalysisHeader}>
-            <Sparkles size={20} color={colors.sage} />
-            <Text style={styles.aiAnalysisTitle}>Yapay Zeka İçerik Analizi</Text>
-          </View>
-          {aiAnalysis ? (
-            <Text style={styles.aiAnalysisText}>{aiAnalysis}</Text>
-          ) : analysisError ? (
-            <Text style={styles.aiAnalysisLoadingText}>{analysisError}</Text>
-          ) : (
-            <Text style={styles.aiAnalysisLoadingText}>
-              {analysisLoading ? 'Analiz hazırlanıyor...' : 'Analiz için ürün bilgisi bekleniyor...'}
-            </Text>
-          )}
-        </View>
-
-        {conflictData && (
-          <View style={[
-            styles.conflictCard,
-            conflictData.severity === 'high' && styles.conflictHigh,
-            conflictData.severity === 'warning' && styles.conflictWarning,
-            conflictData.severity === 'synergy' && styles.conflictSynergy,
-          ]}>
-            <View style={styles.conflictHeader}>
-              {conflictData.severity === 'high' && <AlertCircle size={20} color="#BA1A1A" />}
-              {conflictData.severity === 'warning' && <AlertTriangle size={20} color="#856006" />}
-              {conflictData.severity === 'synergy' && <Sparkles size={20} color="#006D3B" />}
-              <Text style={[
-                styles.conflictTitle,
-                conflictData.severity === 'high' && { color: '#BA1A1A' },
-                conflictData.severity === 'warning' && { color: '#856006' },
-                conflictData.severity === 'synergy' && { color: '#006D3B' },
-              ]}>
-                {conflictData.severity === 'high' && 'Dikkat: Çakışma Riski'}
-                {conflictData.severity === 'warning' && 'Kullanım Önerisi'}
-                {conflictData.severity === 'synergy' && 'Mükemmel Uyum'}
-              </Text>
+          {/* AI İÇERİK ANALİZ KARTI */}
+          <View style={styles.aiAnalysisCard}>
+            <View style={styles.aiAnalysisHeader}>
+              <Sparkles size={20} color={colors.sage} />
+              <Text style={styles.aiAnalysisTitle}>Yapay Zeka İçerik Analizi</Text>
             </View>
-            <Text style={[
-                styles.conflictMessage,
-                conflictData.severity === 'high' && { color: '#410002' },
-                conflictData.severity === 'warning' && { color: '#2b1c00' },
-                conflictData.severity === 'synergy' && { color: '#00210e' },
-            ]}>{conflictData.message}</Text>
-          </View>
-        )}
-
-        <View style={styles.routineSection}>
-          <View style={styles.routineTitleContainer}>
-            <Text style={styles.routineTitle}>Rutin Zamanı</Text>
-            {aiSuggestedTime && (
-              <View style={styles.aiSuggestionBadge}>
-                <Sparkles size={12} color="#006D3B" />
-                <Text style={styles.aiSuggestionText}>Yapay zeka tarafından cildiniz ve ürün içeriği için otomatik önerildi</Text>
+            {aiAnalysis ? (
+              <Text style={styles.aiAnalysisText}>{aiAnalysis}</Text>
+            ) : analysisError ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={[styles.aiAnalysisLoadingText, { color: colors.danger, flex: 1 }]}>
+                  {analysisError}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setRetryTrigger((prev) => prev + 1)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}
+                  hitSlop={TOUCH_SLOP}
+                >
+                  <RotateCcw size={14} color={colors.sage} />
+                  <Text style={{ fontFamily: fonts.sansBold, fontSize: 12, color: colors.sage }}>
+                    Tekrar Dene
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {analysisLoading && <ActivityIndicator size="small" color={colors.sage} />}
+                <Text style={styles.aiAnalysisLoadingText}>
+                  {analysisLoading
+                    ? 'Analiz hazırlanıyor...'
+                    : 'Analiz için ürün bilgisi bekleniyor...'}
+                </Text>
               </View>
             )}
           </View>
-          <View style={styles.routineButtons}>
-            <TouchableOpacity 
-              style={[styles.timeButton, timeOfDay === 'morning' && styles.timeButtonActive]}
-              onPress={() => setTimeOfDay('morning')}
-            >
-              <Text style={[styles.timeText, timeOfDay === 'morning' && styles.timeTextActive]}>Sabah</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.timeButton, timeOfDay === 'evening' && styles.timeButtonActive]}
-              onPress={() => setTimeOfDay('evening')}
-            >
-              <Text style={[styles.timeText, timeOfDay === 'evening' && styles.timeTextActive]}>Akşam</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.timeButton, timeOfDay === 'both' && styles.timeButtonActive]}
-              onPress={() => setTimeOfDay('both')}
-            >
-              <Text style={[styles.timeText, timeOfDay === 'both' && styles.timeTextActive]}>İkisi de</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.saveButton, loading && styles.disabledButton]} 
-          onPress={handleSave}
-          disabled={loading}
-        >
-          <Check size={20} color={colors.onDark} style={{ marginRight: 8 }} />
-          <Text style={styles.saveButtonText}>{loading ? 'Kaydediliyor...' : editingProductId ? 'Değişiklikleri Kaydet' : 'Dolabıma Ekle'}</Text>
-        </TouchableOpacity>
-      </View>
+          {/* ÇAKIŞMA / UYUM BİLDİRİMİ */}
+          {conflictData && (
+            <View
+              style={[
+                styles.conflictCard,
+                conflictData.severity === 'high' && styles.conflictHigh,
+                conflictData.severity === 'warning' && styles.conflictWarning,
+                conflictData.severity === 'synergy' && styles.conflictSynergy,
+              ]}
+            >
+              <View style={styles.conflictHeader}>
+                {conflictData.severity === 'high' && <AlertCircle size={20} color="#BA1A1A" />}
+                {conflictData.severity === 'warning' && <AlertTriangle size={20} color="#856006" />}
+                {conflictData.severity === 'synergy' && <Sparkles size={20} color="#006D3B" />}
+                <Text
+                  style={[
+                    styles.conflictTitle,
+                    conflictData.severity === 'high' && { color: '#BA1A1A' },
+                    conflictData.severity === 'warning' && { color: '#856006' },
+                    conflictData.severity === 'synergy' && { color: '#006D3B' },
+                  ]}
+                >
+                  {conflictData.severity === 'high' && 'Dikkat: Çakışma Riski'}
+                  {conflictData.severity === 'warning' && 'Kullanım Önerisi'}
+                  {conflictData.severity === 'synergy' && 'Mükemmel Uyum'}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.conflictMessage,
+                  conflictData.severity === 'high' && { color: '#410002' },
+                  conflictData.severity === 'warning' && { color: '#2b1c00' },
+                  conflictData.severity === 'synergy' && { color: '#00210e' },
+                ]}
+              >
+                {conflictData.message}
+              </Text>
+            </View>
+          )}
+
+          {/* RUTİN ZAMANI */}
+          <View style={styles.routineSection}>
+            <View style={styles.routineTitleContainer}>
+              <Text style={styles.routineTitle}>Rutin Zamanı</Text>
+              {aiSuggestedTime && (
+                <View style={styles.aiSuggestionBadge}>
+                  <Sparkles size={12} color="#006D3B" />
+                  <Text style={styles.aiSuggestionText}>
+                    Yapay zeka tarafından cildiniz ve ürün içeriği için otomatik önerildi
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.routineButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.timeButton,
+                  timeOfDay === 'morning' && styles.timeButtonActive,
+                ]}
+                onPress={() => setTimeOfDay('morning')}
+                disabled={loading}
+                hitSlop={TOUCH_SLOP}
+              >
+                <Text
+                  style={[
+                    styles.timeText,
+                    timeOfDay === 'morning' && styles.timeTextActive,
+                  ]}
+                >
+                  Sabah
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.timeButton,
+                  timeOfDay === 'evening' && styles.timeButtonActive,
+                ]}
+                onPress={() => setTimeOfDay('evening')}
+                disabled={loading}
+                hitSlop={TOUCH_SLOP}
+              >
+                <Text
+                  style={[
+                    styles.timeText,
+                    timeOfDay === 'evening' && styles.timeTextActive,
+                  ]}
+                >
+                  Akşam
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.timeButton,
+                  timeOfDay === 'both' && styles.timeButtonActive,
+                ]}
+                onPress={() => setTimeOfDay('both')}
+                disabled={loading}
+                hitSlop={TOUCH_SLOP}
+              >
+                <Text
+                  style={[
+                    styles.timeText,
+                    timeOfDay === 'both' && styles.timeTextActive,
+                  ]}
+                >
+                  İkisi de
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* FOOTER - KAYDET BUTONU */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.saveButton, loading && styles.disabledButton]}
+            onPress={handleSave}
+            disabled={loading}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityState={{ busy: loading }}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.onDark} />
+            ) : (
+              <>
+                <Check size={20} color={colors.onDark} style={{ marginRight: 8 }} />
+                <Text style={styles.saveButtonText}>
+                  {editingProductId ? 'Değişiklikleri Kaydet' : 'Dolabıma Ekle'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

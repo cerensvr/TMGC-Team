@@ -1,5 +1,16 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, Platform, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -14,9 +25,17 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 };
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 export default function ProfileScreen({ navigation }: Props) {
   const { profile, account, clearProfile } = useUser();
   const { products, clearProducts } = useProducts();
+
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const isProcessing = isLoggingOut || isDeletingAccount;
 
   const fullName =
     profile.displayName?.trim() ||
@@ -27,22 +46,35 @@ export default function ProfileScreen({ navigation }: Props) {
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
-    .map(part => part[0]?.toLocaleUpperCase('tr-TR'))
+    .map((part) => part[0]?.toLocaleUpperCase('tr-TR'))
     .join('');
 
+  // ÇIKIŞ YAPMA İŞLEMİ
   const handleLogout = async () => {
+    if (isProcessing) return;
+
+    setIsLoggingOut(true);
     try {
       await authService.logout();
       clearProfile();
       clearProducts();
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Logout error:', error);
-      Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu.');
+      let userMsg = 'Çıkış yapılırken bir hata oluştu. Lütfen tekrar deneyin.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      Alert.alert('Hata', userMsg);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
+  // HESAP VE VERİLERİ SİLME İŞLEMİ
   const handleDeleteAccount = () => {
+    if (isProcessing) return;
+
     Alert.alert(
       'Hesabı ve Verileri Sil',
       'Bu işlem hesabını, cilt profilini, ürünlerini, Shelly sohbet geçmişini ve cilt takip kayıtlarını kalıcı olarak siler. Geri alınamaz.',
@@ -52,14 +84,21 @@ export default function ProfileScreen({ navigation }: Props) {
           text: 'Kalıcı Olarak Sil',
           style: 'destructive',
           onPress: async () => {
+            setIsDeletingAccount(true);
             try {
               await authService.deleteAccount();
               clearProfile();
               clearProducts();
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-             } catch (error) {
+            } catch (error: any) {
               errorDev('Delete account error:', error);
-              Alert.alert('Hata', 'Hesap silinirken bir sorun oluştu. Lütfen tekrar deneyin.');
+              let userMsg = 'Hesap silinirken bir sorun oluştu. Lütfen tekrar deneyin.';
+              if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+                userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+              }
+              Alert.alert('Hata', userMsg);
+            } finally {
+              setIsDeletingAccount(false);
             }
           },
         },
@@ -71,20 +110,29 @@ export default function ProfileScreen({ navigation }: Props) {
     {
       icon: Settings,
       label: 'Hesap Ayarları',
-      onPress: () => Alert.alert('Hesap Ayarları', 'E-posta ve profil bilgilerini bu ekrandan yönetebilir, cilt profilini düzenleyebilirsin.'),
+      onPress: () =>
+        Alert.alert(
+          'Hesap Ayarları',
+          'E-posta ve profil bilgilerini bu ekrandan yönetebilir, cilt profilini düzenleyebilirsin.'
+        ),
     },
     {
       icon: Shield,
       label: 'Gizlilik ve Güvenlik',
-      onPress: () => Alert.alert(
-        'Gizlilik ve Güvenlik',
-        'Cilt fotoğrafları varsayılan olarak saklanmaz; analiz için işlenir ve yalnızca analiz sonucu kaydedilir. Hesabını silersen profil, ürün, sohbet ve cilt takip verilerin kalıcı olarak silinir.'
-      ),
+      onPress: () =>
+        Alert.alert(
+          'Gizlilik ve Güvenlik',
+          'Cilt fotoğrafları varsayılan olarak saklanmaz; analiz için işlenir ve yalnızca analiz sonucu kaydedilir. Hesabını silersen profil, ürün, sohbet ve cilt takip verilerin kalıcı olarak silinir.'
+        ),
     },
     {
       icon: CircleHelp,
       label: 'Yardım ve Destek',
-      onPress: () => Alert.alert('Yardım ve Destek', 'Sorun yaşarsan uygulamayı güncel tutup tekrar dene. Kalıcı hata alırsan ekran görüntüsü ve kullandığın hesap e-postasıyla destek ekibine ilet.'),
+      onPress: () =>
+        Alert.alert(
+          'Yardım ve Destek',
+          'Sorun yaşarsan uygulamayı güncel tutup tekrar dene. Kalıcı hata alırsan ekran görüntüsü ve kullandığın hesap e-postasıyla destek ekibine ilet.'
+        ),
     },
   ];
 
@@ -95,6 +143,7 @@ export default function ProfileScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* PROFİL KARTI */}
         <View style={styles.profileCard}>
           <LinearGradient
             colors={['#1C4630', '#0F2919']}
@@ -117,6 +166,7 @@ export default function ProfileScreen({ navigation }: Props) {
             )}
           </LinearGradient>
 
+          {/* İSTATİSTİKLER */}
           <View style={styles.profileStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{products.length}</Text>
@@ -135,12 +185,16 @@ export default function ProfileScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {/* CİLT PROFİLİ BÖLÜMÜ */}
         <Text style={styles.sectionLabel}>CİLT PROFİLİ</Text>
         <View style={styles.menuContainer}>
           <TouchableOpacity
             style={[styles.menuItem, styles.menuItemLast]}
             onPress={() => navigation.navigate('Onboarding' as any)}
             activeOpacity={0.75}
+            disabled={isProcessing}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
           >
             <View style={[styles.menuIconBox, styles.menuIconBoxAccent]}>
               <Sparkles size={19} color={colors.gold} />
@@ -155,6 +209,7 @@ export default function ProfileScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+        {/* HESAP MENÜSÜ */}
         <Text style={styles.sectionLabel}>HESAP</Text>
         <View style={styles.menuContainer}>
           {menuItems.map((item, index) => {
@@ -165,6 +220,9 @@ export default function ProfileScreen({ navigation }: Props) {
                 style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
                 onPress={item.onPress}
                 activeOpacity={0.75}
+                disabled={isProcessing}
+                hitSlop={TOUCH_SLOP}
+                accessibilityRole="button"
               >
                 <View style={styles.menuIconBox}>
                   <Icon size={19} color={colors.inkSoft} />
@@ -176,14 +234,44 @@ export default function ProfileScreen({ navigation }: Props) {
           })}
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-          <LogOut size={19} color={colors.danger} style={{ marginRight: 11 }} />
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
+        {/* ÇIKIŞ YAP BUTONU */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+          disabled={isProcessing}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityState={{ busy: isLoggingOut }}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <>
+              <LogOut size={19} color={colors.danger} style={{ marginRight: 11 }} />
+              <Text style={styles.logoutText}>Çıkış Yap</Text>
+            </>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.8}>
-          <Trash2 size={18} color={colors.danger} style={{ marginRight: 11 }} />
-          <Text style={styles.deleteText}>Hesabı ve Verileri Sil</Text>
+        {/* HESABI VE VERİLERİ SİL BUTONU */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.8}
+          disabled={isProcessing}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityState={{ busy: isDeletingAccount }}
+        >
+          {isDeletingAccount ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <>
+              <Trash2 size={18} color={colors.danger} style={{ marginRight: 11 }} />
+              <Text style={styles.deleteText}>Hesabı ve Verileri Sil</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.versionText}>SkinShelf • v1.0.0</Text>

@@ -1,5 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft, ArrowRight, Camera, Check, PenLine, Sparkles } from 'lucide-react-native';
 import { ProductDraft, RootStackParamList } from '../types';
@@ -14,18 +27,89 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 };
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 const ageRanges = ['13-17', '18-24', '25-34', '35+'];
-const experienceLevels = ['Yeni başlıyorum', 'Birkaç ürün kullanıyorum', 'Aktif içerikleri biliyorum', 'Rutinim detaylı'];
-const skinFeelOptions = ['Hep kuru / gergin', 'T bölgem yağlı, yanaklarım daha kuru', 'Genel olarak yağlı', 'Normal / dengeli', 'Emin değilim'];
-const postWashOptions = ['Gerginlik ve kuruluk oluyor', 'Hızlıca yağlanıyor', 'Bazı bölgeler yağlı, bazı bölgeler kuru', 'Pek değişmiyor', 'Emin değilim'];
-const productFitOptions = ['Evet, ürünlerimi analiz et', 'Önce cildimi tanımak istiyorum', 'Sadece rutinimi düzenlemek istiyorum'];
-const mainGoals = ['Ürünlerim bana uygun mu?', 'Sivilce / komedon görünümü', 'Leke / renk eşitsizliği', 'Kızarıklık / hassasiyet', 'Kuruluk / bariyer desteği', 'Yağlanma kontrolü', 'Daha düzenli rutin'];
-const sensitivityOptions = ['Evet, sık sık kızarır/yanar', 'Bazen', 'Hayır, genelde dayanıklı', 'Emin değilim'];
+const experienceLevels = [
+  'Yeni başlıyorum',
+  'Birkaç ürün kullanıyorum',
+  'Aktif içerikleri biliyorum',
+  'Rutinim detaylı',
+];
+const skinFeelOptions = [
+  'Hep kuru / gergin',
+  'T bölgem yağlı, yanaklarım daha kuru',
+  'Genel olarak yağlı',
+  'Normal / dengeli',
+  'Emin değilim',
+];
+const postWashOptions = [
+  'Gerginlik ve kuruluk oluyor',
+  'Hızlıca yağlanıyor',
+  'Bazı bölgeler yağlı, bazı bölgeler kuru',
+  'Pek değişmiyor',
+  'Emin değilim',
+];
+const productFitOptions = [
+  'Evet, ürünlerimi analiz et',
+  'Önce cildimi tanımak istiyorum',
+  'Sadece rutinimi düzenlemek istiyorum',
+];
+const mainGoals = [
+  'Ürünlerim bana uygun mu?',
+  'Sivilce / komedon görünümü',
+  'Leke / renk eşitsizliği',
+  'Kızarıklık / hassasiyet',
+  'Kuruluk / bariyer desteği',
+  'Yağlanma kontrolü',
+  'Daha düzenli rutin',
+];
+const sensitivityOptions = [
+  'Evet, sık sık kızarır/yanar',
+  'Bazen',
+  'Hayır, genelde dayanıklı',
+  'Emin değilim',
+];
 const reactionOptions = ['Evet', 'Hayır', 'Emin değilim'];
-const routineOptions = ['Temizleyici', 'Nemlendirici', 'Güneş kremi', 'Serum', 'Tonik', 'Peeling / asit', 'Retinol / retinal', 'Akne ürünü', 'Hiçbir şey kullanmıyorum'];
-const activeOptions = ['Retinol / retinal', 'AHA / BHA asit', 'Salisilik asit', 'C vitamini', 'Benzoil peroksit', 'Niacinamide', 'Reçeteli akne ürünü', 'Emin değilim'];
-const trackingOptions = ['Uyku', 'Stres', 'Regl dönemi', 'Su tüketimi', 'Beslenme', 'Makyaj kullanımı', 'Güneşe maruz kalma', 'Şimdilik istemiyorum'];
-const reminderOptions = ['Sabah rutinim için', 'Akşam rutinim için', 'Ürün kullanım takibi için', 'Haftalık cilt özeti için', 'Bildirim istemiyorum'];
+const routineOptions = [
+  'Temizleyici',
+  'Nemlendirici',
+  'Güneş kremi',
+  'Serum',
+  'Tonik',
+  'Peeling / asit',
+  'Retinol / retinal',
+  'Akne ürünü',
+  'Hiçbir şey kullanmıyorum',
+];
+const activeOptions = [
+  'Retinol / retinal',
+  'AHA / BHA asit',
+  'Salisilik asit',
+  'C vitamini',
+  'Benzoil peroksit',
+  'Niacinamide',
+  'Reçeteli akne ürünü',
+  'Emin değilim',
+];
+const trackingOptions = [
+  'Uyku',
+  'Stres',
+  'Regl dönemi',
+  'Su tüketimi',
+  'Beslenme',
+  'Makyaj kullanımı',
+  'Güneşe maruz kalma',
+  'Şimdilik istemiyorum',
+];
+const reminderOptions = [
+  'Sabah rutinim için',
+  'Akşam rutinim için',
+  'Ürün kullanım takibi için',
+  'Haftalık cilt özeti için',
+  'Bildirim istemiyorum',
+];
 
 const manualProductDraft: ProductDraft = {
   name: '',
@@ -51,12 +135,21 @@ const OptionButton = ({
   label,
   selected,
   onPress,
+  disabled,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  disabled?: boolean;
 }) => (
-  <TouchableOpacity style={[styles.optionButton, selected && styles.optionButtonSelected]} onPress={onPress} activeOpacity={0.76}>
+  <TouchableOpacity
+    style={[styles.optionButton, selected && styles.optionButtonSelected]}
+    onPress={onPress}
+    activeOpacity={0.76}
+    disabled={disabled}
+    hitSlop={TOUCH_SLOP}
+    accessibilityRole="button"
+  >
     <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{label}</Text>
     {selected && <Check size={16} color={colors.sage} />}
   </TouchableOpacity>
@@ -68,6 +161,8 @@ export default function OnboardingScreen({ navigation }: Props) {
   const userId = route.params?.userId || authService.getUserId();
 
   const [step, setStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [displayName, setDisplayName] = useState(profile.displayName || '');
   const [ageRange, setAgeRange] = useState(profile.ageRange || '');
   const [experienceLevel, setExperienceLevel] = useState(profile.experienceLevel || '');
@@ -79,26 +174,41 @@ export default function OnboardingScreen({ navigation }: Props) {
   const [reactionHistory, setReactionHistory] = useState(profile.reactionHistory || '');
   const [currentRoutine, setCurrentRoutine] = useState<string[]>(profile.currentRoutine || []);
   const [recentActives, setRecentActives] = useState<string[]>(profile.recentActives || []);
-  const [trackingPreferences, setTrackingPreferences] = useState<string[]>(profile.trackingPreferences || []);
-  const [reminderPreferences, setReminderPreferences] = useState<string[]>(profile.reminderPreferences || []);
+  const [trackingPreferences, setTrackingPreferences] = useState<string[]>(
+    profile.trackingPreferences || []
+  );
+  const [reminderPreferences, setReminderPreferences] = useState<string[]>(
+    profile.reminderPreferences || []
+  );
 
-  const inferredSkinType = useMemo(() => inferSkinType(skinFeel, postWashFeel), [skinFeel, postWashFeel]);
+  const inferredSkinType = useMemo(
+    () => inferSkinType(skinFeel, postWashFeel),
+    [skinFeel, postWashFeel]
+  );
   const isLastStep = step === 6;
 
-  const toggleList = (value: string, selected: string[], setSelected: (next: string[]) => void, exclusive?: string[]) => {
+  const toggleList = (
+    value: string,
+    selected: string[],
+    setSelected: (next: string[]) => void,
+    exclusive?: string[]
+  ) => {
     if (exclusive?.includes(value)) {
       setSelected(selected.includes(value) ? [] : [value]);
       return;
     }
 
-    const withoutExclusive = selected.filter(item => !exclusive?.includes(item));
-    setSelected(withoutExclusive.includes(value) ? withoutExclusive.filter(item => item !== value) : [...withoutExclusive, value]);
+    const withoutExclusive = selected.filter((item) => !exclusive?.includes(item));
+    setSelected(
+      withoutExclusive.includes(value)
+        ? withoutExclusive.filter((item) => item !== value)
+        : [...withoutExclusive, value]
+    );
   };
 
   const saveProfile = async () => {
     if (!userId) {
       warnDev('Oturum açmış kullanıcı ID bilgisi bulunamadı!');
-      alert('Lütfen önce giriş yapın.');
       return;
     }
 
@@ -124,7 +234,7 @@ export default function OnboardingScreen({ navigation }: Props) {
       logDev('Profil Spring Boot API ile kaydediliyor.');
       await userService.updateProfile(String(userId), profileData);
       logDev('Profil başarıyla kaydedildi.');
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Cilt profili kaydedilirken hata oluştu:', error);
     }
 
@@ -132,18 +242,36 @@ export default function OnboardingScreen({ navigation }: Props) {
   };
 
   const completeToMain = async () => {
-    await saveProfile();
-    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveProfile();
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const completeToScanner = async () => {
-    await saveProfile();
-    navigation.navigate('Scanner');
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveProfile();
+      navigation.navigate('Scanner');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const completeToManualProduct = async () => {
-    await saveProfile();
-    navigation.navigate('ProductReview', { scannedProduct: manualProductDraft, source: 'manual' });
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveProfile();
+      navigation.navigate('ProductReview', { scannedProduct: manualProductDraft, source: 'manual' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const canContinue = () => {
@@ -159,7 +287,9 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Seni tanıyalım</Text>
-          <Text style={styles.stepText}>Shelly önerilerini sana hitap şekline ve bakım deneyimine göre ayarlar.</Text>
+          <Text style={styles.stepText}>
+            Shelly önerilerini sana hitap şekline ve bakım deneyimine göre ayarlar.
+          </Text>
           <View style={styles.inputCard}>
             <Text style={styles.inputLabel}>Sana nasıl hitap edelim?</Text>
             <TextInput
@@ -168,12 +298,30 @@ export default function OnboardingScreen({ navigation }: Props) {
               placeholder="Örn. Ceren"
               placeholderTextColor="#8b968f"
               style={styles.textInput}
+              autoCorrect={false}
+              editable={!isSaving}
             />
           </View>
           <Text style={styles.groupTitle}>Yaş aralığın</Text>
-          {ageRanges.map(item => <OptionButton key={item} label={item} selected={ageRange === item} onPress={() => setAgeRange(item)} />)}
+          {ageRanges.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={ageRange === item}
+              onPress={() => setAgeRange(item)}
+              disabled={isSaving}
+            />
+          ))}
           <Text style={styles.groupTitle}>Cilt bakım deneyimin</Text>
-          {experienceLevels.map(item => <OptionButton key={item} label={item} selected={experienceLevel === item} onPress={() => setExperienceLevel(item)} />)}
+          {experienceLevels.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={experienceLevel === item}
+              onPress={() => setExperienceLevel(item)}
+              disabled={isSaving}
+            />
+          ))}
         </>
       );
     }
@@ -182,11 +330,29 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Cilt hissin nasıl?</Text>
-          <Text style={styles.stepText}>Cilt tipini etiketlerden değil, gün içindeki hislerinden tahmin ediyoruz.</Text>
+          <Text style={styles.stepText}>
+            Cilt tipini etiketlerden değil, gün içindeki hislerinden tahmin ediyoruz.
+          </Text>
           <Text style={styles.groupTitle}>Gün içinde genelde</Text>
-          {skinFeelOptions.map(item => <OptionButton key={item} label={item} selected={skinFeel === item} onPress={() => setSkinFeel(item)} />)}
+          {skinFeelOptions.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={skinFeel === item}
+              onPress={() => setSkinFeel(item)}
+              disabled={isSaving}
+            />
+          ))}
           <Text style={styles.groupTitle}>Yüzünü yıkadıktan 30 dakika sonra</Text>
-          {postWashOptions.map(item => <OptionButton key={item} label={item} selected={postWashFeel === item} onPress={() => setPostWashFeel(item)} />)}
+          {postWashOptions.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={postWashFeel === item}
+              onPress={() => setPostWashFeel(item)}
+              disabled={isSaving}
+            />
+          ))}
           {skinFeel && postWashFeel && (
             <View style={styles.shellyNote}>
               <Sparkles size={18} color={colors.sage} />
@@ -201,10 +367,28 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Cildinle anlaşamayan ürünleri bulmak ister misin?</Text>
-          <Text style={styles.stepText}>SkinShelf’in ana odağı rafındaki ürünlerin cildinle uyumunu anlamana yardımcı olmak.</Text>
-          {productFitOptions.map(item => <OptionButton key={item} label={item} selected={productFitIntent === item} onPress={() => setProductFitIntent(item)} />)}
+          <Text style={styles.stepText}>
+            SkinShelf’in ana odağı rafındaki ürünlerin cildinle uyumunu anlamana yardımcı olmak.
+          </Text>
+          {productFitOptions.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={productFitIntent === item}
+              onPress={() => setProductFitIntent(item)}
+              disabled={isSaving}
+            />
+          ))}
           <Text style={styles.groupTitle}>Şu an en çok neye odaklanalım?</Text>
-          {mainGoals.map(item => <OptionButton key={item} label={item} selected={mainGoal === item} onPress={() => setMainGoal(item)} />)}
+          {mainGoals.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={mainGoal === item}
+              onPress={() => setMainGoal(item)}
+              disabled={isSaving}
+            />
+          ))}
         </>
       );
     }
@@ -213,11 +397,31 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Cildin kolay tepki verir mi?</Text>
-          <Text style={styles.stepText}>Bu bilgi Shelly’nin daha dikkatli ve sade öneriler yapmasına yardımcı olur.</Text>
+          <Text style={styles.stepText}>
+            Bu bilgi Shelly’nin daha dikkatli ve sade öneriler yapmasına yardımcı olur.
+          </Text>
           <Text style={styles.groupTitle}>Ürünlere tepkin</Text>
-          {sensitivityOptions.map(item => <OptionButton key={item} label={item} selected={sensitivityLevel === item} onPress={() => setSensitivityLevel(item)} />)}
-          <Text style={styles.groupTitle}>Daha önce bir ürün yakma, kızarma veya sivilce yaptı mı?</Text>
-          {reactionOptions.map(item => <OptionButton key={item} label={item} selected={reactionHistory === item} onPress={() => setReactionHistory(item)} />)}
+          {sensitivityOptions.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={sensitivityLevel === item}
+              onPress={() => setSensitivityLevel(item)}
+              disabled={isSaving}
+            />
+          ))}
+          <Text style={styles.groupTitle}>
+            Daha önce bir ürün yakma, kızarma veya sivilce yaptı mı?
+          </Text>
+          {reactionOptions.map((item) => (
+            <OptionButton
+              key={item}
+              label={item}
+              selected={reactionHistory === item}
+              onPress={() => setReactionHistory(item)}
+              disabled={isSaving}
+            />
+          ))}
         </>
       );
     }
@@ -226,26 +430,36 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Şu an rafında neler var?</Text>
-          <Text style={styles.stepText}>İstersen sonra ürünleri barkodla juga ekleyebilirsin. Bu adım sadece başlangıç tahmini için.</Text>
-          {routineOptions.map(item => (
+          <Text style={styles.stepText}>
+            İstersen sonra ürünleri barkodla ekleyebilirsin. Bu adım sadece başlangıç tahmini için.
+          </Text>
+          {routineOptions.map((item) => (
             <OptionButton
               key={item}
               label={item}
               selected={currentRoutine.includes(item)}
-              onPress={() => toggleList(item, currentRoutine, setCurrentRoutine, ['Hiçbir şey kullanmıyorum'])}
+              onPress={() =>
+                toggleList(item, currentRoutine, setCurrentRoutine, ['Hiçbir şey kullanmıyorum'])
+              }
+              disabled={isSaving}
             />
           ))}
           <Text style={styles.groupTitle}>Son 1 ayda kullandığın aktifler</Text>
-          {activeOptions.map(item => (
+          {activeOptions.map((item) => (
             <OptionButton
               key={item}
               label={item}
               selected={recentActives.includes(item)}
-              onPress={() => toggleList(item, recentActives, setRecentActives, ['Emin değilim'])}
+              onPress={() =>
+                toggleList(item, recentActives, setRecentActives, ['Emin değilim'])
+              }
+              disabled={isSaving}
             />
           ))}
           {recentActives.includes('Reçeteli akne ürünü') && (
-            <Text style={styles.warningText}>Reçeteli ürünlerle ilgili değişiklik yapmadan dermatoloğuna danışmanı öneririz.</Text>
+            <Text style={styles.warningText}>
+              Reçeteli ürünlerle ilgili değişiklik yapmadan dermatoloğuna danışmanı öneririz.
+            </Text>
           )}
         </>
       );
@@ -255,23 +469,31 @@ export default function OnboardingScreen({ navigation }: Props) {
       return (
         <>
           <Text style={styles.stepTitle}>Shelly neleri takip etsin?</Text>
-          <Text style={styles.stepText}>Bu adım zorunlu değil. İstersen sadece rutin hatırlatmasıyla başlayabilirsin.</Text>
+          <Text style={styles.stepText}>
+            Bu adım zorunlu değil. İstersen sadece rutin hatırlatmasıyla başlayabilirsin.
+          </Text>
           <Text style={styles.groupTitle}>Cilt değişimini etkileyebilecek şeyler</Text>
-          {trackingOptions.map(item => (
+          {trackingOptions.map((item) => (
             <OptionButton
               key={item}
               label={item}
               selected={trackingPreferences.includes(item)}
-              onPress={() => toggleList(item, trackingPreferences, setTrackingPreferences, ['Şimdilik istemiyorum'])}
+              onPress={() =>
+                toggleList(item, trackingPreferences, setTrackingPreferences, ['Şimdilik istemiyorum'])
+              }
+              disabled={isSaving}
             />
           ))}
           <Text style={styles.groupTitle}>Hatırlatma tercihin</Text>
-          {reminderOptions.map(item => (
+          {reminderOptions.map((item) => (
             <OptionButton
               key={item}
               label={item}
               selected={reminderPreferences.includes(item)}
-              onPress={() => toggleList(item, reminderPreferences, setReminderPreferences, ['Bildirim istemiyorum'])}
+              onPress={() =>
+                toggleList(item, reminderPreferences, setReminderPreferences, ['Bildirim istemiyorum'])
+              }
+              disabled={isSaving}
             />
           ))}
         </>
@@ -285,17 +507,51 @@ export default function OnboardingScreen({ navigation }: Props) {
         </View>
         <Text style={styles.readyTitle}>Hazırsın!</Text>
         <Text style={styles.readyText}>
-          Şimdi ürünlerini SkinShelf rafına ekleyebilir, Shelly’den cildinle uyumlarını analiz etmesini isteyebilirsin.
+          Şimdi ürünlerini SkinShelf rafına ekleyebilir, Shelly’den cildinle uyumlarını analiz etmesini
+          isteyebilirsin.
         </Text>
-        <TouchableOpacity style={styles.primaryAction} onPress={completeToScanner} activeOpacity={0.78}>
-          <Camera size={19} color={colors.onDark} />
-          <Text style={styles.primaryActionText}>Barkodla ürün ekle</Text>
+
+        {/* BARKODLA EKLENEN AKSİYON */}
+        <TouchableOpacity
+          style={[styles.primaryAction, isSaving && { opacity: 0.7 }]}
+          onPress={completeToScanner}
+          activeOpacity={0.78}
+          disabled={isSaving}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color={colors.onDark} />
+          ) : (
+            <>
+              <Camera size={19} color={colors.onDark} />
+              <Text style={styles.primaryActionText}>Barkodla ürün ekle</Text>
+            </>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryAction} onPress={completeToManualProduct} activeOpacity={0.78}>
+
+        {/* MANUEL ÜRÜN EKLENEN AKSİYON */}
+        <TouchableOpacity
+          style={styles.secondaryAction}
+          onPress={completeToManualProduct}
+          activeOpacity={0.78}
+          disabled={isSaving}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+        >
           <PenLine size={18} color={colors.sage} />
           <Text style={styles.secondaryActionText}>Manuel ürün ekle</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.textAction} onPress={completeToMain} activeOpacity={0.75}>
+
+        {/* DAHA SONRA YAP AKSİYONU */}
+        <TouchableOpacity
+          style={styles.textAction}
+          onPress={completeToMain}
+          activeOpacity={0.75}
+          disabled={isSaving}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+        >
           <Text style={styles.textActionText}>Sonra yap</Text>
         </TouchableOpacity>
       </View>
@@ -304,12 +560,19 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => (step > 0 ? setStep(step - 1) : navigation.goBack())}
             activeOpacity={0.75}
+            disabled={isSaving}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Geri Dön"
           >
             <ArrowLeft size={22} color={colors.sage} />
           </TouchableOpacity>
@@ -319,11 +582,17 @@ export default function OnboardingScreen({ navigation }: Props) {
           <Text style={styles.stepCounter}>{step + 1}/7</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {step === 0 && (
             <View style={styles.brandCard}>
               <Text style={styles.brandTitle}>SkinShelf’e hoş geldin</Text>
-              <Text style={styles.brandText}>Shelly ürünlerini ve rutin uyumunu takip etmeye burada başlar.</Text>
+              <Text style={styles.brandText}>
+                Shelly ürünlerini ve rutin uyumunu takip etmeye burada başlar.
+              </Text>
             </View>
           )}
           {renderStep()}
@@ -332,10 +601,12 @@ export default function OnboardingScreen({ navigation }: Props) {
         {!isLastStep && (
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.nextButton, !canContinue() && styles.nextButtonDisabled]}
-              disabled={!canContinue()}
+              style={[styles.nextButton, (!canContinue() || isSaving) && styles.nextButtonDisabled]}
+              disabled={!canContinue() || isSaving}
               onPress={() => setStep(step + 1)}
               activeOpacity={0.78}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
             >
               <Text style={styles.nextButtonText}>Devam Et</Text>
               <ArrowRight size={20} color={colors.onDark} />

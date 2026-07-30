@@ -3,7 +3,6 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -13,10 +12,12 @@ import {
   Alert,
   Switch,
   Animated,
+  KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, Send, Sparkles, Bot, Shield, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, Send, Sparkles, Bot, Shield, RotateCcw, AlertTriangle } from 'lucide-react-native';
 import { RootStackParamList, Message, GeminiBotResponse } from '../types';
 import { useUser } from '../context/UserContext';
 import { callAssistantAPI, clearAssistantHistory, fetchAssistantHistory } from '../api/assistant';
@@ -41,16 +42,52 @@ const QUICK_ACTIONS = [
 
 const QUICK_PROMPTS = ['Bu ürün rutinime uygun mu?', 'Bugünkü rutinim ağır mı?', 'Cildim tepki verdi'];
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 // ============ CHAT BUBBLE COMPONENT ============
-const ChatBubble = ({ from, text }: { from: 'user' | 'ai'; text: string }) => (
+const ChatBubble = ({
+  from,
+  text,
+  isError,
+  onRetry,
+}: {
+  from: 'user' | 'ai';
+  text: string;
+  isError?: boolean;
+  onRetry?: () => void;
+}) => (
   <View style={[styles.chatRow, from === 'user' && styles.chatRowUser]}>
     {from === 'ai' && (
-      <View style={styles.chatAvatar}>
-        <Bot size={14} color={colors.goldSoft} />
+      <View style={[styles.chatAvatar, isError && { backgroundColor: colors.surfaceSage }]}>
+        {isError ? (
+          <AlertTriangle size={14} color={colors.danger} />
+        ) : (
+          <Bot size={14} color={colors.goldSoft} />
+        )}
       </View>
     )}
-    <View style={[styles.chatBubble, from === 'user' && styles.chatBubbleUser]}>
+    <View
+      style={[
+        styles.chatBubble,
+        from === 'user' && styles.chatBubbleUser,
+        isError && { borderColor: colors.danger, borderWidth: 1 },
+      ]}
+    >
       <Text style={from === 'ai' ? styles.chatText : styles.chatTextUser}>{text}</Text>
+      {/* Retry Aksiyonu */}
+      {isError && onRetry && (
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 4 }}
+          onPress={onRetry}
+          hitSlop={TOUCH_SLOP}
+        >
+          <RotateCcw size={13} color={colors.danger} />
+          <Text style={{ fontFamily: fonts.sansBold, fontSize: 12, color: colors.danger }}>
+            Tekrar Dene
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   </View>
 );
@@ -63,6 +100,9 @@ export default function AssistantScreen({ navigation }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<GeminiBotResponse | null>(null);
 
   // REFS
@@ -71,18 +111,24 @@ export default function AssistantScreen({ navigation }: Props) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   // LOAD PREVIOUS CONVERSATION FROM BACKEND
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchAssistantHistory().then(history => {
-      if (!cancelled && history.length) {
-        setMessages(prev => (prev.length ? prev : history));
+  const loadHistory = async () => {
+    setIsHistoryLoading(true);
+    setHistoryError(false);
+    try {
+      const history = await fetchAssistantHistory();
+      if (history && history.length > 0) {
+        setMessages(history);
       }
-    });
+    } catch (error) {
+      errorDev('Failed to fetch assistant history:', error);
+      setHistoryError(true);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    loadHistory();
   }, []);
 
   // AUTO-SCROLL TO BOTTOM
@@ -96,12 +142,15 @@ export default function AssistantScreen({ navigation }: Props) {
 
   // ============ HANDLERS ============
   const sendPrompt = async (prompt: string) => {
+    if (isLoading) return;
+
+    setLastFailedPrompt(null);
     const userMsg: Message = {
       id: Date.now().toString(),
       from: 'user',
       text: prompt,
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
 
     setIsLoading(true);
     try {
@@ -114,22 +163,28 @@ export default function AssistantScreen({ navigation }: Props) {
         text: response.ai_response,
         structured: response.structured ?? undefined,
       };
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (error) {
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (error: any) {
       errorDev('Error sending message:', error);
+      setLastFailedPrompt(prompt);
+
+      let userErrorText = 'Şu anda bağlantı kurulamıyor. Lütfen tekrar deneyin.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userErrorText = 'İnternet bağlantınız koptu. Lütfen bağlantınızı kontrol edin.';
+      }
+
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         from: 'ai',
-        text: 'Şu anda bağlantı kurulamıyor. Lütfen tekrar deneyin.',
+        text: userErrorText,
       };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSendMessage = async (event?: any) => {
-    // Web'de form submit / sayfa yenileme yan etkilerini engelle
     if (event) {
       if (typeof event.preventDefault === 'function') event.preventDefault();
       if (typeof event.stopPropagation === 'function') event.stopPropagation();
@@ -175,185 +230,283 @@ export default function AssistantScreen({ navigation }: Props) {
 
   const handleResetChat = async () => {
     if (isLoading) return;
-    try {
-      await clearAssistantHistory();
-      setMessages([]);
-      setInputValue('');
-      setLastResponse(null);
-      setActiveIssue(null);
-    } catch {
-      Alert.alert(
-        'Sohbet temizlenemedi',
-        'Shelly hafızası sunucuda temizlenemedi. Bağlantını kontrol edip tekrar dene.'
-      );
-    }
+    Alert.alert(
+      'Sohbeti Sıfırla',
+      'Shelly ile olan tüm konuşma geçmişin silinecek. Emin misin?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Temizle',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              await clearAssistantHistory();
+              setMessages([]);
+              setInputValue('');
+              setLastResponse(null);
+              setActiveIssue(null);
+              setLastFailedPrompt(null);
+            } catch {
+              Alert.alert(
+                'Sohbet temizlenemedi',
+                'Shelly hafızası sunucuda temizlenemedi. İnternet bağlantını kontrol edip tekrar dene.'
+              );
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // CONDITIONAL FLAGS
   const hasMessages = messages.length > 0;
-  const showSafePlanButton = lastResponse?.intent_type === 'ISSUE' && lastResponse?.detected_issue && !isLoading;
+  const showSafePlanButton =
+    lastResponse?.intent_type === 'ISSUE' && lastResponse?.detected_issue && !isLoading;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ========== HEADER ========== */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <ArrowLeft size={21} color={colors.forest} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Shelly</Text>
-          <View style={styles.onlineRow}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>Cilt bakım asistanın</Text>
-          </View>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* ========== MAIN CONTENT (SCROLLABLE) ========== */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {!hasMessages && (
-          <>
-            <LinearGradient
-              colors={['#1C4630', '#0F2919']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroCard}
-            >
-              <View style={styles.heroIcon}>
-                <Sparkles size={22} color={colors.goldSoft} />
-              </View>
-              <View style={styles.heroTextBlock}>
-                <Text style={styles.heroTitle}>Shelly bugün neyi kontrol etsin?</Text>
-                <Text style={styles.heroText}>
-                  Shelly, rafındaki ürünleri tanır; rutinini, içerikleri ve cilt değişimlerini birlikte takip eder.
-                </Text>
-              </View>
-            </LinearGradient>
-
-            <View style={styles.actionGrid}>
-              {QUICK_ACTIONS.map(action => (
-                <TouchableOpacity
-                  key={action.label}
-                  style={styles.actionCard}
-                  onPress={() => handleQuickAction(action.prompt)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.actionTitle}>{action.label}</Text>
-                  <Text style={styles.actionSubtitle}>{action.prompt}</Text>
-                </TouchableOpacity>
-              ))}
+        {/* ========== HEADER ========== */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.75}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Geri Dön"
+          >
+            <ArrowLeft size={21} color={colors.forest} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Shelly</Text>
+            <View style={styles.onlineRow}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>Cilt bakım asistanın</Text>
             </View>
-          </>
-        )}
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
 
-        {hasMessages && (
-          <View style={styles.chatContainer}>
-            {messages.map(msg =>
-              msg.from === 'ai' && msg.structured ? (
-                <ShellyAdviceCard key={msg.id} response={msg.structured} />
-              ) : (
-                <ChatBubble key={msg.id} from={msg.from} text={msg.text} />
-              )
-            )}
-
-            {isLoading && (
-              <View style={styles.chatRow}>
-                <View style={styles.chatAvatar}>
-                  <ActivityIndicator size="small" color={colors.goldSoft} />
-                </View>
-                <View style={styles.chatBubble}>
-                  <Text style={styles.chatText}>Düşünüyorum...</Text>
-                </View>
-              </View>
-            )}
-
-            {showSafePlanButton && (
-              <View style={styles.safePlanToggleContainer}>
-                <View style={styles.safePlanToggleContent}>
-                  <View style={styles.safePlanToggleLeft}>
-                    <Shield size={18} color={colors.danger} />
-                    <View style={styles.safePlanToggleText}>
-                      <Text style={styles.safePlanToggleTitle}>Cilt Bariyerini Koru</Text>
-                      <Text style={styles.safePlanToggleSubtitle}>Güvenli Mod</Text>
-                    </View>
-                  </View>
-                  <Switch
-                    value={activeIssue === lastResponse?.detected_issue}
-                    onValueChange={handleToggleSafePlan}
-                    trackColor={{ false: colors.surfaceSage, true: colors.danger }}
-                    thumbColor={colors.surface}
-                    ios_backgroundColor={colors.surfaceSage}
-                  />
-                </View>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.resetButton} onPress={handleResetChat} activeOpacity={0.75}>
-              <RotateCcw size={15} color={colors.sage} />
-              <Text style={styles.resetButtonText}>Yeni sohbet başlat</Text>
+        {/* ========== İLK YÜKLEME VE AĞ HATASI BANTLARI ========== */}
+        {historyError && (
+          <View
+            style={{
+              backgroundColor: '#FDE8E8',
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ color: colors.danger, fontFamily: fonts.sansSemiBold, fontSize: 13, flex: 1 }}>
+              Sohbet geçmişi yüklenemedi. İnternet bağlantınızı kontrol edin.
+            </Text>
+            <TouchableOpacity
+              onPress={loadHistory}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              hitSlop={TOUCH_SLOP}
+            >
+              <RotateCcw size={14} color={colors.danger} />
+              <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: colors.danger }}>
+                Yeniden Dene
+              </Text>
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
 
-      {/* ========== FIXED BOTTOM INPUT AREA ========== */}
-      <View style={styles.inputContainer}>
-        {!hasMessages && (
-          <View style={styles.quickPromptsRow}>
-            {QUICK_PROMPTS.map(prompt => (
-              <TouchableOpacity
-                key={prompt}
-                style={styles.quickPromptButton}
-                onPress={() => handleQuickAction(prompt)}
-                activeOpacity={0.75}
+        {/* ========== MAIN CONTENT (SCROLLABLE) ========== */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {isHistoryLoading ? (
+            <View style={{ paddingVertical: 40, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color={colors.sage} />
+              <Text style={{ marginTop: 10, fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.inkSoft }}>
+                Shelly hazırlanıyor...
+              </Text>
+            </View>
+          ) : !hasMessages ? (
+            <>
+              {/* BOŞ SOHBET (QUICK ACTIONS) EKANI */}
+              <LinearGradient
+                colors={['#1C4630', '#0F2919']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroCard}
               >
-                <Text style={styles.quickPromptText}>{prompt}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                <View style={styles.heroIcon}>
+                  <Sparkles size={22} color={colors.goldSoft} />
+                </View>
+                <View style={styles.heroTextBlock}>
+                  <Text style={styles.heroTitle}>Shelly bugün neyi kontrol etsin?</Text>
+                  <Text style={styles.heroText}>
+                    Shelly, rafındaki ürünleri tanır; rutinini, içerikleri ve cilt değişimlerini birlikte takip eder.
+                  </Text>
+                </View>
+              </LinearGradient>
 
-        <View style={styles.inputRow}>
-          <TextInput
-            ref={textInputRef}
-            value={inputValue}
-            onChangeText={setInputValue}
-            onSubmitEditing={e => {
-              if (e && typeof e.preventDefault === 'function') e.preventDefault();
-              handleSendMessage();
-            }}
-            placeholder="Ürün, rutin veya cilt değişimini yaz"
-            placeholderTextColor={colors.inkMuted}
-            style={styles.input}
-            multiline={false}
-            maxLength={500}
-            editable={!isLoading}
-            blurOnSubmit={false}
-            returnKeyType="send"
-          />
-          <TouchableOpacity
-            onPress={e => handleSendMessage(e)}
-            disabled={isLoading || !inputValue.trim()}
-            activeOpacity={0.75}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <LinearGradient
-              colors={isLoading || !inputValue.trim() ? ['#B8BFB8', '#A7AFA7'] : ['#1C4630', '#0F2919']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sendButton}
+              <View style={styles.actionGrid}>
+                {QUICK_ACTIONS.map((action) => (
+                  <TouchableOpacity
+                    key={action.label}
+                    style={styles.actionCard}
+                    onPress={() => handleQuickAction(action.prompt)}
+                    activeOpacity={0.75}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.actionTitle}>{action.label}</Text>
+                    <Text style={styles.actionSubtitle}>{action.prompt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          ) : (
+            /* SOHBET AKIŞI */
+            <View style={styles.chatContainer}>
+              {messages.map((msg) => {
+                const isErrorMessage = msg.text.includes('bağlantı') || msg.text.includes('Lütfen tekrar');
+                return msg.from === 'ai' && msg.structured ? (
+                  <ShellyAdviceCard key={msg.id} response={msg.structured} />
+                ) : (
+                  <ChatBubble
+                    key={msg.id}
+                    from={msg.from}
+                    text={msg.text}
+                    isError={isErrorMessage}
+                    onRetry={
+                      isErrorMessage && lastFailedPrompt
+                        ? () => sendPrompt(lastFailedPrompt)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+
+              {isLoading && (
+                <View style={styles.chatRow}>
+                  <View style={styles.chatAvatar}>
+                    <ActivityIndicator size="small" color={colors.goldSoft} />
+                  </View>
+                  <View style={styles.chatBubble}>
+                    <Text style={styles.chatText}>Düşünüyorum...</Text>
+                  </View>
+                </View>
+              )}
+
+              {showSafePlanButton && (
+                <View style={styles.safePlanToggleContainer}>
+                  <View style={styles.safePlanToggleContent}>
+                    <View style={styles.safePlanToggleLeft}>
+                      <Shield size={18} color={colors.danger} />
+                      <View style={styles.safePlanToggleText}>
+                        <Text style={styles.safePlanToggleTitle}>Cilt Bariyerini Koru</Text>
+                        <Text style={styles.safePlanToggleSubtitle}>Güvenli Mod</Text>
+                      </View>
+                    </View>
+                    <Switch
+                      value={activeIssue === lastResponse?.detected_issue}
+                      onValueChange={handleToggleSafePlan}
+                      trackColor={{ false: colors.surfaceSage, true: colors.danger }}
+                      thumbColor={colors.surface}
+                      ios_backgroundColor={colors.surfaceSage}
+                      disabled={isLoading}
+                    />
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={handleResetChat}
+                activeOpacity={0.75}
+                disabled={isLoading}
+                hitSlop={TOUCH_SLOP}
+              >
+                <RotateCcw size={15} color={colors.sage} />
+                <Text style={styles.resetButtonText}>Yeni sohbet başlat</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* ========== FIXED BOTTOM INPUT AREA ========== */}
+        <View style={styles.inputContainer}>
+          {!hasMessages && !isHistoryLoading && (
+            <View style={styles.quickPromptsRow}>
+              {QUICK_PROMPTS.map((prompt) => (
+                <TouchableOpacity
+                  key={prompt}
+                  style={styles.quickPromptButton}
+                  onPress={() => handleQuickAction(prompt)}
+                  activeOpacity={0.75}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.quickPromptText}>{prompt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={textInputRef}
+              value={inputValue}
+              onChangeText={setInputValue}
+              onSubmitEditing={(e) => {
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                handleSendMessage();
+              }}
+              placeholder="Ürün, rutin veya cilt değişimini yaz"
+              placeholderTextColor={colors.inkMuted}
+              style={styles.input}
+              multiline={false}
+              maxLength={500}
+              editable={!isLoading && !isHistoryLoading}
+              blurOnSubmit={false}
+              returnKeyType="send"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              onPress={(e) => handleSendMessage(e)}
+              disabled={isLoading || !inputValue.trim() || isHistoryLoading}
+              activeOpacity={0.75}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Gönder"
             >
-              <Send size={17} color={colors.onDark} />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={
+                  isLoading || !inputValue.trim() || isHistoryLoading
+                    ? ['#B8BFB8', '#A7AFA7']
+                    : ['#1C4630', '#0F2919']
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sendButton}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={colors.onDark} />
+                ) : (
+                  <Send size={17} color={colors.onDark} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

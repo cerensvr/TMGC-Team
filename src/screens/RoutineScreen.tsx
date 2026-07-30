@@ -1,10 +1,36 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Modal, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import {
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AlertTriangle, Bot, Calendar, CheckCircle2, MessageCircle, Moon, Send, Sparkles, Sun, X } from 'lucide-react-native';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Bot,
+  Calendar,
+  CheckCircle2,
+  MessageCircle,
+  Moon,
+  Plus,
+  RotateCcw,
+  Send,
+  Sparkles,
+  Sun,
+  X,
+} from 'lucide-react-native';
 import { MainTabParamList, Product, RootStackParamList } from '../types';
 import { useProducts } from '../context/ProductContext';
 import { useUser } from '../context/UserContext';
@@ -21,12 +47,26 @@ type Props = {
   navigation: RoutineScreenNavigationProp;
 };
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 const ProductRoutineRow = ({ product, onPress }: { product: Product; onPress: () => void }) => (
-  <TouchableOpacity style={styles.productRow} onPress={onPress} activeOpacity={0.75}>
+  <TouchableOpacity
+    style={styles.productRow}
+    onPress={onPress}
+    activeOpacity={0.75}
+    hitSlop={TOUCH_SLOP}
+    accessibilityRole="button"
+    accessibilityLabel={`${product.brand} ${product.name}`}
+  >
     <View style={styles.productDot} />
     <View style={styles.productTextBlock}>
-      <Text style={styles.productBrand} numberOfLines={1}>{product.brand}</Text>
-      <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+      <Text style={styles.productBrand} numberOfLines={1}>
+        {product.brand}
+      </Text>
+      <Text style={styles.productName} numberOfLines={1}>
+        {product.name}
+      </Text>
     </View>
     <Text style={styles.productCategory}>{product.category}</Text>
   </TouchableOpacity>
@@ -50,7 +90,7 @@ const RoutineBlock = ({
   const filteredProducts = useMemo(() => {
     if (!isSafeMode) return products;
 
-    return products.filter(product => {
+    return products.filter((product) => {
       const role = getProductRole(product);
       return !['retinol', 'peeling', 'vitaminC', 'acne'].includes(role);
     });
@@ -60,21 +100,34 @@ const RoutineBlock = ({
     <View style={styles.routineBlock}>
       <View style={styles.routineBlockHeader}>
         <View style={styles.routineTitleWrap}>
-          <View style={[styles.slotIcon, slot === 'morning' ? styles.slotIconMorning : styles.slotIconEvening]}>
-            {slot === 'morning' ? <Sun size={17} color={colors.warning} /> : <Moon size={17} color={colors.sage} />}
+          <View
+            style={[
+              styles.slotIcon,
+              slot === 'morning' ? styles.slotIconMorning : styles.slotIconEvening,
+            ]}
+          >
+            {slot === 'morning' ? (
+              <Sun size={17} color={colors.warning} />
+            ) : (
+              <Moon size={17} color={colors.sage} />
+            )}
           </View>
           <Text style={styles.routineBlockTitle}>{title}</Text>
         </View>
         <View style={styles.statusPill}>
-          <Text style={styles.statusPillText}>{slot === 'morning' ? 'SPF kontrolü' : 'Aktifler ayrıldı'}</Text>
+          <Text style={styles.statusPillText}>
+            {slot === 'morning' ? 'SPF kontrolü' : 'Aktifler ayrıldı'}
+          </Text>
         </View>
       </View>
+
       <View style={styles.routineNote}>
         <CheckCircle2 size={15} color={colors.sage} />
         <Text style={styles.routineNoteText}>{note}</Text>
       </View>
+
       {filteredProducts.length ? (
-        filteredProducts.map(product => (
+        filteredProducts.map((product) => (
           <ProductRoutineRow
             key={product.id}
             product={product}
@@ -84,6 +137,7 @@ const RoutineBlock = ({
       ) : (
         <Text style={styles.emptyRoutineText}>Dolabında bu adım için uygun ürün yok.</Text>
       )}
+
       {isSafeMode && products.length > filteredProducts.length && (
         <View style={styles.safeModeBadge}>
           <Text style={styles.safeModeBadgeText}>Agresif aktifler geçici olarak gizlendi</Text>
@@ -94,18 +148,19 @@ const RoutineBlock = ({
 };
 
 export default function RoutineScreen({ navigation }: Props) {
-  const { products } = useProducts();
+  const { products, isLoading, loadError, loadProducts } = useProducts();
   const { profile, activeIssue, setActiveIssue } = useUser();
   const [isWeekPlanVisible, setIsWeekPlanVisible] = useState(false);
+
   const activeProducts = useMemo(() => {
-    return products.filter(p => (p as any).isActive ?? (p as any).is_active ?? true);
+    return products.filter((p) => (p as any).isActive ?? (p as any).is_active ?? true);
   }, [products]);
 
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      setUpdateTrigger(prev => prev + 1);
+      setUpdateTrigger((prev) => prev + 1);
     }, [])
   );
 
@@ -115,9 +170,12 @@ export default function RoutineScreen({ navigation }: Props) {
     return 'standard' as const;
   }, [activeIssue, profile.mainGoal]);
 
-  const weekPlan = useMemo(() => buildWeekPlan(activeProducts, concern), [products, updateTrigger, concern]);
-    const todayPlan = weekPlan[0];
-  
+  const weekPlan = useMemo(
+    () => buildWeekPlan(activeProducts, concern),
+    [products, updateTrigger, concern]
+  );
+  const todayPlan = weekPlan[0];
+
   const routineReview = useMemo(
     () => getRoutineReview(todayPlan?.morning || [], todayPlan?.evening || []),
     [todayPlan, updateTrigger]
@@ -143,8 +201,12 @@ export default function RoutineScreen({ navigation }: Props) {
     };
   }, [isWeekPlanVisible, navigation]);
 
+  // İLK YÜKLEME KONTROLÜ
+  const isInitialLoading = isLoading && products.length === 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* GÜVENLİ MOD UYARI BANTI */}
       {activeIssue && (
         <View style={styles.safeModeWarningBanner}>
           <View style={styles.safeModeWarningContent}>
@@ -152,7 +214,9 @@ export default function RoutineScreen({ navigation }: Props) {
             <View style={styles.safeModeWarningText}>
               <Text style={styles.safeModeWarningTitle}>Güvenli Mod Aktif</Text>
               <Text style={styles.safeModeWarningMessage}>
-                Cildinizdeki <Text style={{ fontFamily: fonts.sansExtraBold }}>{activeIssue}</Text> nedeniyle rutininiz optimize edildi.
+                Cildinizdeki{' '}
+                <Text style={{ fontFamily: fonts.sansExtraBold }}>{activeIssue}</Text> nedeniyle
+                rutininiz optimize edildi.
               </Text>
             </View>
           </View>
@@ -160,21 +224,72 @@ export default function RoutineScreen({ navigation }: Props) {
             style={styles.safeModeRecoveryButton}
             onPress={handleRecovery}
             activeOpacity={0.8}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
           >
             <Text style={styles.safeModeRecoveryButtonText}>İyileşti</Text>
           </TouchableOpacity>
         </View>
       )}
 
+      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Rutinim</Text>
-        <TouchableOpacity style={styles.headerIconButton} onPress={() => navigation.navigate('Assistant')} activeOpacity={0.75}>
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() => navigation.navigate('Assistant')}
+          activeOpacity={0.75}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Shelly Asistan"
+        >
           <Bot size={21} color={colors.forest} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* AĞ YÜKLEME HATASI BANTI */}
+        {loadError && (
+          <View
+            style={{
+              backgroundColor: '#FDE8E8',
+              borderRadius: radius.md,
+              padding: 12,
+              marginBottom: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <AlertCircle size={18} color={colors.danger} />
+              <Text
+                style={{
+                  fontFamily: fonts.sansSemiBold,
+                  fontSize: 13,
+                  color: colors.danger,
+                  flex: 1,
+                }}
+              >
+                {loadError}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => void loadProducts()}
+              disabled={isLoading}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              hitSlop={TOUCH_SLOP}
+            >
+              <RotateCcw size={14} color={colors.danger} />
+              <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: colors.danger }}>
+                Tekrar Dene
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* SHELLY ÖZET KARTI */}
         <LinearGradient
           colors={['#1C4630', '#0F2919']}
           start={{ x: 0, y: 0 }}
@@ -187,7 +302,9 @@ export default function RoutineScreen({ navigation }: Props) {
             </View>
             <View style={styles.summaryTextBlock}>
               <Text style={styles.summaryTitle}>Shelly'nin Yorumu</Text>
-              <Text style={styles.summarySubtitle}>Cilt tipi: {profile.skinType || 'Belirlenmedi'} • Kaynak: Dolabım</Text>
+              <Text style={styles.summarySubtitle}>
+                Cilt tipi: {profile.skinType || 'Belirlenmedi'} • Kaynak: Dolabım
+              </Text>
             </View>
           </View>
           <View style={styles.summaryChipRow}>
@@ -203,65 +320,169 @@ export default function RoutineScreen({ navigation }: Props) {
           </Text>
         </LinearGradient>
 
-        <TouchableOpacity style={styles.assistantComposer} onPress={() => navigation.navigate('Assistant')} activeOpacity={0.8}>
+        {/* SHELLY'YE SOR KOMPOZİTÖRi */}
+        <TouchableOpacity
+          style={styles.assistantComposer}
+          onPress={() => navigation.navigate('Assistant')}
+          activeOpacity={0.8}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+        >
           <View style={styles.composerIcon}>
             <MessageCircle size={20} color={colors.sage} />
           </View>
           <View style={styles.composerTextBlock}>
             <Text style={styles.composerLabel}>SHELLY'YE SOR</Text>
-            <Text style={styles.composerPlaceholder} numberOfLines={1}>Bugün cildimde bir değişiklik var...</Text>
+            <Text style={styles.composerPlaceholder} numberOfLines={1}>
+              Bugün cildimde bir değişiklik var...
+            </Text>
           </View>
           <View style={styles.composerSend}>
             <Send size={17} color={colors.onDark} />
           </View>
         </TouchableOpacity>
 
-        {todayPlan && (
-          <View>
-            <View style={styles.todayHeader}>
-              <Text style={styles.todayTitle}>Bugün kullan</Text>
-              <TouchableOpacity style={styles.weekInlineButton} onPress={() => setIsWeekPlanVisible(true)} activeOpacity={0.78}>
-                <Calendar size={15} color={colors.sage} />
-                <Text style={styles.weekInlineButtonText}>Haftalık plan</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.todaySection}>
-              <RoutineBlock
-                title="Sabah rutini"
-                slot="morning"
-                products={todayPlan.morning}
-                note={routineReview.morningNote}
-                navigation={navigation}
-                isSafeMode={activeIssue !== null}
-              />
-              <RoutineBlock
-                title="Akşam rutini"
-                slot="evening"
-                products={todayPlan.evening}
-                note={routineReview.eveningNote}
-                navigation={navigation}
-                isSafeMode={activeIssue !== null}
-              />
-            </View>
+        {/* 1. YÜKLEME DURUMU */}
+        {isInitialLoading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={colors.sage} />
+            <Text
+              style={{
+                marginTop: 10,
+                fontFamily: fonts.sansSemiBold,
+                fontSize: 13,
+                color: colors.inkSoft,
+              }}
+            >
+              Cilt bakım rutininiz hazırlanıyor...
+            </Text>
           </View>
+        ) : products.length === 0 ? (
+          /* 2. BOŞ DOLAP / RUTİN DURUMU (EMPTY STATE) */
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.xl,
+              padding: 24,
+              alignItems: 'center',
+              marginTop: 10,
+              borderWidth: 1,
+              borderColor: colors.line,
+              ...shadows.soft,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fonts.display,
+                fontSize: 22,
+                color: colors.forest,
+                marginBottom: 8,
+              }}
+            >
+              Dolabınızda Ürün Yok
+            </Text>
+            <Text
+              style={{
+                fontFamily: fonts.sansSemiBold,
+                fontSize: 14,
+                color: colors.inkSoft,
+                textAlign: 'center',
+                marginBottom: 16,
+              }}
+            >
+              Kişiselleştirilmiş günlük rutin oluşturabilmemiz için dolabınıza en az bir ürün
+              eklemeniz gerekiyor.
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Scanner')}
+              activeOpacity={0.85}
+              hitSlop={TOUCH_SLOP}
+              style={{
+                backgroundColor: colors.forest,
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: radius.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <Plus size={16} color={colors.onDark} />
+              <Text style={{ fontFamily: fonts.sansBold, fontSize: 14, color: colors.onDark }}>
+                İlk Ürününü Ekle
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          /* 3. BUGÜNKÜ RUTİN PLAN BÖLÜMÜ */
+          todayPlan && (
+            <View>
+              <View style={styles.todayHeader}>
+                <Text style={styles.todayTitle}>Bugün kullan</Text>
+                <TouchableOpacity
+                  style={styles.weekInlineButton}
+                  onPress={() => setIsWeekPlanVisible(true)}
+                  activeOpacity={0.78}
+                  hitSlop={TOUCH_SLOP}
+                  accessibilityRole="button"
+                >
+                  <Calendar size={15} color={colors.sage} />
+                  <Text style={styles.weekInlineButtonText}>Haftalık plan</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.todaySection}>
+                <RoutineBlock
+                  title="Sabah rutini"
+                  slot="morning"
+                  products={todayPlan.morning}
+                  note={routineReview.morningNote}
+                  navigation={navigation}
+                  isSafeMode={activeIssue !== null}
+                />
+                <RoutineBlock
+                  title="Akşam rutini"
+                  slot="evening"
+                  products={todayPlan.evening}
+                  note={routineReview.eveningNote}
+                  navigation={navigation}
+                  isSafeMode={activeIssue !== null}
+                />
+              </View>
+            </View>
+          )
         )}
       </ScrollView>
 
-      <Modal visible={isWeekPlanVisible} animationType="slide" onRequestClose={() => setIsWeekPlanVisible(false)}>
+      {/* HAFTALIK PLAN MODALI */}
+      <Modal
+        visible={isWeekPlanVisible}
+        animationType="slide"
+        onRequestClose={() => setIsWeekPlanVisible(false)}
+      >
         <View style={styles.modalBackdrop}>
           <SafeAreaView style={styles.weekPanel}>
             <View style={styles.weekPanelHeader}>
               <View style={styles.weekPanelTitleBlock}>
                 <Text style={styles.weekPanelTitle}>Haftalık Plan</Text>
-                <Text style={styles.weekPanelSubtitle}>Shelly dolabındaki ürünlere göre sabah ve akşam rutinini dengeli planlar.</Text>
+                <Text style={styles.weekPanelSubtitle}>
+                  Shelly dolabındaki ürünlere göre sabah ve akşam rutinini dengeli planlar.
+                </Text>
               </View>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setIsWeekPlanVisible(false)} activeOpacity={0.75}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setIsWeekPlanVisible(false)}
+                activeOpacity={0.75}
+                hitSlop={TOUCH_SLOP}
+                accessibilityRole="button"
+                accessibilityLabel="Kapat"
+              >
                 <X size={20} color={colors.forest} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.weekList}>
-              {weekPlan.map(dayPlan => (
+              {weekPlan.map((dayPlan) => (
                 <View key={dayPlan.day} style={styles.dayCard}>
                   <View style={styles.dayCardHeader}>
                     <Text style={styles.dayTitle}>{dayPlan.day}</Text>
@@ -269,21 +490,31 @@ export default function RoutineScreen({ navigation }: Props) {
                       <Text style={styles.focusPillText}>{dayPlan.focus}</Text>
                     </View>
                   </View>
+
                   <View style={styles.daySlot}>
                     <Sun size={15} color={colors.warning} />
                     <Text style={styles.slotLabel}>Sabah</Text>
                   </View>
-                  {dayPlan.morning.slice(0, 4).map(product => (
-                    <Text key={`${dayPlan.day}-m-${product.id}`} style={styles.dayProduct} numberOfLines={1}>
+                  {dayPlan.morning.slice(0, 4).map((product) => (
+                    <Text
+                      key={`${dayPlan.day}-m-${product.id}`}
+                      style={styles.dayProduct}
+                      numberOfLines={1}
+                    >
                       {product.category} • {product.name}
                     </Text>
                   ))}
+
                   <View style={styles.daySlot}>
                     <Moon size={15} color={colors.sage} />
                     <Text style={styles.slotLabel}>Akşam</Text>
                   </View>
-                  {dayPlan.evening.slice(0, 4).map(product => (
-                    <Text key={`${dayPlan.day}-e-${product.id}`} style={styles.dayProduct} numberOfLines={1}>
+                  {dayPlan.evening.slice(0, 4).map((product) => (
+                    <Text
+                      key={`${dayPlan.day}-e-${product.id}`}
+                      style={styles.dayProduct}
+                      numberOfLines={1}
+                    >
                       {product.category} • {product.name}
                     </Text>
                   ))}

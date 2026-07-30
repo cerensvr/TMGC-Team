@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -23,9 +23,14 @@ type Props = {
 const BACKGROUND_URI =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBQQnHT9ZdUvZSeofbui3TKtAoCwdfWtYSN5_pv8ABzEIsTEVftdAnhiCwe74SN_Y1W9LftGh0ZlUzHT1a8YcAlFlMAYJCZeWvqH1s6WW9dTR2A4TpBMT3tjKXrRyvu6kZA5UJfG7sHqhWU5YzrwzXIhWM5G0dbUlc4snDk1Y7tlGNLR6kGm7qbrrBcHNQ_ZeSFTWGrKoUbumkyxTzN1X3pAQpNOhwLCMhZVSGEkfkoRrcZs60bUC7P1w';
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 export default function LoginScreen({ navigation }: Props) {
   const { height } = useWindowDimensions();
   const isCompact = height < 720;
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const introAnim = useRef(new Animated.Value(0)).current;
   const buttonAnim = useRef(new Animated.Value(0)).current;
 
@@ -35,6 +40,20 @@ export default function LoginScreen({ navigation }: Props) {
       Animated.timing(buttonAnim, { toValue: 1, duration: 520, useNativeDriver: true }),
     ]).start();
   }, [buttonAnim, introAnim]);
+
+  const handleNavigateSignIn = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    navigation.navigate('SignIn');
+    setTimeout(() => setIsNavigating(false), 500);
+  };
+
+  const handleNavigateSignUp = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+    navigation.navigate('SignUp');
+    setTimeout(() => setIsNavigating(false), 500);
+  };
 
   const introTranslateY = introAnim.interpolate({ inputRange: [0, 1], outputRange: [26, 0] });
   const buttonTranslateY = buttonAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] });
@@ -51,6 +70,7 @@ export default function LoginScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
+          {/* BAŞLIK VE GİRİŞ ANİMASYONU */}
           <Animated.View
             style={[
               styles.header,
@@ -69,6 +89,7 @@ export default function LoginScreen({ navigation }: Props) {
             </Text>
           </Animated.View>
 
+          {/* AKSİYON BUTONLARI */}
           <Animated.View
             style={[
               styles.buttonContainer,
@@ -76,7 +97,15 @@ export default function LoginScreen({ navigation }: Props) {
               { opacity: buttonAnim, transform: [{ translateY: buttonTranslateY }] },
             ]}
           >
-            <TouchableOpacity activeOpacity={0.88} onPress={() => navigation.navigate('SignIn')}>
+            {/* GİRİŞ YAP BUTONU */}
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={handleNavigateSignIn}
+              disabled={isNavigating}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Giriş Yap"
+            >
               <LinearGradient
                 colors={['#1C4630', '#0F2919']}
                 start={{ x: 0, y: 0 }}
@@ -87,9 +116,20 @@ export default function LoginScreen({ navigation }: Props) {
                 <ArrowRight size={18} color={colors.onDark} />
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('SignUp')} activeOpacity={0.8}>
+
+            {/* HESAP OLUŞTUR BUTONU */}
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleNavigateSignUp}
+              activeOpacity={0.8}
+              disabled={isNavigating}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Hesap Oluştur"
+            >
               <Text style={styles.secondaryButtonText}>Hesap Oluştur</Text>
             </TouchableOpacity>
+
             <Text style={styles.footnote}>Cilt bakımında sade, bilinçli ve kişisel bir başlangıç.</Text>
           </Animated.View>
         </ScrollView>

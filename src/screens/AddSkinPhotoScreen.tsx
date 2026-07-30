@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -26,6 +27,9 @@ import { colors, fonts, gradients, radius, shadows } from '../theme';
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AddSkinPhoto'>;
 };
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -54,6 +58,7 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
   };
 
   const handleTakePhoto = async () => {
+    if (analyzing) return;
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
@@ -66,6 +71,7 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
   };
 
   const handlePickFromGallery = async () => {
+    if (analyzing) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
@@ -78,7 +84,8 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
   };
 
   const handleAnalyze = async () => {
-    if (!photoBase64 || analyzing) return;
+    // 1. Çift Tıklama / Çift Gönderim Koruması
+    if (!photoBase64 || analyzing || !canAnalyze) return;
 
     setAnalyzing(true);
     try {
@@ -90,9 +97,15 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
         userNote: note.trim(),
       });
       navigation.replace('SkinAnalysisResult', { analysis });
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Skin analysis error:', error);
-      Alert.alert('Analiz yapılamadı', 'Bağlantı sorunu olabilir. Lütfen tekrar dene.');
+
+      let userMsg = 'Analiz yapılamadı. Lütfen tekrar deneyin.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+
+      Alert.alert('Analiz Yapılamadı', userMsg);
     } finally {
       setAnalyzing(false);
     }
@@ -102,117 +115,163 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.75}>
-          <ArrowLeft size={21} color={colors.forest} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yeni Fotoğraf</Text>
-        <View style={{ width: 44 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <PhotoUploadCard
-          photoUri={photoUri}
-          onTakePhoto={handleTakePhoto}
-          onPickFromGallery={handlePickFromGallery}
-          onRetake={() => {
-            setPhotoUri(null);
-            setPhotoBase64(null);
-          }}
-        />
-
-        {/* Güvenli bilgilendirme */}
-        {!infoAccepted && (
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <Info size={16} color={colors.sage} />
-              <Text style={styles.infoTitle}>Başlamadan önce</Text>
-            </View>
-            <Text style={styles.infoText}>
-              Shelly teşhis koymaz. Fotoğraflar yalnızca cilt görünümündeki değişimleri ve rutin etkilerini takip
-              etmek için yorumlanır.
-            </Text>
-            <TouchableOpacity style={styles.infoButton} onPress={() => setInfoAccepted(true)} activeOpacity={0.8}>
-              <Text style={styles.infoButtonText}>Anladım, devam et</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Mini günlük formu */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Mini günlük</Text>
-
-          <Text style={styles.formLabel}>Bugün cildin nasıl hissediyor?</Text>
-          <View style={styles.chipRow}>
-            {feelingOptions.map(option => (
-              <TouchableOpacity
-                key={option}
-                style={[styles.chip, feeling === option && styles.chipActive]}
-                onPress={() => setFeeling(feeling === option ? null : option)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.chipText, feeling === option && styles.chipTextActive]}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.formLabel}>Son 24 saatte yeni ürün kullandın mı?</Text>
-          <View style={styles.chipRow}>
-            {[
-              [true, 'Evet'],
-              [false, 'Hayır'],
-            ].map(([value, label]) => (
-              <TouchableOpacity
-                key={String(label)}
-                style={[styles.chip, usedNewProduct === value && styles.chipActive]}
-                onPress={() => setUsedNewProduct(usedNewProduct === value ? null : (value as boolean))}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.chipText, usedNewProduct === value && styles.chipTextActive]}>
-                  {label as string}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.formLabel}>Not ekle</Text>
-          <TextInput
-            style={styles.noteInput}
-            value={note}
-            onChangeText={setNote}
-            placeholder="Bugün yanaklarım biraz kuru hissetti."
-            placeholderTextColor={colors.inkMuted}
-            multiline
-            maxLength={300}
-          />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.75}
+            disabled={analyzing}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Geri Dön"
+          >
+            <ArrowLeft size={21} color={colors.forest} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Yeni Fotoğraf</Text>
+          <View style={{ width: 44 }} />
         </View>
 
-        <TouchableOpacity onPress={handleAnalyze} disabled={!canAnalyze} activeOpacity={0.85}>
-          <LinearGradient
-            colors={canAnalyze ? gradients.forest : (['#B8BFB8', '#A7AFA7'] as const)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.analyzeButton}
-          >
-            {analyzing ? (
-              <>
-                <ActivityIndicator size="small" color={colors.onDark} />
-                <Text style={styles.analyzeButtonText}>Shelly inceliyor...</Text>
-              </>
-            ) : (
-              <>
-                <Sparkles size={18} color={colors.onDark} />
-                <Text style={styles.analyzeButtonText}>Analiz Et</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* FOTOĞRAF YÜKLEME KARTI */}
+          <PhotoUploadCard
+            photoUri={photoUri}
+            onTakePhoto={handleTakePhoto}
+            onPickFromGallery={handlePickFromGallery}
+            onRetake={() => {
+              if (!analyzing) {
+                setPhotoUri(null);
+                setPhotoBase64(null);
+              }
+            }}
+          />
 
-        <Text style={styles.privacyText}>
-          Fotoğrafın analiz için güvenli şekilde Shelly'ye iletilir; sunucuda saklanmaz. Yalnızca analiz sonucu
-          kaydedilir.
-        </Text>
-      </ScrollView>
+          {/* GÜVENLİ BİLGİLENDİRME */}
+          {!infoAccepted && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoHeader}>
+                <Info size={16} color={colors.sage} />
+                <Text style={styles.infoTitle}>Başlamadan önce</Text>
+              </View>
+              <Text style={styles.infoText}>
+                Shelly teşhis koymaz. Fotoğraflar yalnızca cilt görünümündeki değişimleri ve rutin etkilerini takip
+                etmek için yorumlanır.
+              </Text>
+              <TouchableOpacity
+                style={styles.infoButton}
+                onPress={() => setInfoAccepted(true)}
+                activeOpacity={0.8}
+                hitSlop={TOUCH_SLOP}
+              >
+                <Text style={styles.infoButtonText}>Anladım, devam et</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* MİNİ GÜNLÜK FORMU */}
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>Mini günlük</Text>
+
+            <Text style={styles.formLabel}>Bugün cildin nasıl hissediyor?</Text>
+            <View style={styles.chipRow}>
+              {feelingOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.chip, feeling === option && styles.chipActive]}
+                  onPress={() => {
+                    if (!analyzing) setFeeling(feeling === option ? null : option);
+                  }}
+                  activeOpacity={0.8}
+                  disabled={analyzing}
+                  hitSlop={TOUCH_SLOP}
+                >
+                  <Text style={[styles.chipText, feeling === option && styles.chipTextActive]}>
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.formLabel}>Son 24 saatte yeni ürün kullandın mı?</Text>
+            <View style={styles.chipRow}>
+              {[
+                [true, 'Evet'],
+                [false, 'Hayır'],
+              ].map(([value, label]) => (
+                <TouchableOpacity
+                  key={String(label)}
+                  style={[styles.chip, usedNewProduct === value && styles.chipActive]}
+                  onPress={() => {
+                    if (!analyzing)
+                      setUsedNewProduct(usedNewProduct === value ? null : (value as boolean));
+                  }}
+                  activeOpacity={0.8}
+                  disabled={analyzing}
+                  hitSlop={TOUCH_SLOP}
+                >
+                  <Text style={[styles.chipText, usedNewProduct === value && styles.chipTextActive]}>
+                    {label as string}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.formLabel}>Not ekle</Text>
+            <TextInput
+              style={styles.noteInput}
+              value={note}
+              onChangeText={setNote}
+              placeholder="Bugün yanaklarım biraz kuru hissetti."
+              placeholderTextColor={colors.inkMuted}
+              multiline
+              maxLength={300}
+              editable={!analyzing}
+            />
+          </View>
+
+          {/* ANALİZ ET BUTONU */}
+          <TouchableOpacity
+            onPress={handleAnalyze}
+            disabled={!canAnalyze}
+            activeOpacity={0.85}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityState={{ busy: analyzing }}
+          >
+            <LinearGradient
+              colors={canAnalyze ? gradients.forest : (['#B8BFB8', '#A7AFA7'] as const)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.analyzeButton}
+            >
+              {analyzing ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.onDark} />
+                  <Text style={styles.analyzeButtonText}>Shelly inceliyor...</Text>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} color={colors.onDark} />
+                  <Text style={styles.analyzeButtonText}>Analiz Et</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <Text style={styles.privacyText}>
+            Fotoğrafın analiz için güvenli şekilde Shelly'ye iletilir; sunucuda saklanmaz. Yalnızca analiz sonucu
+            kaydedilir.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

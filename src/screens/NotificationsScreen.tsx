@@ -33,11 +33,15 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notificationService';
+import { errorDev } from '../services/logger';
 import { colors, fonts, gradients, radius, shadows } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Notifications'>;
 };
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const kindMeta = {
   expiry: { icon: AlertTriangle, tint: colors.danger, bg: colors.dangerSurface },
@@ -64,13 +68,18 @@ const NotificationRow = ({
       style={[styles.row, unread && styles.rowUnread]}
       onPress={onPress}
       activeOpacity={0.82}
+      hitSlop={TOUCH_SLOP}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title} bildirimi`}
     >
       <View style={[styles.rowIcon, { backgroundColor: meta.bg }]}>
         <Icon size={18} color={meta.tint} />
       </View>
       <View style={styles.rowBody}>
         <View style={styles.rowTitleLine}>
-          <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
           <Text style={styles.rowTime}>{item.timeLabel}</Text>
         </View>
         <Text style={styles.rowText}>{item.body}</Text>
@@ -84,6 +93,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   const { products } = useProducts();
   const { profile, activeIssue } = useUser();
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const notifications = useMemo(
     () => buildNotifications(products, profile, activeIssue),
@@ -93,7 +103,11 @@ export default function NotificationsScreen({ navigation }: Props) {
   const unreadCount = countUnread(notifications, readIds);
 
   const refreshReadState = useCallback(async () => {
-    setReadIds(await getReadNotificationIds());
+    try {
+      setReadIds(await getReadNotificationIds());
+    } catch (error) {
+      errorDev('Failed to refresh notification read state:', error);
+    }
   }, []);
 
   useFocusEffect(
@@ -103,45 +117,79 @@ export default function NotificationsScreen({ navigation }: Props) {
   );
 
   const handleOpen = async (item: AppNotification) => {
-    await markNotificationRead(item.id);
-    setReadIds(prev => new Set([...prev, item.id]));
+    if (isProcessing) return;
+    setIsProcessing(true);
 
-    if (item.productId) {
-      navigation.navigate('ProductDetail', { productId: item.productId });
-      return;
-    }
-    if (item.kind === 'routine') {
-      navigation.navigate('MainTabs');
-      return;
-    }
-    if (item.kind === 'product' && products.length === 0) {
-      navigation.navigate('Scanner');
+    try {
+      await markNotificationRead(item.id);
+      setReadIds((prev) => new Set([...prev, item.id]));
+
+      if (item.productId) {
+        navigation.navigate('ProductDetail', { productId: item.productId });
+        return;
+      }
+      if (item.kind === 'routine') {
+        navigation.navigate('MainTabs');
+        return;
+      }
+      if (item.kind === 'product' && products.length === 0) {
+        navigation.navigate('Scanner');
+        return;
+      }
+    } catch (error) {
+      errorDev('Notification click error:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleMarkAll = async () => {
-    await markAllNotificationsRead(notifications.map(n => n.id));
-    setReadIds(new Set(notifications.map(n => n.id)));
+    if (unreadCount === 0 || isProcessing) return;
+    setIsProcessing(true);
+
+    try {
+      await markAllNotificationsRead(notifications.map((n) => n.id));
+      setReadIds(new Set(notifications.map((n) => n.id)));
+    } catch (error) {
+      errorDev('Mark all notifications read error:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+          disabled={isProcessing}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Geri Dön"
+        >
           <ArrowLeft size={21} color={colors.forest} />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Bildirimler</Text>
+
         <TouchableOpacity
-          style={[styles.markAllButton, unreadCount === 0 && styles.markAllDisabled]}
+          style={[styles.markAllButton, (unreadCount === 0 || isProcessing) && styles.markAllDisabled]}
           onPress={handleMarkAll}
-          disabled={unreadCount === 0}
+          disabled={unreadCount === 0 || isProcessing}
           activeOpacity={0.8}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Tümünü okundu işaretle"
         >
           <CheckCheck size={18} color={unreadCount === 0 ? colors.inkMuted : colors.sage} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* HERO CARD */}
         <LinearGradient colors={[...gradients.forest]} style={styles.heroCard}>
           <View style={styles.heroIcon}>
             <Bell size={22} color={colors.onDark} />
@@ -161,17 +209,46 @@ export default function NotificationsScreen({ navigation }: Props) {
           <Text style={styles.sectionCount}>{notifications.length} bildirim</Text>
         </View>
 
+        {/* BİLDİRİMLER LİSTESİ VEYA BOŞ BİLDİRİM DURUMU */}
         <View style={styles.listCard}>
-          {notifications.map((item, index) => (
-            <View key={item.id}>
-              <NotificationRow
-                item={item}
-                unread={!readIds.has(item.id)}
-                onPress={() => handleOpen(item)}
-              />
-              {index < notifications.length - 1 && <View style={styles.divider} />}
+          {notifications.length === 0 ? (
+            /* BOŞ BİLDİRİM DURUMU (EMPTY STATE) */
+            <View style={{ paddingVertical: 40, paddingHorizontal: 20, alignItems: 'center' }}>
+              <Bell size={28} color={colors.sage} style={{ marginBottom: 10 }} />
+              <Text
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: 18,
+                  color: colors.forest,
+                  marginBottom: 4,
+                }}
+              >
+                Henüz Bildirimin Yok
+              </Text>
+              <Text
+                style={{
+                  fontFamily: fonts.sansSemiBold,
+                  fontSize: 13,
+                  color: colors.inkSoft,
+                  textAlign: 'center',
+                }}
+              >
+                SKT uyarıları, rutin hatırlatmaları ve Shelly ipuçları burada görünecektir.
+              </Text>
             </View>
-          ))}
+          ) : (
+            /* BİLDİRİM SATIRLARI */
+            notifications.map((item, index) => (
+              <View key={item.id}>
+                <NotificationRow
+                  item={item}
+                  unread={!readIds.has(item.id)}
+                  onPress={() => handleOpen(item)}
+                />
+                {index < notifications.length - 1 && <View style={styles.divider} />}
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

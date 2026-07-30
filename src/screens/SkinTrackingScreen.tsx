@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Platform,
   RefreshControl,
@@ -16,9 +17,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Camera, ShieldCheck, Sparkles } from 'lucide-react-native';
+import { AlertCircle, Camera, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { MainTabParamList, RootStackParamList, SkinLogEntry, SkinWeeklySummary } from '../types';
-import { deleteSkinLog, fetchSkinLogs, fetchWeeklySkinSummary, parseSkinLogAnalysis } from '../services/skinAnalysisApi';
+import {
+  deleteSkinLog,
+  fetchSkinLogs,
+  fetchWeeklySkinSummary,
+  parseSkinLogAnalysis,
+} from '../services/skinAnalysisApi';
 import WeeklySkinSummaryCard from '../components/skin/WeeklySkinSummaryCard';
 import SkinLogCard from '../components/skin/SkinLogCard';
 import { errorDev } from '../services/logger';
@@ -33,18 +39,39 @@ type Props = {
   navigation: SkinTrackingNavigationProp;
 };
 
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
+
 export default function SkinTrackingScreen({ navigation }: Props) {
   const [logs, setLogs] = useState<SkinLogEntry[]>([]);
   const [summary, setSummary] = useState<SkinWeeklySummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoadError(null);
     try {
-      const [logEntries, weeklySummary] = await Promise.all([fetchSkinLogs(), fetchWeeklySkinSummary()]);
-      setLogs(logEntries);
+      const [logEntries, weeklySummary] = await Promise.all([
+        fetchSkinLogs(),
+        fetchWeeklySkinSummary().catch((err) => {
+          errorDev('Weekly summary load error:', err);
+          return null;
+        }),
+      ]);
+
+      setLogs(logEntries || []);
       setSummary(weeklySummary);
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Skin tracking load error:', error);
+      let userMsg = 'Cilt geçmişiniz yüklenemedi.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      setLoadError(userMsg);
+    } finally {
+      setInitialLoading(false);
     }
   }, []);
 
@@ -61,6 +88,7 @@ export default function SkinTrackingScreen({ navigation }: Props) {
   };
 
   const handleOpenLog = (log: SkinLogEntry) => {
+    if (isDeleting) return;
     const analysis = parseSkinLogAnalysis(log);
     if (analysis) {
       navigation.navigate('SkinAnalysisResult', { analysis });
@@ -68,12 +96,22 @@ export default function SkinTrackingScreen({ navigation }: Props) {
   };
 
   const handleDeleteLog = (log: SkinLogEntry) => {
+    if (isDeleting) return;
+
     const performDelete = async () => {
+      setIsDeleting(true);
       try {
         await deleteSkinLog(log.id);
         await loadData();
-      } catch {
-        Alert.alert('Hata', 'Kayıt silinemedi.');
+      } catch (error: any) {
+        errorDev('Error deleting skin log:', error);
+        let userMsg = 'Kayıt silinemedi. Lütfen tekrar deneyin.';
+        if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+          userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+        }
+        Alert.alert('Hata', userMsg);
+      } finally {
+        setIsDeleting(false);
       }
     };
 
@@ -102,30 +140,108 @@ export default function SkinTrackingScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.sage} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.sage}
+            colors={[colors.sage]}
+          />
+        }
       >
         <Text style={styles.description}>
-          Fotoğraflarını kaydet, Shelly cildindeki görünür değişimleri rutin ve ürünlerinle birlikte yorumlasın.
+          Fotoğraflarını kaydet, Shelly cildindeki görünür değişimleri rutin ve ürünlerinle birlikte
+          yorumlasın.
         </Text>
 
-        <TouchableOpacity onPress={() => navigation.navigate('AddSkinPhoto')} activeOpacity={0.85}>
-          <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.addButton}>
+        {/* FOTOĞRAF EKLE BUTONU */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddSkinPhoto')}
+          activeOpacity={0.85}
+          disabled={isDeleting || initialLoading}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Yeni Fotoğraf Ekle"
+        >
+          <LinearGradient
+            colors={gradients.forest}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.addButton}
+          >
             <Camera size={19} color={colors.onDark} />
             <Text style={styles.addButtonText}>Yeni Fotoğraf Ekle</Text>
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* AĞ YÜKLEME HATASI VE TEKRAR DENE BANTI */}
+        {loadError && (
+          <View
+            style={{
+              backgroundColor: '#FDE8E8',
+              borderRadius: radius.md,
+              padding: 12,
+              marginTop: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <AlertCircle size={18} color={colors.danger} />
+              <Text
+                style={{
+                  fontFamily: fonts.sansSemiBold,
+                  fontSize: 13,
+                  color: colors.danger,
+                  flex: 1,
+                }}
+              >
+                {loadError}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={loadData}
+              disabled={refreshing}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              hitSlop={TOUCH_SLOP}
+            >
+              <RotateCcw size={14} color={colors.danger} />
+              <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: colors.danger }}>
+                Tekrar Dene
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* HAFTALIK ÖZET KARTI */}
         {summary && (summary.logCount > 0 || hasLogs) && (
           <View style={styles.summaryWrap}>
             <WeeklySkinSummaryCard summary={summary} />
           </View>
         )}
 
-        {hasLogs ? (
+        {/* 1. İLK YÜKLEME DURUMU */}
+        {initialLoading ? (
+          <View style={{ paddingVertical: 50, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={colors.sage} />
+            <Text
+              style={{
+                marginTop: 12,
+                fontFamily: fonts.sansSemiBold,
+                fontSize: 13,
+                color: colors.inkSoft,
+              }}
+            >
+              Cilt takibi günlüklerin hazırlanıyor...
+            </Text>
+          </View>
+        ) : hasLogs ? (
+          /* 2. KAYITLAR LİSTESİ */
           <View style={styles.logsSection}>
             <Text style={styles.sectionTitle}>Son Kayıtlar</Text>
             <View style={styles.logsList}>
-              {logs.map(log => (
+              {logs.map((log) => (
                 <SkinLogCard
                   key={log.id}
                   log={log}
@@ -136,6 +252,7 @@ export default function SkinTrackingScreen({ navigation }: Props) {
             </View>
           </View>
         ) : (
+          /* 3. BOŞ CİLT TAKİBİ DURUMU (EMPTY STATE) */
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Sparkles size={26} color={colors.gold} />
@@ -150,8 +267,8 @@ export default function SkinTrackingScreen({ navigation }: Props) {
         <View style={styles.privacyRow}>
           <ShieldCheck size={15} color={colors.sage} />
           <Text style={styles.privacyText}>
-            Fotoğrafların analiz için Shelly'ye iletilir; sunucuda saklanmaz, yalnızca analiz sonucu kaydedilir.
-            İstersen geçmiş kayıtlarını silebilirsin (karta uzun bas).
+            Fotoğrafların analiz için Shelly'ye iletilir; sunucuda saklanmaz, yalnızca analiz sonucu
+            kaydedilir. İstersen geçmiş kayıtlarını silebilirsin (karta uzun bas).
           </Text>
         </View>
       </ScrollView>

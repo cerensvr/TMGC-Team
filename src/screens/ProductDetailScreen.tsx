@@ -1,9 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, View, Text, StyleSheet, TouchableOpacity, Pressable, ScrollView, Image, Switch, Platform, StatusBar } from 'react-native';
+import {
+  Alert,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+  ScrollView,
+  Image,
+  Switch,
+  Platform,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
-import { Sparkles, Droplets, Wind, Sun, Leaf, Edit2, Lightbulb, CheckCircle2, Heart, ThumbsDown, ThumbsUp, Trash2, X } from 'lucide-react-native';
+import {
+  Sparkles,
+  Droplets,
+  Wind,
+  Sun,
+  Leaf,
+  Edit2,
+  Lightbulb,
+  CheckCircle2,
+  Heart,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import { useProducts } from '../context/ProductContext';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { getProductShellyComment, getProductStatus } from '../services/shellyInsights';
@@ -14,6 +41,9 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'ProductDetail'>;
   route: RouteProp<RootStackParamList, 'ProductDetail'>;
 };
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
@@ -45,8 +75,8 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const product = products.find(p => p.id === route.params.productId);
+
+  const product = products.find((p) => p.id === route.params.productId);
 
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [isFavorite, setIsFavorite] = useState(product?.isFavorite ?? false);
@@ -56,53 +86,76 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
     setIsFavorite(product?.isFavorite ?? false);
   }, [product?.isActive, product?.isFavorite]);
 
+  const handleClose = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('MainTabs');
+  };
+
   const handleToggleActive = async (value: boolean) => {
-    if (!product || isSavingStatus) return;
+    if (!product || isSavingStatus || isDeleting) return;
     setIsActive(value);
     setIsSavingStatus(true);
     try {
       await updateProduct(product.id, { isActive: value });
       logDev('Ürün aktiflik durumu güncellendi:', value);
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Aktiflik güncellenirken hata oluştu:', error);
       setIsActive(!value);
-      Alert.alert('Hata', 'Rutin kullanım durumu kaydedilemedi. Lütfen tekrar dene.');
+
+      let userMsg = 'Rutin kullanım durumu kaydedilemedi. Lütfen tekrar dene.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      Alert.alert('Hata', userMsg);
     } finally {
       setIsSavingStatus(false);
     }
   };
 
   const handleToggleFavorite = async () => {
-    if (!product || isSavingStatus) return;
+    if (!product || isSavingStatus || isDeleting) return;
     const nextFavorite = !isFavorite;
     setIsFavorite(nextFavorite);
     setIsSavingStatus(true);
     try {
       await updateProduct(product.id, { isFavorite: nextFavorite });
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Favori durumu güncellenirken hata oluştu:', error);
       setIsFavorite(!nextFavorite);
-      Alert.alert('Hata', 'Favori durumu kaydedilemedi. Lütfen tekrar dene.');
+
+      let userMsg = 'Favori durumu kaydedilemedi. Lütfen tekrar dene.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      Alert.alert('Hata', userMsg);
     } finally {
       setIsSavingStatus(false);
     }
   };
 
   const performDelete = async () => {
-    if (!product || isDeleting) return;
+    if (!product || isDeleting || isSavingStatus) return;
     setIsDeleting(true);
     try {
       await deleteProduct(product.id);
-      navigation.navigate('MainTabs');
-    } catch (error) {
+      handleClose();
+    } catch (error: any) {
       errorDev('Ürün silinirken hata oluştu:', error);
-      Alert.alert('Hata', 'Ürün dolabından silinemedi. Lütfen tekrar dene.');
+
+      let userMsg = 'Ürün dolabından silinemedi. Lütfen tekrar dene.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      Alert.alert('Hata', userMsg);
       setIsDeleting(false);
     }
   };
 
   const handleDelete = () => {
-    if (!product) return;
+    if (!product || isDeleting) return;
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       if (window.confirm(`${product.brand} - ${product.name} dolabından silinsin mi?`)) {
@@ -121,12 +174,36 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
     );
   };
 
+  // ============ BOŞ / BULUNAMAYAN ÜRÜN DURUMU (EMPTY STATE) ============
   if (!product) {
     return (
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={() => navigation.goBack()} />
+        <Pressable style={styles.backdrop} onPress={handleClose} />
         <View style={styles.sheet}>
-          <Text style={styles.name}>Ürün bulunamadı.</Text>
+          <View style={styles.sheetHeader}>
+            <TouchableOpacity
+              style={styles.editIconButton}
+              onPress={handleClose}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Kapat"
+            >
+              <X size={20} color={colors.inkMuted} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ paddingVertical: 40, paddingHorizontal: 24, alignItems: 'center' }}>
+            <Text style={styles.name}>Ürün Bulunamadı</Text>
+            <Text style={[styles.bodyText, { textAlign: 'center', marginTop: 8 }]}>
+              Aradığınız ürün dolabınızdan silinmiş veya mevcut değil.
+            </Text>
+            <TouchableOpacity
+              style={[styles.feedbackButton, styles.feedbackButtonActive, { marginTop: 20 }]}
+              onPress={handleClose}
+              hitSlop={TOUCH_SLOP}
+            >
+              <Text style={styles.feedbackButtonTextActive}>Dolabıma Dön</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -137,23 +214,22 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
     navigation.navigate('ProductReview', { scannedProduct: productDraft, editingProductId: id });
   };
 
-  const handleClose = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-    navigation.navigate('MainTabs');
-  };
-
   const remainingDays = getRemainingDays(product.expiryDate);
   const expired = isExpired(product.expiryDate);
 
-  const displayedIngredients = product.activeIngredients?.length ? product.activeIngredients : ['İçerik bilgisi bekleniyor'];
+  const displayedIngredients = product.activeIngredients?.length
+    ? product.activeIngredients
+    : ['İçerik bilgisi bekleniyor'];
   const productDescription = product.description || 'Bu ürün için açıklama bilgisi henüz eklenmedi.';
 
   const shellyComment = getProductShellyComment(product);
   const productStatus = getProductStatus(product);
-  const usageLabel = product.timeOfDay === 'morning' ? 'Sabah' : product.timeOfDay === 'evening' ? 'Akşam' : 'Sabah / Akşam';
+  const usageLabel =
+    product.timeOfDay === 'morning'
+      ? 'Sabah'
+      : product.timeOfDay === 'evening'
+      ? 'Akşam'
+      : 'Sabah / Akşam';
 
   return (
     <View style={styles.overlay}>
@@ -161,46 +237,75 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
       <View style={styles.sheet}>
         {/* Modal Handle */}
         <View style={styles.handle} />
-        
+
         {/* Header & Edit Button */}
         <View style={styles.sheetHeader}>
-          <TouchableOpacity style={styles.editIconButton} onPress={handleClose}>
+          <TouchableOpacity
+            style={styles.editIconButton}
+            onPress={handleClose}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Kapat"
+          >
             <X size={20} color={colors.inkMuted} />
           </TouchableOpacity>
+
           <View style={styles.headerActions}>
+            {/* FAVORİ BUTONU */}
             <TouchableOpacity
               style={[styles.editIconButton, isFavorite && styles.favoriteIconButton]}
               onPress={handleToggleFavorite}
-              disabled={isSavingStatus}
+              disabled={isSavingStatus || isDeleting}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
               accessibilityLabel={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
             >
-              <Heart
-                size={20}
-                color={isFavorite ? colors.onDark : colors.sage}
-                fill={isFavorite ? colors.onDark : 'transparent'}
-              />
+              {isSavingStatus ? (
+                <ActivityIndicator size="small" color={isFavorite ? colors.onDark : colors.sage} />
+              ) : (
+                <Heart
+                  size={20}
+                  color={isFavorite ? colors.onDark : colors.sage}
+                  fill={isFavorite ? colors.onDark : 'transparent'}
+                />
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.editIconButton} onPress={handleEdit}>
+
+            {/* DÜZENLE BUTONU */}
+            <TouchableOpacity
+              style={styles.editIconButton}
+              onPress={handleEdit}
+              disabled={isDeleting || isSavingStatus}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+              accessibilityLabel="Ürünü düzenle"
+            >
               <Edit2 size={20} color={colors.inkMuted} />
             </TouchableOpacity>
+
+            {/* SİL BUTONU */}
             <TouchableOpacity
               style={[styles.editIconButton, styles.deleteIconButton]}
               onPress={handleDelete}
-              disabled={isDeleting}
+              disabled={isDeleting || isSavingStatus}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
               accessibilityLabel="Ürünü sil"
             >
-              <Trash2 size={20} color={colors.danger} />
+              {isDeleting ? (
+                <ActivityIndicator size="small" color={colors.danger} />
+              ) : (
+                <Trash2 size={20} color={colors.danger} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Icon & Title */}
           <View style={styles.topSection}>
             <View style={styles.visualStage}>
-              <View style={styles.iconWrapper}>
-                {getCategoryIcon(product.category)}
-              </View>
+              <View style={styles.iconWrapper}>{getCategoryIcon(product.category)}</View>
               <Image
                 source={getProductVisualSource(product, imageFailed)}
                 style={styles.productImage}
@@ -209,8 +314,13 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
               />
             </View>
 
-            <Text style={styles.brand}>{product.brand}</Text>
-            <Text style={styles.name}>{product.name}</Text>
+            <Text style={styles.brand} numberOfLines={1}>
+              {product.brand}
+            </Text>
+            <Text style={styles.name} numberOfLines={2}>
+              {product.name}
+            </Text>
+
             <View style={styles.statusRow}>
               <View style={styles.statusBadge}>
                 <Text style={styles.statusBadgeText}>{productStatus.label}</Text>
@@ -219,7 +329,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.usageBadgeText}>{usageLabel}</Text>
               </View>
             </View>
-            
+
             {(remainingDays !== null || expired) && (
               <View style={[styles.expiryBadge, expired && styles.expiredBadge]}>
                 <Text style={[styles.expiryText, expired && styles.expiredText]}>
@@ -234,9 +344,9 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
             <View style={styles.activeToggleTextWrap}>
               <Text style={styles.activeToggleTitle}>Rutinlerimde Aktif Kullan</Text>
               <Text style={styles.activeToggleSubtitle}>
-                {isActive 
-                  ? "Bu ürün sabah/akşam cilt bakım planınıza dâhil edilir." 
-                  : "Bu ürün dolabınızda saklanır ancak rutinlerinize eklenmez."}
+                {isActive
+                  ? 'Bu ürün sabah/akşam cilt bakım planınıza dâhil edilir.'
+                  : 'Bu ürün dolabınızda saklanır ancak rutinlerinize eklenmez.'}
               </Text>
             </View>
             <Switch
@@ -245,7 +355,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
               ios_backgroundColor="#e2e8e2"
               onValueChange={handleToggleActive}
               value={isActive}
-              disabled={isSavingStatus}
+              disabled={isSavingStatus || isDeleting}
             />
           </View>
 
@@ -287,32 +397,51 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
             <Text style={styles.aiCardText}>{shellyComment}</Text>
           </View>
 
+          {/* Usage Feedback */}
           <View style={styles.feedbackCard}>
             <View style={styles.feedbackHeader}>
               <CheckCircle2 size={18} color={colors.sage} />
               <Text style={styles.feedbackTitle}>Kullanım geri bildirimi</Text>
             </View>
-            <Text style={styles.feedbackText}>Shelly zamanla ürünün cildindeki etkisini bu kayıtlardan öğrenir.</Text>
+            <Text style={styles.feedbackText}>
+              Shelly zamanla ürünün cildindeki etkisini bu kayıtlardan öğrenir.
+            </Text>
             <View style={styles.feedbackActions}>
               <TouchableOpacity
                 style={[styles.feedbackButton, feedback === 'good' && styles.feedbackButtonActive]}
                 onPress={() => setFeedback('good')}
                 activeOpacity={0.78}
+                hitSlop={TOUCH_SLOP}
               >
                 <ThumbsUp size={16} color={feedback === 'good' ? colors.onDark : colors.sage} />
-                <Text style={[styles.feedbackButtonText, feedback === 'good' && styles.feedbackButtonTextActive]}>İyi geldi</Text>
+                <Text
+                  style={[
+                    styles.feedbackButtonText,
+                    feedback === 'good' && styles.feedbackButtonTextActive,
+                  ]}
+                >
+                  İyi geldi
+                </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.feedbackButton, feedback === 'bad' && styles.feedbackButtonDanger]}
                 onPress={() => setFeedback('bad')}
                 activeOpacity={0.78}
+                hitSlop={TOUCH_SLOP}
               >
                 <ThumbsDown size={16} color={feedback === 'bad' ? colors.onDark : colors.danger} />
-                <Text style={[styles.feedbackButtonTextDanger, feedback === 'bad' && styles.feedbackButtonTextActive]}>Kötü geldi</Text>
+                <Text
+                  style={[
+                    styles.feedbackButtonTextDanger,
+                    feedback === 'bad' && styles.feedbackButtonTextActive,
+                  ]}
+                >
+                  Kötü geldi
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-          
         </ScrollView>
       </View>
     </View>

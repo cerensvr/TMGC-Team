@@ -1,5 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, Linking } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Linking,
+} from 'react-native';
 import { CameraView, BarcodeScanningResult, useCameraPermissions } from 'expo-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, ProductDraft } from '../types';
@@ -13,6 +22,9 @@ type Props = {
 };
 
 const GOLD = '#D8C39A';
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const manualProductDraft: ProductDraft = {
   brand: '',
@@ -30,48 +42,67 @@ export default function ScannerScreen({ navigation }: Props) {
   const [isScanning, setIsScanning] = useState(false);
   const [lastCode, setLastCode] = useState<string | null>(null);
 
+  const handleClose = useCallback(() => {
+    if (isScanning) return;
+    navigation.goBack();
+  }, [isScanning, navigation]);
+
   const openManualForm = useCallback(() => {
+    if (isScanning) return;
     navigation.replace('ProductReview', { scannedProduct: manualProductDraft, source: 'manual' });
-  }, [navigation]);
+  }, [isScanning, navigation]);
 
-  const lookupBarcode = useCallback(async (barcode: string) => {
-    setIsScanning(true);
-    setLastCode(barcode);
+  const lookupBarcode = useCallback(
+    async (barcode: string) => {
+      setIsScanning(true);
+      setLastCode(barcode);
 
-    try {
-      const result = await productService.scanProduct({ barcode });
-      if (result) {
-        navigation.replace('ProductReview', { scannedProduct: result, source: 'barcode' });
+      try {
+        const result = await productService.scanProduct({ barcode });
+        if (result) {
+          navigation.replace('ProductReview', { scannedProduct: result, source: 'barcode' });
+          return;
+        }
+
+        Alert.alert(
+          'Ürün Bulunamadı',
+          'Open Beauty Facts veritabanında bu barkod için ürün bulunamadı. Ürünü manuel olarak ekleyebilirsiniz.',
+          [
+            { text: 'Manuel Ekle', onPress: openManualForm },
+            { text: 'Tekrar Tara', style: 'cancel', onPress: () => setLastCode(null) },
+          ]
+        );
+      } catch (error: any) {
+        errorDev('Scan error:', error);
+
+        let userMsg = 'Ürün bilgisi alınamadı. Manuel giriş ekranını açabilirsiniz.';
+        if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+          userMsg =
+            'İnternet bağlantınız koptu. Bağlantınızı kontrol edip tekrar tarayabilir veya manuel ekleyebilirsiniz.';
+        }
+
+        Alert.alert('Barkod Okutulamadı', userMsg, [
+          { text: 'Manuel Ekle', onPress: openManualForm },
+          { text: 'Tekrar Tara', style: 'cancel', onPress: () => setLastCode(null) },
+        ]);
+      } finally {
+        setIsScanning(false);
+      }
+    },
+    [navigation, openManualForm]
+  );
+
+  const handleBarcodeScanned = useCallback(
+    (result: BarcodeScanningResult) => {
+      const code = result.data?.trim();
+      if (!code || isScanning || code === lastCode) {
         return;
       }
 
-      Alert.alert(
-        'Ürün bulunamadı',
-        'Open Beauty Facts üzerinde bu barkod için ürün bilgisi bulunamadı. Bilgileri manuel ekleyebilirsin.',
-        [
-          { text: 'Manuel ekle', onPress: openManualForm },
-          { text: 'Tekrar dene', style: 'cancel', onPress: () => setLastCode(null) },
-        ]
-      );
-    } catch (error) {
-      errorDev('Scan error:', error);
-      Alert.alert('Hata', 'Ürün bilgisi alınamadı. Manuel giriş ekranını açabilirsin.', [
-        { text: 'Manuel ekle', onPress: openManualForm },
-        { text: 'Tekrar dene', style: 'cancel', onPress: () => setLastCode(null) },
-      ]);
-    } finally {
-      setIsScanning(false);
-    }
-  }, [navigation, openManualForm]);
-
-  const handleBarcodeScanned = useCallback((result: BarcodeScanningResult) => {
-    const code = result.data?.trim();
-    if (!code || isScanning || code === lastCode) {
-      return;
-    }
-
-    void lookupBarcode(code);
-  }, [isScanning, lastCode, lookupBarcode]);
+      void lookupBarcode(code);
+    },
+    [isScanning, lastCode, lookupBarcode]
+  );
 
   const renderScannerContent = () => {
     if (!permission) {
@@ -103,6 +134,8 @@ export default function ScannerScreen({ navigation }: Props) {
               }
             }}
             activeOpacity={0.85}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
           >
             <Text style={styles.permissionButtonText}>
               {permission.canAskAgain ? 'İzin ver' : 'Ayarları aç'}
@@ -146,18 +179,27 @@ export default function ScannerScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={handleClose}
+          activeOpacity={0.8}
+          disabled={isScanning}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Kapat"
+        >
           <X size={22} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Barkod Tara</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.scannerArea}>
-        {renderScannerContent()}
-      </View>
+      {/* KAMERA VEYA İZİN ALANI */}
+      <View style={styles.scannerArea}>{renderScannerContent()}</View>
 
+      {/* SEKMELER */}
       <View style={styles.tabsContainer}>
         <View style={[styles.tab, styles.activeTab]}>
           <Barcode size={19} color="#10130F" />
@@ -169,12 +211,15 @@ export default function ScannerScreen({ navigation }: Props) {
           onPress={openManualForm}
           disabled={isScanning}
           activeOpacity={0.8}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
         >
           <PenLine size={19} color="#ffffff" />
           <Text style={styles.tabText}>Manuel Ekle</Text>
         </TouchableOpacity>
       </View>
 
+      {/* FOOTER - TARAMA AKSİYON BUTONU */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.captureButton, isScanning && styles.captureButtonDisabled]}
@@ -183,10 +228,13 @@ export default function ScannerScreen({ navigation }: Props) {
               void requestPermission();
               return;
             }
-            Alert.alert('Barkod bekleniyor', 'Barkod kamerada göründüğünde otomatik okutulur.');
+            Alert.alert('Barkod Bekleniyor', 'Barkod kamerada göründüğünde otomatik okutulur.');
           }}
           disabled={isScanning}
           activeOpacity={0.85}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Manuel Tarama Tetikle"
         >
           <View style={styles.captureInner}>
             <ScanLine size={30} color="#10130F" />

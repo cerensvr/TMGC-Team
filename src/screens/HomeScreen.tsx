@@ -13,6 +13,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -36,6 +37,9 @@ type Props = {
 };
 
 type SortMode = 'category' | 'name' | 'expiryDate';
+
+// Dokunma alanlarını genişletmek için standart hitSlop
+const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 const routineOrder: Product['category'][] = [
   'Temizleyici',
@@ -95,9 +99,10 @@ type ShelfProductProps = {
   onDelete: () => void;
   onPress: () => void;
   onReorder: (productId: string, direction: -1 | 1) => void;
+  disabled?: boolean;
 };
 
-const ShelfProduct = ({ product, onDelete, onPress, onReorder }: ShelfProductProps) => {
+const ShelfProduct = ({ product, onDelete, onPress, onReorder, disabled }: ShelfProductProps) => {
   const pan = useRef(new Animated.ValueXY()).current;
   const [dragging, setDragging] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -115,10 +120,10 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder }: ShelfProductPro
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10 || Math.abs(gesture.dy) > 10,
         onPanResponderGrant: () => {
-          setDragging(true);
+          if (!disabled) setDragging(true);
         },
         onPanResponderMove: (_, gesture) => {
-          pan.setValue({ x: gesture.dx, y: gesture.dy });
+          if (!disabled) pan.setValue({ x: gesture.dx, y: gesture.dy });
         },
         onPanResponderRelease: (_, gesture) => {
           if (gesture.dx > 52) {
@@ -143,7 +148,7 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder }: ShelfProductPro
           }).start(() => setDragging(false));
         },
       }),
-    [onReorder, pan, product.id]
+    [disabled, onReorder, pan, product.id]
   );
 
   return (
@@ -160,6 +165,9 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder }: ShelfProductPro
         onPress={onPress}
         onLongPress={onDelete}
         activeOpacity={0.82}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${product.brand} ${product.name}`}
       >
         <View style={styles.productShadow} />
         <Image
@@ -192,9 +200,10 @@ type CabinetShelfRowProps = {
   onDelete: (product: Product) => void;
   onOpen: (product: Product) => void;
   onReorder: (productId: string, direction: -1 | 1) => void;
+  disabled?: boolean;
 };
 
-const CabinetShelfRow = ({ products, index, onDelete, onOpen, onReorder }: CabinetShelfRowProps) => (
+const CabinetShelfRow = ({ products, index, onDelete, onOpen, onReorder, disabled }: CabinetShelfRowProps) => (
   <View style={styles.referenceShelfSlot}>
     <View style={styles.referenceProductsRow}>
       {products.map(product => (
@@ -204,6 +213,7 @@ const CabinetShelfRow = ({ products, index, onDelete, onOpen, onReorder }: Cabin
           onPress={() => onOpen(product)}
           onDelete={() => onDelete(product)}
           onReorder={onReorder}
+          disabled={disabled}
         />
       ))}
     </View>
@@ -222,6 +232,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [sortBy, setSortBy] = useState<SortMode>('category');
   const [shelfOrder, setShelfOrder] = useState<string[]>([]);
   const [doorOpen, setDoorOpen] = useState(true);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const doorProgress = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -256,6 +267,7 @@ export default function HomeScreen({ navigation }: Props) {
   }, [products, shelfOrder, sortBy]);
 
   const shelfRows = useMemo(() => buildShelfRows(displayedProducts), [displayedProducts]);
+
   const handleDoorToggle = () => {
     const nextOpenState = !doorOpen;
     setDoorOpen(nextOpenState);
@@ -289,15 +301,25 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleDeleteProduct = async (userProductId: string) => {
+    if (isDeletingProduct) return;
+    setIsDeletingProduct(true);
     try {
       await deleteProduct(userProductId);
-    } catch (error) {
+    } catch (error: any) {
       errorDev('Error deleting product:', error);
-      Alert.alert('Hata', 'Ürün silinemedi.');
+      let userMsg = 'Ürün silinemedi. Lütfen tekrar deneyin.';
+      if (error?.message?.toLowerCase().includes('network') || error?.code === 'ERR_NETWORK') {
+        userMsg = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+      Alert.alert('Hata', userMsg);
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
   const handleDelete = (product: Product) => {
+    if (isDeletingProduct) return;
+
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const confirmed = window.confirm(`${product.brand} - ${product.name} dolabınızdan kaldırılsın mı?`);
       if (confirmed) handleDeleteProduct(product.id);
@@ -339,8 +361,12 @@ export default function HomeScreen({ navigation }: Props) {
     [products]
   );
 
+  // İLK YÜKLEME KONTROLÜ (Boş ekran çakışmasını engeller)
+  const isInitialLoading = isLoading && products.length === 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* HEADER */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>{getGreeting()}{firstName ? `, ${firstName}` : ''}</Text>
@@ -350,6 +376,9 @@ export default function HomeScreen({ navigation }: Props) {
           style={styles.notificationButton}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('Notifications')}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Bildirimler"
         >
           <Bell size={20} color={colors.forest} />
           <View style={styles.notificationDot} />
@@ -369,6 +398,7 @@ export default function HomeScreen({ navigation }: Props) {
           />
         }
       >
+        {/* AĞ / YÜKLEME HATASI BANTI */}
         {loadError && (
           <View style={styles.loadErrorBanner}>
             <AlertCircle size={18} color={colors.danger} />
@@ -378,12 +408,16 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => void loadProducts()}
               disabled={isLoading}
               activeOpacity={0.8}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
             >
               <RotateCcw size={15} color={colors.onDark} />
               <Text style={styles.retryButtonText}>{isLoading ? 'Yenileniyor' : 'Tekrar Dene'}</Text>
             </TouchableOpacity>
           </View>
         )}
+
+        {/* DOLAP BAŞLIĞI VE AKSİYONLAR */}
         <View style={styles.cabinetHeaderRow}>
           <View style={styles.cabinetTitleLine}>
             <View style={styles.cabinetTitleBlock}>
@@ -393,7 +427,12 @@ export default function HomeScreen({ navigation }: Props) {
                 Ürünlerini rafında sakla; içeriklerini ve rutin uyumunu Shelly ile kontrol et.
               </Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Scanner')} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Scanner')}
+              activeOpacity={0.85}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
+            >
               <LinearGradient
                 colors={['#1C4630', '#0F2919']}
                 start={{ x: 0, y: 0 }}
@@ -405,6 +444,7 @@ export default function HomeScreen({ navigation }: Props) {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+
           <View style={styles.cabinetMetaRow}>
             <View style={styles.cabinetMetaPill}>
               <Sparkles size={12} color={colors.gold} />
@@ -413,13 +453,17 @@ export default function HomeScreen({ navigation }: Props) {
             {expiringCount > 0 && (
               <View style={[styles.cabinetMetaPill, styles.cabinetMetaPillWarning]}>
                 <Clock3 size={12} color={colors.warning} />
-                <Text style={[styles.cabinetMetaText, { color: colors.warning }]}>{expiringCount} ürün SKT takibinde</Text>
+                <Text style={[styles.cabinetMetaText, { color: colors.warning }]}>
+                  {expiringCount} ürün SKT takibinde
+                </Text>
               </View>
             )}
             <TouchableOpacity
               style={[styles.cabinetMetaPill, styles.cabinetMetaPillSage]}
               onPress={() => navigation.navigate('SkinTracking')}
               activeOpacity={0.8}
+              hitSlop={TOUCH_SLOP}
+              accessibilityRole="button"
             >
               <Camera size={12} color={colors.sage} />
               <Text style={[styles.cabinetMetaText, { color: colors.sage }]}>Cilt Takibi</Text>
@@ -427,29 +471,36 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {/* SIRALAMA SEÇENEKLERİ */}
         <View style={styles.sortContainer}>
           <View style={styles.sortHeader}>
             <ArrowDownUp size={15} color={colors.sage} />
             <Text style={styles.sortLabel}>Dolap düzeni</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortOptions}>
-            {([
-              ['category', 'Kategori'],
-              ['name', 'İsim'],
-              ['expiryDate', 'Son Kullanma'],
-            ] as [SortMode, string][]).map(([mode, label]) => (
+            {(
+              [
+                ['category', 'Kategori'],
+                ['name', 'İsim'],
+                ['expiryDate', 'Son Kullanma'],
+              ] as [SortMode, string][]
+            ).map(([mode, label]) => (
               <TouchableOpacity
                 key={mode}
                 style={[styles.sortButton, sortBy === mode && styles.sortButtonActive]}
                 onPress={() => setSortBy(mode)}
                 activeOpacity={0.8}
+                hitSlop={TOUCH_SLOP}
               >
-                <Text style={[styles.sortButtonText, sortBy === mode && styles.sortButtonTextActive]}>{label}</Text>
+                <Text style={[styles.sortButtonText, sortBy === mode && styles.sortButtonTextActive]}>
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
+        {/* DOLAP GÖRSEL ALANI */}
         <View style={styles.cabinetShell}>
           <LinearGradient
             colors={['#FDFBF4', '#F6F3E8', '#EFEBDC']}
@@ -461,7 +512,16 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.leftWallShadow} />
           <View style={styles.rightWallShadow} />
 
-          {products.length === 0 ? (
+          {/* 1. YÜKLEME DURUMU (INITIAL LOADING) */}
+          {isInitialLoading ? (
+            <View style={{ paddingVertical: 60, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color={colors.sage} />
+              <Text style={{ marginTop: 12, fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.inkSoft }}>
+                Dolabındaki ürünler hazırlanıyor...
+              </Text>
+            </View>
+          ) : products.length === 0 ? (
+            /* 2. BOŞ DOLAP DURUMU (EMPTY STATE) */
             <View style={styles.emptyCabinet}>
               <View style={styles.emptyShelfLine} />
               <View style={styles.emptyShelfLineShort} />
@@ -469,7 +529,12 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={styles.emptyText}>
                 İlk ürününü barkodla ya da manuel ekle. Shelly cildinle uyumunu ve rutinindeki yerini takip etsin.
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Scanner')} activeOpacity={0.88}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Scanner')}
+                activeOpacity={0.88}
+                hitSlop={TOUCH_SLOP}
+                accessibilityRole="button"
+              >
                 <LinearGradient
                   colors={['#1C4630', '#0F2919']}
                   start={{ x: 0, y: 0 }}
@@ -482,6 +547,7 @@ export default function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
           ) : (
+            /* 3. DOLAPTAKİ ÜRÜNLER */
             <View style={styles.referenceShelvesContainer}>
               {shelfRows.map((rowProducts, index) => (
                 <CabinetShelfRow
@@ -491,11 +557,13 @@ export default function HomeScreen({ navigation }: Props) {
                   onOpen={product => navigation.navigate('ProductDetail', { productId: product.id })}
                   onDelete={handleDelete}
                   onReorder={handleShelfReorder}
+                  disabled={isDeletingProduct}
                 />
               ))}
             </View>
           )}
 
+          {/* DOLAP KAPAKLARI */}
           <Animated.View
             style={[
               styles.doorPanel,
@@ -510,6 +578,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.doorInset} />
             <View style={styles.doorHandleLeft} />
           </Animated.View>
+
           <Animated.View
             style={[
               styles.doorPanel,
@@ -525,11 +594,18 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.doorHandleRight} />
           </Animated.View>
         </View>
-
       </ScrollView>
 
+      {/* FLOATING ADD BUTTON (FAB) */}
       {products.length > 0 && (
-        <TouchableOpacity onPress={() => navigation.navigate('Scanner')} activeOpacity={0.88} style={styles.fabWrapper}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Scanner')}
+          activeOpacity={0.88}
+          style={styles.fabWrapper}
+          hitSlop={TOUCH_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Yeni Ürün Ekle"
+        >
           <LinearGradient
             colors={['#1C4630', '#0F2919']}
             start={{ x: 0, y: 0 }}
