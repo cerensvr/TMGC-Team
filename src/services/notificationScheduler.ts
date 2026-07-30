@@ -7,6 +7,10 @@ const ROUTINE_EVENING_ID = 'skinshelf.routine.evening';
 const EXPIRY_ID_PREFIX = 'skinshelf.expiry.';
 const ANDROID_CHANNEL_ID = 'skinshelf-default';
 
+type NotificationDestination =
+  | { screen: 'Routine' }
+  | { screen: 'ProductDetail'; params: { productId: string } };
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -146,12 +150,27 @@ export const syncAllNotifications = async (reminderPreferences: string[] | undef
 
 /** Bildirime dokununca doğru ekrana yönlendirir. */
 export const attachNotificationResponseListener = (
-  onNavigate: (screen: string, params?: Record<string, unknown>) => void
+  onNavigate: (destination: NotificationDestination) => void
 ) => {
-  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    const data = response.notification.request.content.data as { screen?: string; productId?: string };
-    if (!data?.screen) return;
-    onNavigate(data.screen, data.productId ? { productId: data.productId } : undefined);
-  });
+  const navigateFromResponse = (response: Notifications.NotificationResponse) => {
+    const data = response.notification.request.content.data;
+
+    if (data?.screen === 'Routine') {
+      onNavigate({ screen: 'Routine' });
+      return;
+    }
+
+    if (data?.screen === 'ProductDetail' && typeof data.productId === 'string') {
+      onNavigate({ screen: 'ProductDetail', params: { productId: data.productId } });
+    }
+  };
+
+  const subscription = Notifications.addNotificationResponseReceivedListener(navigateFromResponse);
+  const lastResponse = Notifications.getLastNotificationResponse();
+  if (lastResponse) {
+    navigateFromResponse(lastResponse);
+    Notifications.clearLastNotificationResponse();
+  }
+
   return () => subscription.remove();
 };

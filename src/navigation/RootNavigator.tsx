@@ -141,12 +141,20 @@ export default function RootNavigator() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = attachNotificationResponseListener((screen, params) => {
+    if (bootState !== 'authenticated') return;
+
+    const unsubscribe = attachNotificationResponseListener(destination => {
       if (!navigationRef.isReady()) return;
-      (navigationRef.navigate as any)(screen, params);
+
+      if (destination.screen === 'Routine') {
+        navigationRef.navigate('MainTabs', { screen: 'Routine' });
+        return;
+      }
+
+      navigationRef.navigate('ProductDetail', destination.params);
     });
     return unsubscribe;
-  }, []);
+  }, [bootState]);
 
   if (bootState === 'checking') {
     return (
