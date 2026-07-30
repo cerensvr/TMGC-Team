@@ -1,6 +1,6 @@
 # Canlı API Smoke Test Raporu
 
-Tarih: 28 Temmuz 2026
+Son doğrulama: 30 Temmuz 2026
 
 İlgili görevler: GitHub issue #5, #7 ve #8
 
@@ -11,7 +11,8 @@ Tarih: 28 Temmuz 2026
 - AI modelleri: ana `gemini-3.6-flash`, ücretsiz yedek
   `gemini-3.5-flash-lite`
 - Kaynak branch: `main`
-- Doğrulanan release commit'i: `5596e0d`
+- Doğrulanan release commit'i: `b9c04ad`
+- Render deploy: `dep-d9lls0navr4c739bi4cg`
 
 Gerçek DB şifresi, JWT secret ve Gemini API anahtarı yalnızca Render secret
 alanlarında tutuldu; bu rapora veya Git geçmişine eklenmedi.
@@ -28,6 +29,12 @@ service: skinshelf-backend
 Render başlangıç loglarında PostgreSQL 17.6 bağlantısı, yedi Flyway
 migration'ının doğrulanması ve Spring Boot'un `10000` portunda başlaması
 görüldü.
+
+Önceki instance'ın 512 MB Render sınırını aşmasının ardından JVM bellek
+sınırları `-Xmx192m`, 96 MB metaspace, 32 MB code cache ve 32 MB direct memory
+olarak sabitlendi. Hikari havuzu iki bağlantıyla sınırlandı. Güncel instance
+`4xf5s` bu ayarlarla 64.993 saniyede başladı ve deploy `Live` oldu. Smoke testi
+sonrasında art arda üç sağlık isteği de HTTP 200 ve `status: ok` döndürdü.
 
 ## Smoke Komutu
 
@@ -56,3 +63,7 @@ döndürdü: kuru/hassas profilde `SKIN_REACTION`, yağlı/akne eğilimli profil
 
 Smoke betiği her çalıştırmada benzersiz e-posta üretir ve oluşturduğu hesap,
 ürün ve skin log verilerini temizler. Sonuç: **Passed (3/3 senaryo)**.
+
+30 Temmuz tekrarında oluşturulan üç sentetik hesap, ürün ve skin log kayıtları
+başarıyla silindi. Aynı release için `npm run build`, Expo Doctor 18/18 ve
+backend testleri 43/43 geçti.

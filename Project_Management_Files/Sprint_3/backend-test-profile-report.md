@@ -23,7 +23,7 @@ bir geliştirme ortamında Spring context testi başlatılamıyordu.
 
 ```text
 ./mvnw test
-Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -38,3 +38,7 @@ Production bağlantısı Render'daki güncel `DB_URL`, `DB_USERNAME` ve
 üzerinde Flyway migration'larını tamamladı ve uçtan uca smoke testi geçti.
 Detaylar [live-api-smoke-report.md](live-api-smoke-report.md) dosyasındadır.
 Bu değerler test profilinde veya Git'te tutulmaz.
+
+Son tekrar doğrulama 30 Temmuz 2026 tarihinde `b9c04ad` commit'i üzerinde
+yapıldı. Render instance'ı güncel production secret'larıyla başladı; yerel test
+profili ise yalnızca izole H2 veritabanını kullandı.

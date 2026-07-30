@@ -1,8 +1,57 @@
 # Android Preview APK Doğrulama Raporu
 
-Issue [#19](https://github.com/gismo-o/TMGC-Team/issues/19) için production API'ye bağlı EAS preview APK, 29 Temmuz 2026 tarihinde iki temiz Android emülatöründe doğrulandı.
+Issue [#19](https://github.com/gismo-o/TMGC-Team/issues/19) için production API'ye bağlı preview APK, 29 Temmuz 2026 tarihinde iki temiz Android emülatöründe doğrulandı. Güncel release candidate 30 Temmuz 2026 tarihinde yeniden üretildi ve aynı kabul kapsamından geçirildi.
 
-## Build
+## Güncel Release Candidate Yeniden Doğrulaması
+
+| Alan | Değer |
+| --- | --- |
+| Yerel EAS build durumu | `BUILD SUCCESSFUL` |
+| Profil | `preview` / `INTERNAL` / APK |
+| Uygulama sürümü | `1.0.0` |
+| Android versionCode | `8` |
+| Build commit | `b9c04ad7fca48b9a0f8e37117227881ff98f88d1` |
+| EAS cloud build | [30a32ca1-0cab-44b6-b95e-e68ec4e1ab25](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25) |
+| Yerel APK SHA-256 | `850a1337e2ea72bca36b26e8d13ba9debfdf5fedc2268bac3110bd5dedbca41f` |
+| Paket / imza | `com.skinshelf.app` / APK Signature Scheme v2 |
+| Production API | `https://skinshelf-backend.onrender.com/api/auth` |
+
+Yerel EAS build'i 372 Gradle göreviyle 3 dakika 33 saniyede tamamlandı. Aynı
+commit için EAS cloud build'i de başlatıldı; ücretsiz sıra tamamlandığında
+indirilebilir artifact yukarıdaki kalıcı build sayfasında görünecektir.
+
+### Güncel Temiz Kurulum Matrisi
+
+| Emülatör oturumu | Ekran | Temiz kurulum | Açılış | Canlı login |
+| --- | --- | --- | --- | --- |
+| Android 16 / API 36, `emulator-5554` | 1080×2400 | Geçti | Geçti | Geçti |
+| Android 16 / API 36, `emulator-5556` | 1080×2400 ve 720×1280 compact | Geçti | Geçti | Geçti |
+
+İki oturumda da emülatör verisi sıfırlandı, önceki paket kaldırıldı ve APK
+sıfırdan kuruldu. İkinci oturum ayrıca 720×1280 compact görünümde yeniden
+açıldı. Paket yöneticisi her iki kurulumda `1.0.0 (8)` sürümünü doğruladı.
+
+### Güncel Kabul Sonuçları
+
+- Canlı Render hesabıyla login, profil ve ürün yükleme tamamlandı; ana ekranda
+  `Cilt Bakım Dolabı` görüntülendi.
+- Uygulama zorla durdurulup yeniden açıldığında oturum geri yüklendi.
+- Android bildirim izni, girişten sonra sistem tarafından
+  `Allow SkinShelf to send you notifications?` metniyle istendi ve izin durumu
+  package manager'da `granted=true` oldu.
+- Kamera akışında uygulama açıklaması, Android kamera izni, sistem kamerası,
+  fotoğraf çekme, kırpma ve uygulamaya dönüş adımları çökmeden tamamlandı.
+- Galeri akışı geniş depolama izni istemeden
+  `com.google.android.photopicker` sistem Photo Picker'ını açtı.
+- Manifestte `CAMERA` ve `POST_NOTIFICATIONS` var; `RECORD_AUDIO` yok.
+- Her iki oturumun `logcat` taramasında fatal Android, React Native hatası veya
+  ANR bulunmadı.
+- Sentetik test hesapları test sonunda silindi; silme sonrası login `401`
+  döndü.
+- Fiziksel Android cihaz ve fiziksel barkod testi, kullanıcının talebiyle bu
+  çalışmanın dışında bırakıldı.
+
+## Tamamlanmış EAS Build Bazı
 
 | Alan | Değer |
 | --- | --- |
@@ -58,4 +107,10 @@ Her iki test oturumu da `wipe-data`, `read-only` ve snapshot kapalı olarak baş
 
 ## Render Notu
 
-Test sırasında Render free instance'ın 5 saniyelik health check'i kaçırdığı ve önceki instance'ın status `137` ile kapandığı görüldü. Free tier kararlılığı için JVM heap/metaspace sınırları ve Hikari pool boyutu küçültüldü. Main merge commit'i `cd31309` Render'a deploy edilip `Live` durumuna ulaştı; yeni instance üzerinde `/api/health` ve gerçek `/api/auth/login` istekleri `200` döndü. Smoke hesabı test sonrasında `204` ile silindi.
+İlk test sırasında Render free instance'ın 5 saniyelik health check'i kaçırdığı
+ve önceki instance'ın status `137` ile kapandığı görüldü. İlk sınırlandırma
+commit'i `cd31309` ile canlıya alındı. Güncel `b9c04ad` deployunda JVM
+`-Xmx192m`, 96 MB metaspace, 32 MB code cache ve 32 MB direct memory ile
+sınırlandı; Hikari havuzu iki bağlantıya indirildi. Yeni instance 64.993
+saniyede başladı. `/api/health`, üç profilli canlı API smoke testi ve emülatör
+login istekleri geçti. Test hesapları `204` ile silindi.

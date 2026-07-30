@@ -55,13 +55,17 @@ Current production backend:
 - `https://skinshelf-backend.onrender.com`
 - Health: `https://skinshelf-backend.onrender.com/api/health`
 - Render Docker port: `10000` (`PORT` and `SERVER_PORT`)
-- Source branch: `main`; Render auto-deploys backend changes on every commit.
+- Source branch: `main`. After every backend push, verify the new commit under
+  Render **Events**. If no deploy starts, use **Manual Deploy → Deploy latest
+  commit**; the current Blueprint-managed service may require this manual step.
 
 Repository collaborators do not need Render workspace access for routine
-development or deployment. They can use the shared production API and push
-reviewed backend changes to `main`; Render continues the deployment in the
-cloud even when the workspace owner's computer is offline. Workspace access is
-only needed for secrets, logs, and manual service administration.
+development. They can use the shared production API and push reviewed backend
+changes to `main`. A Render workspace member must confirm the deploy event and
+manually start the latest commit when auto-deploy does not trigger. The deploy
+continues in the cloud even when the workspace owner's computer is offline.
+Workspace access is also needed for secrets, logs, and manual service
+administration.
 
 ## Mobile/Web Production Build
 
