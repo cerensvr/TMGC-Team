@@ -46,6 +46,13 @@
           "cameraPermission": "SkinShelf cilt takibi fotoğrafı çekmek için kamerayı kullanır.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon-release.png",
+          "color": "#1C4630"
+        }
       ]
     ],
     "extra": {

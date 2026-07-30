@@ -12,6 +12,4 @@ public class SkinAnalysisRequest {
     private String skinFeeling;
     private Boolean usedNewProduct;
     private String userNote;
-    /** true ise fotoğraf saklanmaz, yalnızca analiz sonucu kaydedilir (varsayılan davranış). */
-    private Boolean discardPhoto;
 }

@@ -150,7 +150,7 @@ export default function SkinTrackingScreen({ navigation }: Props) {
         <View style={styles.privacyRow}>
           <ShieldCheck size={15} color={colors.sage} />
           <Text style={styles.privacyText}>
-            Fotoğrafların yalnızca cilt değişimini takip etmek için kullanılır ve cihazından ayrılınca saklanmaz.
+            Fotoğrafların analiz için Shelly'ye iletilir; sunucuda saklanmaz, yalnızca analiz sonucu kaydedilir.
             İstersen geçmiş kayıtlarını silebilirsin (karta uzun bas).
           </Text>
         </View>

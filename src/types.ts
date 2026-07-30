@@ -1,3 +1,4 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type Category = 'Temizleyici' | 'Tonik' | 'Serum' | 'Göz Kremi' | 'Nemlendirici' | 'Güneş Kremi' | 'Maske' | 'Diğer';
 
@@ -23,7 +24,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   Onboarding: undefined;
-  MainTabs: undefined; 
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Scanner: undefined;
   ProductReview: { scannedProduct?: ProductDraft; editingProductId?: string; source?: 'barcode' | 'manual' } | undefined;
   ProductDetail: { productId: string };
