@@ -75,9 +75,6 @@ export default function ShellyAdviceCard({ response }: Props) {
         </View>
         <View style={styles.titleWrap}>
           <Text style={styles.title}>{response.title}</Text>
-          <Text style={styles.sourceText}>
-            {response.fallbackUsed ? 'Güvenli bilgi tabanı' : 'Gemini + kişisel bağlam'}
-          </Text>
         </View>
         <View style={[styles.riskPill, { borderColor: riskColors[response.riskLevel] }]}>
           <View style={[styles.riskDot, { backgroundColor: riskColors[response.riskLevel] }]} />

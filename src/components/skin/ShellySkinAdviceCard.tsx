@@ -48,9 +48,6 @@ export default function ShellySkinAdviceCard({ analysis }: Props) {
           <Text style={styles.heroTitle}>{analysis.title || "Shelly'nin Yorumu"}</Text>
         </View>
         <Text style={styles.heroText}>{analysis.summary}</Text>
-        <Text style={styles.sourceText}>
-          {analysis.fallbackUsed ? 'Güvenli günlük değerlendirmesi' : 'Gemini görsel analizi + kişisel bağlam'}
-        </Text>
         {analysis.photoQuality ? (
           <View style={styles.qualityWrap}>
             <Text style={styles.qualityTitle}>Fotoğraf: {photoQualityLabels[analysis.photoQuality]}</Text>
