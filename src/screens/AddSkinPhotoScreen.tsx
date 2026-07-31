@@ -225,12 +225,18 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
               ))}
             </View>
 
-            <Text style={styles.formLabel}>Not ekle</Text>
+            <Text style={styles.formLabel}>
+              {usedNewProduct === true ? 'Hangi ürünü kullandın?' : 'Not ekle'}
+            </Text>
             <TextInput
               style={styles.noteInput}
               value={note}
               onChangeText={setNote}
-              placeholder="Bugün yanaklarım biraz kuru hissetti."
+              placeholder={
+                usedNewProduct === true
+                  ? 'Örn: CeraVe Nemlendirici, La Roche Effaclar Serum'
+                  : 'Bugün yanaklarım biraz kuru hissetti.'
+              }
               placeholderTextColor={colors.inkMuted}
               multiline
               maxLength={300}
