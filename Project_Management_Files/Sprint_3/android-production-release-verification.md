@@ -28,6 +28,7 @@ Android kabul kapsamından geçirildi. Test edilen son uygulama kaynak commit'i
 | Yerel EAS build | `BUILD SUCCESSFUL` — 414 Gradle görevi, 2 dk 1 sn |
 | APK SHA-256 | `fa7066cc526ad38aa2b9e7cdf364feadbe295e2bf2d03fb83311dcabc5b79cb7` |
 | İmza doğrulaması | APK Signature Scheme v2 geçti; RSA 2048, tek signer |
+| Güncel EAS cloud preview | [05d9041d-4ba8-4e35-ad5c-593fabfe82b3](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/05d9041d-4ba8-4e35-ad5c-593fabfe82b3), versionCode `16`, kuyrukta |
 
 ### Cihaz Kabul Sonuçları
 
@@ -65,12 +66,14 @@ doğrulandı.
 | AAB imzası | `jarsigner -verify` geçti |
 | Bundle doğrulaması | Resmi Bundletool `1.18.3 validate` geçti |
 | Manifest kontrolü | `RECORD_AUDIO` ve `SYSTEM_ALERT_WINDOW` yok |
+| Güncel EAS cloud production | [3013fd25-464f-4cb8-8b89-731913db6623](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/3013fd25-464f-4cb8-8b89-731913db6623), versionCode `15`, kuyrukta |
 
 İzin sertleştirmesinden önce kuyruğa alınan cloud build
 `7fb02c44-58a2-45ec-b21d-5b1bf7b398c1` ve
 `1efca0f6-d1e7-4466-9456-986cb46e6db6` iptal edildi. Bu eski artifactler
-release adayı değildir. Güncel commit için cloud build kayıtları ayrı olarak
-başlatılacaktır.
+release adayı değildir. Güncel cloud buildlerin kaynak commit'i
+`29ea2d4b82b8593ed63c3e8a69c598d5163dc0c0` ve fingerprint'i
+`52271b6f5f6496760fc47fb19564a3952e6b8a27`'dir.
 
 ## Release Sınırı
 
