@@ -395,10 +395,9 @@ export default function AssistantScreen({ navigation }: Props) {
 
               {isLoading && (
                 <View style={styles.chatRow}>
-                  <View style={styles.chatAvatar}>
-                    <ActivityIndicator size="small" color={colors.goldSoft} />
-                  </View>
-                  <View style={styles.chatBubble}>
+                  <ShellyIcon size={30} style={styles.chatAvatarImage} />
+                  <View style={[styles.chatBubble, styles.loadingBubble]}>
+                    <ActivityIndicator size="small" color={colors.forest} />
                     <Text style={styles.chatText}>Düşünüyorum...</Text>
                   </View>
                 </View>
@@ -656,6 +655,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     ...shadows.soft,
+  },
+  loadingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   chatBubbleUser: {
     backgroundColor: colors.forest,
