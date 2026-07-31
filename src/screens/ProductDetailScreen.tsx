@@ -450,7 +450,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(12,17,13,0.45)',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   sheet: {
     backgroundColor: colors.background,

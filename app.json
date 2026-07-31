@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon-release.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-release.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -55,7 +50,17 @@
           "defaultChannel": "skinshelf-default"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-release.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "imageWidth": 240
+        }
+      ]
     ],
     "extra": {
       "eas": {
