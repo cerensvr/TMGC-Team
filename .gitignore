@@ -2,6 +2,9 @@ node_modules/
 .expo/
 dist/
 build/
+ios/build-device/
+output/
+tmp/
 coverage/
 .DS_Store
 *.log

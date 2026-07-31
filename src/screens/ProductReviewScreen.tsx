@@ -89,6 +89,8 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
 
   const editingProductId = route.params?.editingProductId;
   const entrySource = route.params?.source || 'manual';
+  const previewImageUri = route.params?.previewImageUri;
+  const recognitionConfidence = route.params?.recognitionConfidence;
   const activeIngredients = productData.activeIngredients || [];
   const ingredientKey = activeIngredients.join('|');
 
@@ -96,17 +98,23 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     ? 'Dolaptan Düzenleniyor'
     : entrySource === 'barcode'
     ? 'Barkod ile Bulundu'
+    : entrySource === 'photo'
+    ? 'Fotoğraftan Tanındı'
     : 'Manuel Giriş';
 
   const sourceNoticeText = editingProductId
     ? 'Ürün bilgilerini düzenleyip değişiklikleri kaydedebilirsin.'
     : entrySource === 'barcode'
     ? 'Barkoddan gelen bilgiler onaydan önce düzenlenebilir.'
+    : entrySource === 'photo'
+    ? `Görsel tanımadan gelen bilgiler onaydan önce düzenlenebilir${
+        recognitionConfidence === 'low' ? '; eşleşme düşük güvenli olduğu için etiketi kontrol et.' : '.'
+      }`
     : 'Ürün bilgilerini manuel girip içerikleri düzenleyebilirsin.';
 
   useEffect(() => {
     setProductImageFailed(false);
-  }, [productData.cutoutImageUrl, productData.category]);
+  }, [previewImageUri, productData.cutoutImageUrl, productData.category]);
 
   useEffect(() => {
     setTimeOfDay(productData.timeOfDay || 'both');
@@ -278,7 +286,11 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
           {/* Ürün Görsel Alanı */}
           <View style={styles.imageContainer}>
             <Image
-              source={getProductVisualSource(productData, productImageFailed)}
+              source={
+                previewImageUri && !productImageFailed
+                  ? { uri: previewImageUri }
+                  : getProductVisualSource(productData, productImageFailed)
+              }
               style={styles.image}
               resizeMode="contain"
               onError={() => setProductImageFailed(true)}

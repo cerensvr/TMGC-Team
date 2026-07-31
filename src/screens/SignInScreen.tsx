@@ -22,6 +22,7 @@ import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { useProducts } from '../context/ProductContext';
 import { errorDev } from '../services/logger';
+import { importPersonalShelfProducts } from '../services/personalShelfImport';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type Props = {
@@ -72,6 +73,8 @@ export default function SignInScreen({ navigation }: Props) {
           firstName: response.user.firstName,
           lastName: response.user.lastName,
         });
+
+        await importPersonalShelfProducts(response.user.email);
 
         // 3. Veri Yükleme Güvenliği (Sonsuz Yüklenmeyi Engeller)
         const [profileData] = await Promise.all([

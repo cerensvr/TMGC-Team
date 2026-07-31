@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,9 @@ import {
 import { CameraView, BarcodeScanningResult, useCameraPermissions } from 'expo-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, ProductDraft } from '../types';
-import { X, Barcode, ScanLine, Sparkles, PenLine, CameraOff } from 'lucide-react-native';
+import { X, Barcode, ScanLine, Sparkles, PenLine, CameraOff, Camera } from 'lucide-react-native';
 import { productService } from '../services/productService';
+import { recognizeProductPhoto } from '../services/productRecognitionService';
 import { errorDev } from '../services/logger';
 import { fonts, radius } from '../theme';
 
@@ -22,6 +23,7 @@ type Props = {
 };
 
 const GOLD = '#D8C39A';
+type ScanMode = 'photo' | 'barcode';
 
 // Dokunma alanlarını genişletmek için standart hitSlop
 const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
@@ -38,9 +40,12 @@ const manualProductDraft: ProductDraft = {
 };
 
 export default function ScannerScreen({ navigation }: Props) {
+  const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(false);
   const [lastCode, setLastCode] = useState<string | null>(null);
+  const [scanMode, setScanMode] = useState<ScanMode>('photo');
+  const [cameraReady, setCameraReady] = useState(false);
 
   const handleClose = useCallback(() => {
     if (isScanning) return;
@@ -104,6 +109,57 @@ export default function ScannerScreen({ navigation }: Props) {
     [isScanning, lastCode, lookupBarcode]
   );
 
+  const recognizeVisibleProduct = useCallback(async () => {
+    if (isScanning) return;
+    if (!permission?.granted) {
+      void requestPermission();
+      return;
+    }
+    if (!cameraReady || !cameraRef.current) {
+      Alert.alert('Kamera Hazırlanıyor', 'Kamera hazır olduğunda tekrar deneyin.');
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.5,
+        skipProcessing: false,
+      });
+
+      if (!photo?.base64) {
+        throw new Error('Fotoğraf verisi alınamadı.');
+      }
+
+      const result = await recognizeProductPhoto({
+        imageBase64: photo.base64,
+        imageMimeType: 'image/jpeg',
+      });
+
+      navigation.replace('ProductReview', {
+        scannedProduct: result.product,
+        source: 'photo',
+        previewImageUri: photo.uri,
+        recognitionConfidence: result.confidence,
+      });
+    } catch (error: any) {
+      errorDev('Product photo recognition error:', error);
+
+      const message = String(error?.message || '');
+      let userMessage = 'Ürün fotoğraftan tanınamadı. Ön etiketi daha yakından ve net çekip tekrar deneyin.';
+      if (message.toLocaleLowerCase('tr-TR').includes('yoğun') || message.includes('429')) {
+        userMessage = 'Görsel tanıma şu an yoğun. Biraz sonra tekrar deneyin.';
+      } else if (message.toLocaleLowerCase('tr-TR').includes('network')) {
+        userMessage = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
+      }
+
+      Alert.alert('Ürün Tanınamadı', userMessage);
+    } finally {
+      setIsScanning(false);
+    }
+  }, [cameraReady, isScanning, navigation, permission?.granted, requestPermission]);
+
   const renderScannerContent = () => {
     if (!permission) {
       return (
@@ -121,7 +177,7 @@ export default function ScannerScreen({ navigation }: Props) {
           <Text style={styles.permissionTitle}>Kamera izni gerekli</Text>
           <Text style={styles.permissionText}>
             {permission.canAskAgain
-              ? 'Barkodu okutmak için kameraya izin ver.'
+              ? 'Ürünü fotoğraftan tanımak veya barkodunu okutmak için kameraya izin ver.'
               : 'Kamera izni kapalı. Cihaz ayarlarından SkinShelf için kamera erişimini açabilirsin.'}
           </Text>
           <TouchableOpacity
@@ -148,12 +204,14 @@ export default function ScannerScreen({ navigation }: Props) {
     return (
       <View style={styles.camera}>
         <CameraView
+          ref={cameraRef}
           style={styles.cameraPreview}
           facing="back"
+          onCameraReady={() => setCameraReady(true)}
           barcodeScannerSettings={{
             barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'],
           }}
-          onBarcodeScanned={isScanning ? undefined : handleBarcodeScanned}
+          onBarcodeScanned={scanMode === 'barcode' && !isScanning ? handleBarcodeScanned : undefined}
         />
         <View style={styles.scannerFrame} pointerEvents="none">
           <View style={[styles.corner, styles.topLeft]} />
@@ -166,11 +224,17 @@ export default function ScannerScreen({ navigation }: Props) {
               <ActivityIndicator size="large" color={GOLD} />
               <View style={styles.loadingBadge}>
                 <Sparkles size={14} color={GOLD} />
-                <Text style={styles.loadingText}>Ürün bilgisi alınıyor...</Text>
+                <Text style={styles.loadingText}>
+                  {scanMode === 'photo' ? 'Ürün görselden tanınıyor...' : 'Ürün bilgisi alınıyor...'}
+                </Text>
               </View>
             </View>
           ) : (
-            <Text style={styles.instruction}>Barkodu çerçevenin içine hizalayın</Text>
+            <Text style={styles.instruction}>
+              {scanMode === 'photo'
+                ? 'Ürünün ön etiketini çerçeveye yerleştirip aşağıdaki düğmeye basın'
+                : 'Barkodu çerçevenin içine hizalayın'}
+            </Text>
           )}
         </View>
       </View>
@@ -192,7 +256,7 @@ export default function ScannerScreen({ navigation }: Props) {
         >
           <X size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Barkod Tara</Text>
+        <Text style={styles.headerTitle}>{scanMode === 'photo' ? 'Ürünü Tanı' : 'Barkod Tara'}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -201,10 +265,31 @@ export default function ScannerScreen({ navigation }: Props) {
 
       {/* SEKMELER */}
       <View style={styles.tabsContainer}>
-        <View style={[styles.tab, styles.activeTab]}>
-          <Barcode size={19} color="#10130F" />
-          <Text style={[styles.tabText, styles.activeTabText]}>Barkod Tara</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.tab, scanMode === 'photo' && styles.activeTab]}
+          onPress={() => {
+            setScanMode('photo');
+            setLastCode(null);
+          }}
+          disabled={isScanning}
+          activeOpacity={0.8}
+        >
+          <Camera size={18} color={scanMode === 'photo' ? '#10130F' : '#ffffff'} />
+          <Text style={[styles.tabText, scanMode === 'photo' && styles.activeTabText]}>Fotoğraf</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, scanMode === 'barcode' && styles.activeTab]}
+          onPress={() => {
+            setScanMode('barcode');
+            setLastCode(null);
+          }}
+          disabled={isScanning}
+          activeOpacity={0.8}
+        >
+          <Barcode size={18} color={scanMode === 'barcode' ? '#10130F' : '#ffffff'} />
+          <Text style={[styles.tabText, scanMode === 'barcode' && styles.activeTabText]}>Barkod</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.tab}
@@ -214,8 +299,8 @@ export default function ScannerScreen({ navigation }: Props) {
           hitSlop={TOUCH_SLOP}
           accessibilityRole="button"
         >
-          <PenLine size={19} color="#ffffff" />
-          <Text style={styles.tabText}>Manuel Ekle</Text>
+          <PenLine size={18} color="#ffffff" />
+          <Text style={styles.tabText}>Manuel</Text>
         </TouchableOpacity>
       </View>
 
@@ -224,6 +309,10 @@ export default function ScannerScreen({ navigation }: Props) {
         <TouchableOpacity
           style={[styles.captureButton, isScanning && styles.captureButtonDisabled]}
           onPress={() => {
+            if (scanMode === 'photo') {
+              void recognizeVisibleProduct();
+              return;
+            }
             if (!permission?.granted) {
               void requestPermission();
               return;
@@ -234,10 +323,14 @@ export default function ScannerScreen({ navigation }: Props) {
           activeOpacity={0.85}
           hitSlop={TOUCH_SLOP}
           accessibilityRole="button"
-          accessibilityLabel="Manuel Tarama Tetikle"
+          accessibilityLabel={scanMode === 'photo' ? 'Ürünü fotoğraftan tanı' : 'Barkodu tara'}
         >
           <View style={styles.captureInner}>
-            <ScanLine size={30} color="#10130F" />
+            {scanMode === 'photo' ? (
+              <Sparkles size={29} color="#10130F" />
+            ) : (
+              <ScanLine size={30} color="#10130F" />
+            )}
           </View>
         </TouchableOpacity>
       </View>
@@ -369,11 +462,19 @@ const styles = StyleSheet.create({
     color: '#10130F',
     fontSize: 13.5,
   },
-  tabsContainer: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 16, gap: 12 },
+  tabsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    gap: 8,
+  },
   tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
     paddingVertical: 11,
     borderRadius: radius.pill,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -384,8 +485,8 @@ const styles = StyleSheet.create({
   tabText: {
     fontFamily: fonts.sansBold,
     color: '#ffffff',
-    marginLeft: 8,
-    fontSize: 13.5,
+    marginLeft: 6,
+    fontSize: 12.5,
   },
   activeTabText: { color: '#10130F' },
   footer: { alignItems: 'center', paddingBottom: 40, paddingTop: 10 },

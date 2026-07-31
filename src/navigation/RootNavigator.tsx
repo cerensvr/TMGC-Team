@@ -16,6 +16,7 @@ import {
   syncAllNotifications,
 } from '../services/notificationScheduler';
 import { errorDev } from '../services/logger';
+import { importPersonalShelfProducts } from '../services/personalShelfImport';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignInScreen from '../screens/SignInScreen';
@@ -135,6 +136,7 @@ export default function RootNavigator() {
           firstName: user.firstName,
           lastName: user.lastName,
         });
+        await importPersonalShelfProducts(user.email);
         await Promise.all([loadProfile(user.id), loadProducts()]);
         if (!cancelled) setBootState('authenticated');
       } catch {

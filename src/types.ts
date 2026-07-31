@@ -27,7 +27,13 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   AccountSettings: undefined;
   Scanner: undefined;
-  ProductReview: { scannedProduct?: ProductDraft; editingProductId?: string; source?: 'barcode' | 'manual' } | undefined;
+  ProductReview: {
+    scannedProduct?: ProductDraft;
+    editingProductId?: string;
+    source?: 'barcode' | 'photo' | 'manual';
+    previewImageUri?: string;
+    recognitionConfidence?: 'high' | 'medium' | 'low';
+  } | undefined;
   ProductDetail: { productId: string };
   Assistant: undefined;
   Notifications: undefined;

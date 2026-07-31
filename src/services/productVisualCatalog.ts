@@ -17,6 +17,12 @@ const fallbackProductAssets: Record<Category, ImageSourcePropType> = {
 
 const localCutoutAssets: Record<string, ImageSourcePropType> = {
   'local:la-roche-effaclar-kplus': require('../../assets/product-cutouts/la-roche-effaclar-kplus.png'),
+  'local:la-roche-posay-effaclar-duo-m': require('../../assets/product-cutouts/la-roche-posay-effaclar-duo-m.png'),
+  'local:cerave-kopuren-temizleyici': require('../../assets/product-cutouts/cerave-kopuren-temizleyici.png'),
+  'local:anthelios-uvair-spf50': require('../../assets/product-cutouts/anthelios-uvair-spf50.png'),
+  'local:la-roche-posay-mela-b3-serum': require('../../assets/product-cutouts/la-roche-posay-mela-b3-serum.png'),
+  'local:la-roche-posay-mela-b3-cleanser': require('../../assets/product-cutouts/la-roche-posay-mela-b3-cleanser.png'),
+  'local:la-roche-posay-cicaplast-baume-b5': require('../../assets/product-cutouts/la-roche-posay-cicaplast-baume-b5.png'),
 };
 
 const normalize = (value = '') => value.toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
@@ -24,7 +30,39 @@ const normalize = (value = '') => value.toLocaleLowerCase('tr-TR').replace(/\s+/
 export const matchProductCutout = (brand?: string, name?: string) => {
   const text = normalize(`${brand || ''} ${name || ''}`);
 
-  if (text.includes('la roche') && text.includes('effaclar')) {
+  if (text.includes('cerave') && (text.includes('köpüren') || text.includes('kopuren') || text.includes('foaming'))) {
+    return 'local:cerave-kopuren-temizleyici';
+  }
+
+  if (text.includes('la roche') && text.includes('effaclar') && text.includes('duo')) {
+    return 'local:la-roche-posay-effaclar-duo-m';
+  }
+
+  if (text.includes('la roche') && text.includes('mela b3') && text.includes('serum')) {
+    return 'local:la-roche-posay-mela-b3-serum';
+  }
+
+  if (
+    text.includes('la roche') &&
+    text.includes('mela b3') &&
+    (text.includes('cleanser') || text.includes('temizleme') || text.includes('temizleyici') || text.includes('jel'))
+  ) {
+    return 'local:la-roche-posay-mela-b3-cleanser';
+  }
+
+  if (text.includes('la roche') && (text.includes('anthelios') || text.includes('uvair'))) {
+    return 'local:anthelios-uvair-spf50';
+  }
+
+  if (text.includes('la roche') && text.includes('cicaplast') && text.includes('b5')) {
+    return 'local:la-roche-posay-cicaplast-baume-b5';
+  }
+
+  if (
+    text.includes('la roche') &&
+    text.includes('effaclar') &&
+    (text.includes('k+') || text.includes('k plus'))
+  ) {
     return 'local:la-roche-effaclar-kplus';
   }
 

@@ -73,6 +73,12 @@ const getRoutineIndex = (category: Product['category']) => {
   return index === -1 ? 99 : index;
 };
 
+const getUsageLabel = (timeOfDay: Product['timeOfDay']) => {
+  if (timeOfDay === 'morning') return 'Sabah';
+  if (timeOfDay === 'evening') return 'Akşam';
+  return 'Sabah & Akşam';
+};
+
 const buildShelfRows = (products: Product[]) => {
   const firstRowCount = products.length > 6 ? 4 : 3;
   const secondRowCount = products.length > 7 ? 3 : 2;
@@ -167,9 +173,7 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder, disabled }: Shelf
         accessibilityRole="button"
         accessibilityLabel={`${product.brand} ${product.name}`}
       >
-        <View style={styles.productShadow} />
-
-        {/* 1. YÖNTEM: İnternetten (barkodla) gelen görsellerin beyaz arka planını silip şeffaflaştırır */}
+        {/* İnternetten gelen görsellerin beyaz arka planını görsel olarak yumuşatır. */}
         <Image
           source={productImageSource}
           style={[
@@ -194,6 +198,11 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder, disabled }: Shelf
       <Text style={styles.productShelfType} numberOfLines={2}>
         {product.name}
       </Text>
+      <View style={styles.productMetaPill}>
+        <Text style={styles.productMetaText} numberOfLines={1}>
+          {product.category} · {getUsageLabel(product.timeOfDay)}
+        </Text>
+      </View>
     </Animated.View>
   );
 };
@@ -868,16 +877,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   referenceShelfSlot: {
-    minHeight: 226,
+    minHeight: 252,
     justifyContent: 'flex-end',
     position: 'relative',
   },
   referenceProductsRow: {
-    minHeight: 198,
+    minHeight: 224,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    gap: 8,
+    gap: 2,
     paddingHorizontal: 4,
     paddingBottom: 13,
     zIndex: 2,
@@ -913,8 +922,11 @@ const styles = StyleSheet.create({
   },
   emptyShelfHintShort: { width: '38%' },
   shelfProduct: {
-    width: 112,
-    height: 198,
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    maxWidth: 112,
+    height: 224,
     alignItems: 'center',
     justifyContent: 'flex-end',
     position: 'relative',
@@ -927,41 +939,49 @@ const styles = StyleSheet.create({
     elevation: 9,
   },
   productTapArea: {
-    width: 112,
-    height: 158,
+    width: '100%',
+    height: 164,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  productShadow: {
-    position: 'absolute',
-    bottom: 2,
-    width: 82,
-    height: 14,
-    borderRadius: 50,
-    backgroundColor: 'rgba(74,86,78,0.14)',
-  },
   productPhoto: {
-    width: 110,
-    height: 170,
+    width: 112,
+    height: 184,
   },
   productShelfName: {
-    maxWidth: 102,
+    maxWidth: '100%',
     minHeight: 15,
     marginTop: 4,
     fontFamily: fonts.sansExtraBold,
     color: colors.inkMuted,
-    fontSize: 9,
+    fontSize: 9.5,
     letterSpacing: 0.8,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
   productShelfType: {
-    width: 106,
+    width: '100%',
     minHeight: 27,
     fontFamily: fonts.sansBold,
     color: colors.ink,
     fontSize: 10.5,
     lineHeight: 14,
+    textAlign: 'center',
+  },
+  productMetaPill: {
+    width: '94%',
+    marginTop: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSage,
+    borderWidth: 1,
+    borderColor: colors.lineSage,
+  },
+  productMetaText: {
+    fontFamily: fonts.sansBold,
+    color: colors.sage,
+    fontSize: 8.5,
     textAlign: 'center',
   },
   expiryBadge: {
