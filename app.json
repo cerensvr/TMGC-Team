@@ -54,7 +54,8 @@
           "color": "#1C4630",
           "defaultChannel": "skinshelf-default"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
