@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ type Props = {
 
 const GOLD = '#D8C39A';
 type ScanMode = 'photo' | 'barcode';
+type ScannerNotice = { title: string; message: string };
 
 // Dokunma alanlarını genişletmek için standart hitSlop
 const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
@@ -46,6 +47,17 @@ export default function ScannerScreen({ navigation }: Props) {
   const [lastCode, setLastCode] = useState<string | null>(null);
   const [scanMode, setScanMode] = useState<ScanMode>('photo');
   const [cameraReady, setCameraReady] = useState(false);
+  const [notice, setNotice] = useState<ScannerNotice | null>(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timeout = setTimeout(() => setNotice(null), 3400);
+    return () => clearTimeout(timeout);
+  }, [notice]);
+
+  const showNotice = useCallback((title: string, message: string) => {
+    setNotice({ title, message });
+  }, []);
 
   const handleClose = useCallback(() => {
     if (isScanning) return;
@@ -116,15 +128,16 @@ export default function ScannerScreen({ navigation }: Props) {
       return;
     }
     if (!cameraReady || !cameraRef.current) {
-      Alert.alert('Kamera Hazırlanıyor', 'Kamera hazır olduğunda tekrar deneyin.');
+      showNotice('Kamera Hazırlanıyor', 'Kamera hazır olduğunda tekrar deneyin.');
       return;
     }
 
+    setNotice(null);
     setIsScanning(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.5,
+        quality: 0.35,
         skipProcessing: false,
       });
 
@@ -154,11 +167,11 @@ export default function ScannerScreen({ navigation }: Props) {
         userMessage = 'İnternet bağlantınızı kontrol edip tekrar deneyin.';
       }
 
-      Alert.alert('Ürün Tanınamadı', userMessage);
+      showNotice('Ürün Tanınamadı', userMessage);
     } finally {
       setIsScanning(false);
     }
-  }, [cameraReady, isScanning, navigation, permission?.granted, requestPermission]);
+  }, [cameraReady, isScanning, navigation, permission?.granted, requestPermission, showNotice]);
 
   const renderScannerContent = () => {
     if (!permission) {
@@ -243,6 +256,16 @@ export default function ScannerScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {notice && (
+        <View
+          style={styles.notice}
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+        >
+          <Text style={styles.noticeTitle}>{notice.title}</Text>
+          <Text style={styles.noticeMessage}>{notice.message}</Text>
+        </View>
+      )}
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -509,4 +532,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   captureButtonDisabled: { opacity: 0.5 },
+  notice: {
+    position: 'absolute',
+    top: 76,
+    left: 22,
+    right: 22,
+    zIndex: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(40, 29, 25, 0.96)',
+    borderWidth: 1,
+    borderColor: 'rgba(216, 195, 154, 0.5)',
+  },
+  noticeTitle: {
+    fontFamily: fonts.sansExtraBold,
+    color: '#ffffff',
+    fontSize: 14,
+  },
+  noticeMessage: {
+    marginTop: 3,
+    fontFamily: fonts.sans,
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 12.5,
+    lineHeight: 17,
+  },
 });

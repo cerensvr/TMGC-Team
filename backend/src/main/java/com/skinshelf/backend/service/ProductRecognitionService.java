@@ -11,6 +11,7 @@ import com.skinshelf.backend.entity.User;
 import com.skinshelf.backend.repository.ProductRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
@@ -44,6 +45,7 @@ public class ProductRecognitionService {
         this.geminiApiClient = geminiApiClient;
     }
 
+    @Transactional(readOnly = true)
     public ProductRecognitionResponse recognize(User user, ProductRecognitionRequest request) {
         if (!geminiApiClient.isConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Görsel tanıma şu anda kullanılamıyor.");
@@ -136,6 +138,7 @@ public class ProductRecognitionService {
                 Görev:
                 1. Marka ve ürün adını etiketten belirle.
                 2. Fotoğraf yukarıdaki adaylardan biriyle açıkça eşleşiyorsa matchedProductId alanına o id'yi yaz.
+                   Hacim/ambalaj boyutu (ör. 236 ml ve 473 ml) farklı olsa da marka ve ürün serisi aynıysa eşleşme kabul et.
                 3. Eşleşme yoksa matchedProductId=0 yaz ve yalnızca güvenle çıkarabildiğin bilgileri doldur.
                 4. category yalnız izin verilen Türkçe değerlerden, timeOfDay yalnız morning/evening/both değerlerinden biri olsun.
                 5. activeIngredients alanına yalnız etikette görünen veya ürün kimliği kesin olduğunda güvenle bilinen temel aktifleri yaz.
@@ -172,13 +175,13 @@ public class ProductRecognitionService {
 
     private Optional<Product> findTextMatch(List<Product> products, String brand, String name) {
         String recognizedBrand = normalize(brand);
-        String recognizedName = normalize(name);
+        String recognizedName = normalizeProductName(name);
         if (recognizedBrand.length() < 3 || recognizedName.length() < 3) return Optional.empty();
 
         return products.stream()
                 .filter(product -> {
                     String candidateBrand = normalize(product.getBrand());
-                    String candidateName = normalize(product.getName());
+                    String candidateName = normalizeProductName(product.getName());
                     boolean brandMatches = recognizedBrand.contains(candidateBrand)
                             || candidateBrand.contains(recognizedBrand);
                     boolean nameMatches = recognizedName.contains(candidateName)
@@ -194,6 +197,13 @@ public class ProductRecognitionService {
 
     private List<String> significantTokens(String value) {
         return List.of(value.split("\\s+"));
+    }
+
+    private String normalizeProductName(String value) {
+        return normalize(value)
+                .replaceAll("\\b\\d+(?:[.,]\\d+)?\\s*(?:ml|l|fl\\s*oz|oz)\\b", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private String normalize(String value) {

@@ -77,4 +77,48 @@ class ProductRecognitionServiceTest {
         assertEquals(List.of("Melasyl", "%10 Niasinamid"), response.getActiveIngredients());
         assertEquals("high", response.getConfidence());
     }
+
+    @Test
+    void ignoresPackageVolumeWhenMatchingARecognizedShelfProduct() throws Exception {
+        User user = new User();
+        user.setId(8L);
+
+        Product product = new Product();
+        product.setId(55L);
+        product.setUser(user);
+        product.setBrand("CeraVe");
+        product.setName("Köpüren Temizleyici 473 ml");
+        product.setCategory("Temizleyici");
+        product.setTimeOfDay("both");
+        product.setActiveIngredients(List.of("Seramid"));
+
+        ProductRecognitionRequest request = new ProductRecognitionRequest();
+        request.setImageBase64("cerave-photo");
+        request.setImageMimeType("image/jpeg");
+
+        var json = new ObjectMapper().readTree("""
+                {
+                  "matchedProductId": 0,
+                  "brand": "CeraVe",
+                  "name": "Köpüren Temizleyici 236 ml",
+                  "category": "Temizleyici",
+                  "timeOfDay": "both",
+                  "description": "model açıklaması",
+                  "activeIngredients": [],
+                  "confidence": "high"
+                }
+                """);
+
+        when(productRepository.findByUserIdOrderByCreatedAtDesc(8L)).thenReturn(List.of(product));
+        when(geminiApiClient.isConfigured()).thenReturn(true);
+        when(geminiApiClient.generateJsonWithStatus(
+                anyString(), anyString(), eq("cerave-photo"), eq("image/jpeg"), any()))
+                .thenReturn(new GeminiApiClient.GeminiJsonResult(
+                        Optional.of(json), GeminiApiClient.FailureReason.NONE));
+
+        var response = new ProductRecognitionService(productRepository, geminiApiClient).recognize(user, request);
+
+        assertTrue(response.isMatchedFromShelf());
+        assertEquals("Köpüren Temizleyici 473 ml", response.getName());
+    }
 }

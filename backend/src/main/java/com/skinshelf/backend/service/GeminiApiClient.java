@@ -177,23 +177,28 @@ public class GeminiApiClient {
 
             log.info("Gemini Status : {}", response.statusCode());
 
+            boolean modelUnavailable = response.statusCode() == 400
+                    || response.statusCode() == 403
+                    || response.statusCode() == 404;
+            if ((response.statusCode() == 429 || modelUnavailable)
+                    && allowModelFallback
+                    && !fallbackModel.isBlank()
+                    && !fallbackModel.equals(requestedModel)) {
+                log.warn("Gemini {} kullanılamadı (durum {}); yedek model {} deneniyor.",
+                        requestedModel, response.statusCode(), fallbackModel);
+                return generateJsonWithStatus(
+                        systemInstruction,
+                        prompt,
+                        base64Image,
+                        imageMimeType,
+                        responseSchema,
+                        retryOnJsonParseError,
+                        fallbackModel,
+                        false,
+                        MAX_TRANSIENT_RETRIES);
+            }
+
             if (response.statusCode() == 429) {
-                if (allowModelFallback
-                        && !fallbackModel.isBlank()
-                        && !fallbackModel.equals(requestedModel)) {
-                    log.warn("Gemini {} kota sınırına ulaştı; ücretsiz yedek model {} deneniyor.",
-                            requestedModel, fallbackModel);
-                    return generateJsonWithStatus(
-                            systemInstruction,
-                            prompt,
-                            base64Image,
-                            imageMimeType,
-                            responseSchema,
-                            retryOnJsonParseError,
-                            fallbackModel,
-                            false,
-                            MAX_TRANSIENT_RETRIES);
-                }
                 log.warn("Gemini kota sınırına ulaşıldı.");
                 return new GeminiJsonResult(Optional.empty(), FailureReason.RATE_LIMITED);
             }

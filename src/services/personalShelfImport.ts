@@ -7,6 +7,7 @@ const TARGET_EMAIL = 'cerensivri06@gmail.com';
 type ShelfImportItem = {
   product: ProductDraft;
   matches: (product: Product) => boolean;
+  keepCanonicalName?: boolean;
 };
 
 const normalize = (value = '') =>
@@ -40,8 +41,9 @@ const shelfItems: ShelfImportItem[] = [
   },
   {
     matches: product => hasTerms(product, 'CeraVe', ['Köpüren', 'Temizleyici']),
+    keepCanonicalName: true,
     product: {
-      name: 'Köpüren Temizleyici 473 ml',
+      name: 'Köpüren Temizleyici',
       brand: 'CeraVe',
       category: 'Temizleyici',
       timeOfDay: 'both',
@@ -129,9 +131,21 @@ export const importPersonalShelfProducts = async (email?: string) => {
   let addedCount = 0;
 
   for (const item of shelfItems) {
-    if (existingProducts.some(item.matches)) continue;
+    const existingProduct = existingProducts.find(item.matches);
 
     try {
+      if (existingProduct) {
+        if (item.keepCanonicalName && existingProduct.name !== item.product.name) {
+          const updatedProduct = await productService.updateProduct(existingProduct.id, {
+            ...existingProduct,
+            name: item.product.name,
+          });
+          const index = existingProducts.findIndex(product => product.id === existingProduct.id);
+          if (index >= 0) existingProducts[index] = updatedProduct;
+        }
+        continue;
+      }
+
       const addedProduct = await productService.addProduct(item.product);
       existingProducts.push(addedProduct);
       addedCount += 1;

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -34,15 +35,29 @@ public class ApiExceptionHandler {
                 .body(Map.of("message", exception.getMessage()));
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException exception) {
+        String message = exception.getReason();
+        if (message == null || message.isBlank()) {
+            message = "İstek şu anda işlenemedi. Lütfen tekrar deneyin.";
+        }
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(Map.of("message", message));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException exception) {
         if (exception instanceof DataAccessException) {
             return handleDataAccess((DataAccessException) exception);
         }
-        HttpStatus status = exception.getMessage() != null && exception.getMessage().contains("hatalı")
+        String message = exception.getMessage();
+        if (message == null || message.isBlank()) {
+            message = "İstek işlenemedi. Lütfen tekrar deneyin.";
+        }
+        HttpStatus status = message.contains("hatalı")
                 ? HttpStatus.UNAUTHORIZED
                 : HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status).body(Map.of("message", exception.getMessage()));
+        return ResponseEntity.status(status).body(Map.of("message", message));
     }
 
     @ExceptionHandler(DataAccessException.class)
