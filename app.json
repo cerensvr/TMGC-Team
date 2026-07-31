@@ -17,7 +17,7 @@
       "package": "com.skinshelf.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-release.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FBFAF6"
       },
       "permissions": [
         "android.permission.CAMERA"
