@@ -1,10 +1,20 @@
 name: quality-check
 
 on:
-  # GitHub Actions is temporarily manual because the repository owner's
-  # account is billing-locked. Restore push/pull_request triggers after GitHub
-  # re-enables hosted runners for the account.
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend-build:
@@ -24,8 +34,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Expo project health
+        run: npx expo-doctor
+
       - name: TypeScript build
         run: npm run build
+
+      - name: Mobile unit tests
+        run: npm test
 
   backend-tests:
     name: Backend tests
