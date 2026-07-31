@@ -59,6 +59,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if ("POST".equals(method) && "/api/skin-logs/analyze".equals(path)) {
             return new Limit(8, 60);
         }
+        if ("POST".equals(method) && "/api/products/recognize".equals(path)) {
+            return new Limit(8, 60);
+        }
         return null;
     }
 

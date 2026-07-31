@@ -1,8 +1,11 @@
 package com.skinshelf.backend.controller;
 
 import com.skinshelf.backend.dto.ProductRequest;
+import com.skinshelf.backend.dto.ProductRecognitionRequest;
+import com.skinshelf.backend.dto.ProductRecognitionResponse;
 import com.skinshelf.backend.dto.ProductResponse;
 import com.skinshelf.backend.entity.User;
+import com.skinshelf.backend.service.ProductRecognitionService;
 import com.skinshelf.backend.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +19,23 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductRecognitionService productRecognitionService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ProductRecognitionService productRecognitionService) {
         this.productService = productService;
+        this.productRecognitionService = productRecognitionService;
     }
 
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getProducts(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(productService.getProducts(currentUser));
+    }
+
+    @PostMapping("/recognize")
+    public ResponseEntity<ProductRecognitionResponse> recognizeProduct(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody ProductRecognitionRequest request) {
+        return ResponseEntity.ok(productRecognitionService.recognize(currentUser, request));
     }
 
     @GetMapping("/{productId}")
