@@ -23,7 +23,7 @@ Final demoda anlatilacak ana hikaye:
 | Notion board close-up | Status, Sprint, Point, Assignee alanlari okunur | Devam ediyor |
 | Sprint 3 burndown | Hedef/tamamlanan/kalan puan ozeti | Devam ediyor |
 | Daily scrum kanitlari | 2-4 ekran goruntusu veya ozet | Devam ediyor |
-| Final test | TypeScript, mobil 12/12, backend 53/53, Expo Doctor 20/20, audit 0 ve güncel committen temiz APK/AAB doğrulaması geçti | [Tamamlandı](android-production-release-verification.md) |
+| Final test | Kod ve artifact kontrolleri geçti; Android imzalama anahtarı rotasyonu ve yeni artifact testi gerekiyor | [Bloke](android-production-release-verification.md) |
 | Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
 | Final sunum linki | Video olmadan da demo akisi ve ekran seti yeterli kanit sunmali | Devam ediyor |
 
