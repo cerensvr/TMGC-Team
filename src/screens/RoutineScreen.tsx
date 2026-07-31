@@ -19,7 +19,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AlertCircle,
   AlertTriangle,
-  Bot,
   Calendar,
   CheckCircle2,
   MessageCircle,
@@ -27,7 +26,6 @@ import {
   Plus,
   RotateCcw,
   Send,
-  Sparkles,
   Sun,
   X,
 } from 'lucide-react-native';
@@ -37,6 +35,7 @@ import { useUser } from '../context/UserContext';
 import { buildWeekPlan, detectConcern, RoutineSlot } from '../services/routinePlanner';
 import { getRoutineReview, getProductRole } from '../services/shellyInsights';
 import { colors, fonts, radius, shadows, tabBarStyle } from '../theme';
+import ShellyIcon from '../components/ShellyIcon';
 
 type RoutineScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Routine'>,
@@ -244,7 +243,7 @@ export default function RoutineScreen({ navigation }: Props) {
           accessibilityRole="button"
           accessibilityLabel="Shelly Asistan"
         >
-          <Bot size={21} color={colors.forest} />
+          <ShellyIcon size={32} />
         </TouchableOpacity>
       </View>
 
@@ -297,9 +296,7 @@ export default function RoutineScreen({ navigation }: Props) {
           style={styles.summaryCard}
         >
           <View style={styles.summaryHeader}>
-            <View style={styles.summaryIcon}>
-              <Sparkles size={19} color={colors.gold} />
-            </View>
+            <ShellyIcon size={42} style={styles.summaryIcon} />
             <View style={styles.summaryTextBlock}>
               <Text style={styles.summaryTitle}>Shelly'nin Yorumu</Text>
               <Text style={styles.summarySubtitle}>
@@ -570,11 +567,8 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 12,
   },
   summaryTextBlock: { flex: 1 },

@@ -12,12 +12,12 @@ import {
   PackageCheck,
   PackagePlus,
   PauseCircle,
-  Sparkles,
   Sun,
   UserRound,
 } from 'lucide-react-native';
 import { ShellyContextEvidence, ShellyRoutineStep, ShellyStructuredResponse } from '../types';
 import { colors, fonts, radius, shadows } from '../theme';
+import ShellyIcon from './ShellyIcon';
 
 const riskLabels = { low: 'Düşük risk', medium: 'Orta risk', high: 'Yüksek risk' } as const;
 const riskColors = { low: colors.success, medium: colors.warning, high: colors.danger } as const;
@@ -70,9 +70,7 @@ export default function ShellyAdviceCard({ response }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <Sparkles size={15} color={colors.gold} />
-        </View>
+        <ShellyIcon size={30} style={styles.iconWrap} />
         <View style={styles.titleWrap}>
           <Text style={styles.title}>{response.title}</Text>
         </View>
@@ -235,9 +233,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.surfaceMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   titleWrap: { flex: 1 },
   title: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.ink },

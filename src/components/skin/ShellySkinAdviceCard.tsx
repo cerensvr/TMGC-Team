@@ -9,13 +9,13 @@ import {
   Link2,
   Lightbulb,
   Minus,
-  Sparkles,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react-native';
 import { SkinAnalysis, SkinChangeLevel, SkinTrend } from '../../types';
 import { colors, fonts, gradients, radius, shadows } from '../../theme';
 import { changeLabels, levelColors, levelLabels } from './skinLabels';
+import ShellyIcon from '../ShellyIcon';
 
 type Props = {
   analysis: SkinAnalysis;
@@ -42,9 +42,7 @@ export default function ShellySkinAdviceCard({ analysis }: Props) {
       {/* Shelly'nin Yorumu */}
       <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
         <View style={styles.heroHeader}>
-          <View style={styles.heroIcon}>
-            <Sparkles size={17} color={colors.goldSoft} />
-          </View>
+          <ShellyIcon size={36} style={styles.heroIcon} />
           <Text style={styles.heroTitle}>{analysis.title || "Shelly'nin Yorumu"}</Text>
         </View>
         <Text style={styles.heroText}>{analysis.summary}</Text>
@@ -177,11 +175,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(216,195,154,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   heroTitle: {
     flex: 1,

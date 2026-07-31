@@ -17,11 +17,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, Send, Sparkles, Bot, Shield, RotateCcw, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, Send, Shield, RotateCcw, AlertTriangle } from 'lucide-react-native';
 import { RootStackParamList, Message, GeminiBotResponse } from '../types';
 import { useUser } from '../context/UserContext';
 import { callAssistantAPI, clearAssistantHistory, fetchAssistantHistory } from '../api/assistant';
 import ShellyAdviceCard from '../components/ShellyAdviceCard';
+import ShellyIcon from '../components/ShellyIcon';
 import { errorDev } from '../services/logger';
 import { colors, fonts, radius, shadows } from '../theme';
 
@@ -58,15 +59,14 @@ const ChatBubble = ({
   onRetry?: () => void;
 }) => (
   <View style={[styles.chatRow, from === 'user' && styles.chatRowUser]}>
-    {from === 'ai' && (
-      <View style={[styles.chatAvatar, isError && { backgroundColor: colors.surfaceSage }]}>
-        {isError ? (
+    {from === 'ai' &&
+      (isError ? (
+        <View style={[styles.chatAvatar, { backgroundColor: colors.surfaceSage }]}>
           <AlertTriangle size={14} color={colors.danger} />
-        ) : (
-          <Bot size={14} color={colors.goldSoft} />
-        )}
-      </View>
-    )}
+        </View>
+      ) : (
+        <ShellyIcon size={30} style={styles.chatAvatarImage} />
+      ))}
     <View
       style={[
         styles.chatBubble,
@@ -347,9 +347,7 @@ export default function AssistantScreen({ navigation }: Props) {
                 end={{ x: 1, y: 1 }}
                 style={styles.heroCard}
               >
-                <View style={styles.heroIcon}>
-                  <Sparkles size={22} color={colors.goldSoft} />
-                </View>
+                <ShellyIcon size={48} style={styles.heroIcon} />
                 <View style={styles.heroTextBlock}>
                   <Text style={styles.heroTitle}>Shelly bugün neyi kontrol etsin?</Text>
                   <Text style={styles.heroText}>
@@ -574,12 +572,9 @@ const styles = StyleSheet.create({
   heroIcon: {
     width: 48,
     height: 48,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(216,195,154,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 14,
   },
   heroTextBlock: {
@@ -646,6 +641,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.forest,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 9,
+  },
+  chatAvatarImage: {
     marginRight: 9,
   },
   chatBubble: {
