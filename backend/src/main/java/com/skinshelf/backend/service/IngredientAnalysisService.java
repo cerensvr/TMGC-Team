@@ -3,6 +3,7 @@ package com.skinshelf.backend.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.skinshelf.backend.dto.IngredientAnalysisRequest;
 import com.skinshelf.backend.dto.IngredientAnalysisResponse;
+import com.skinshelf.backend.dto.IngredientConflictDetail;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.User;
 import com.skinshelf.backend.entity.UserProfile;
@@ -114,6 +115,7 @@ public class IngredientAnalysisService {
         }
 
         List<String> warnings = new ArrayList<>(toStringList(json.path("warnings")));
+        List<IngredientConflictDetail> conflicts = new ArrayList<>();
 
         json.path("clashingProducts").forEach(node -> {
             Long id = node.path("id").asLong();
@@ -121,7 +123,19 @@ public class IngredientAnalysisService {
             shelfProducts.stream()
                 .filter(p -> p.getId().equals(id))
                 .findFirst()
-                .ifPresent(p -> warnings.add("Dolabındaki \"" + p.getBrand() + " " + p.getName() + "\" ürünü ile çakışıyor: " + reason));
+                .ifPresent(p -> {
+                    String productName = (value(p.getBrand()) + " " + value(p.getName())).trim();
+                    String recommendation = reason.isBlank()
+                            ? "Aynı rutinde üst üste kullanma; farklı zamanlara ayır."
+                            : reason;
+                    warnings.add("Dolabındaki \"" + productName + "\" ürünü ile çakışıyor: " + recommendation);
+                    conflicts.add(new IngredientConflictDetail(
+                            p.getId(),
+                            productName,
+                            "Model + doğrulanmış dolap eşleşmesi",
+                            "high",
+                            recommendation));
+                });
         });
 
         return new IngredientAnalysisResponse(
@@ -130,7 +144,8 @@ public class IngredientAnalysisService {
                 textOrDefault(json.path("compatibilityMessage"), "Bu ürünü rutine eklerken cilt toleransınızı takip edin."),
                 normalizeTime(json.path("suggestedTimeOfDay").asText("both"), request.getCategory()),
                 notableIngredients,
-                warnings);
+                warnings,
+                conflicts);
     }
 
     private IngredientAnalysisResponse fallbackAnalysis(
@@ -157,6 +172,8 @@ public class IngredientAnalysisService {
         String level = hasRetinoid || (hasAcid && sensitive) ? "warning" : "synergy";
         String time = category.contains("güneş") || category.contains("spf") ? "morning" : (hasRetinoid || hasAcid ? "evening" : "both");
         List<String> warnings = new ArrayList<>();
+        List<IngredientConflictDetail> conflicts = buildShelfConflicts(
+                shelfProducts, hasRetinoid, hasAcid, hasVitaminC, sensitive);
 
         if (hasRetinoid && hasAcid) {
             warnings.add("Retinoid ve asitleri aynı rutinde üst üste kullanmayın; farklı günlere ayırın.");
@@ -168,6 +185,8 @@ public class IngredientAnalysisService {
         if (sensitive && (hasRetinoid || hasAcid)) {
             warnings.add("Hassasiyet geçmişiniz olduğu için aktif içerikleri düşük sıklıkla başlatın.");
         }
+        conflicts.forEach(conflict -> warnings.add(
+                "Dolabındaki \"" + conflict.productName() + "\" ile: " + conflict.recommendation()));
 
         String summary = ingredients.isEmpty()
                 ? "Bu ürün için öne çıkan içerik girilmedi. Marka, kategori ve mevcut rutine göre temel uyumluluk yorumu hazırlandı."
@@ -181,7 +200,57 @@ public class IngredientAnalysisService {
                 message,
                 time,
                 ingredients,
-                warnings);
+                warnings.stream().distinct().toList(),
+                conflicts);
+    }
+
+    private List<IngredientConflictDetail> buildShelfConflicts(
+            List<Product> shelfProducts,
+            boolean newHasRetinoid,
+            boolean newHasAcid,
+            boolean newHasVitaminC,
+            boolean sensitive) {
+        List<IngredientConflictDetail> conflicts = new ArrayList<>();
+        for (Product product : shelfProducts) {
+            String shelfText = ((product.getActiveIngredients() == null
+                    ? ""
+                    : String.join(" ", product.getActiveIngredients()))
+                    + " " + value(product.getDescription()))
+                    .toLowerCase(Locale.forLanguageTag("tr-TR"));
+            var shelfRules = knowledgeBase.matchRules(shelfText);
+            boolean shelfHasRetinoid = shelfRules.containsKey("retinol") || shelfRules.containsKey("tretinoin");
+            boolean shelfHasAcid = shelfRules.containsKey("AHA") || shelfRules.containsKey("BHA");
+            boolean shelfHasVitaminC = shelfRules.containsKey("C vitamini");
+            String productName = (value(product.getBrand()) + " " + value(product.getName())).trim();
+
+            if ((newHasRetinoid && shelfHasAcid) || (newHasAcid && shelfHasRetinoid)) {
+                conflicts.add(new IngredientConflictDetail(
+                        product.getId(),
+                        productName,
+                        "Retinoid + AHA/BHA",
+                        "high",
+                        "Aynı gece üst üste kullanma; ürünleri farklı gecelere dağıt."));
+                continue;
+            }
+            if (newHasAcid && shelfHasAcid) {
+                conflicts.add(new IngredientConflictDetail(
+                        product.getId(),
+                        productName,
+                        "Birden fazla peeling/asit",
+                        "warning",
+                        "Aynı rutinde birden fazla asit kullanma; yalnızca birini seç."));
+                continue;
+            }
+            if (sensitive && ((newHasVitaminC && shelfHasAcid) || (newHasAcid && shelfHasVitaminC))) {
+                conflicts.add(new IngredientConflictDetail(
+                        product.getId(),
+                        productName,
+                        "C vitamini + asit / hassasiyet",
+                        "warning",
+                        "Toleransı ayrı zamanlarda ve düşük sıklıkla test et."));
+            }
+        }
+        return conflicts.stream().limit(5).toList();
     }
 
     private boolean hasKnownIngredientContext(IngredientAnalysisRequest request) {

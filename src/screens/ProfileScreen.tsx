@@ -19,6 +19,8 @@ import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { useProducts } from '../context/ProductContext';
 import { errorDev } from '../services/logger';
+import { clearNotificationReadState } from '../services/notificationService';
+import { clearScheduledNotifications } from '../services/notificationScheduler';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type Props = {
@@ -29,7 +31,7 @@ type Props = {
 const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 export default function ProfileScreen({ navigation }: Props) {
-  const { profile, account, clearProfile } = useUser();
+  const { profile, account, clearProfile, userId } = useUser();
   const { products, clearProducts } = useProducts();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -55,6 +57,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
     setIsLoggingOut(true);
     try {
+      await clearScheduledNotifications(userId);
       await authService.logout();
       clearProfile();
       clearProducts();
@@ -87,6 +90,10 @@ export default function ProfileScreen({ navigation }: Props) {
             setIsDeletingAccount(true);
             try {
               await authService.deleteAccount();
+              await clearScheduledNotifications(userId);
+              if (userId) {
+                await clearNotificationReadState(userId);
+              }
               clearProfile();
               clearProducts();
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });

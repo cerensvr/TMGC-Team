@@ -27,7 +27,7 @@ import {
   RotateCcw,
 } from 'lucide-react-native';
 import { useProducts } from '../context/ProductContext';
-import { analyzeProductIngredients } from '../services/productAnalysisService';
+import { analyzeProductIngredients, ProductIngredientAnalysis } from '../services/productAnalysisService';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { errorDev, logDev } from '../services/logger';
 import { colors, fonts, radius, shadows } from '../theme';
@@ -81,6 +81,8 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     message: string;
     conflictingProduct?: string;
   } | null>(null);
+  const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([]);
+  const [ingredientConflicts, setIngredientConflicts] = useState<ProductIngredientAnalysis['conflicts']>([]);
 
   const [aiSuggestedTime, setAiSuggestedTime] = useState<'morning' | 'evening' | 'both' | null>(null);
   const [ingredientInput, setIngredientInput] = useState('');
@@ -115,6 +117,8 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     if (!productData.name.trim() || !productData.brand.trim()) {
       setAiAnalysis(null);
       setConflictData(null);
+      setAnalysisWarnings([]);
+      setIngredientConflicts([]);
       setAiSuggestedTime(null);
       setAnalysisError(null);
       setAnalysisLoading(false);
@@ -135,12 +139,16 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
           severity: analysis.compatibilityLevel,
           message: analysis.compatibilityMessage,
         });
+        setAnalysisWarnings(analysis.warnings ?? []);
+        setIngredientConflicts(analysis.conflicts ?? []);
         setAiSuggestedTime(analysis.suggestedTimeOfDay);
       } catch (error) {
         errorDev('Ingredient analysis error:', error);
         if (cancelled) return;
         setAiAnalysis(null);
         setConflictData(null);
+        setAnalysisWarnings([]);
+        setIngredientConflicts([]);
         setAiSuggestedTime(null);
         setAnalysisError('İçerik analizi şu anda alınamadı. Ürün bilgilerini yine kaydedebilirsin.');
       } finally {
@@ -499,6 +507,37 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
             </View>
           )}
 
+          {(ingredientConflicts.length > 0 || analysisWarnings.length > 0) && (
+            <View style={styles.detailConflictSection}>
+              <View style={styles.detailConflictHeader}>
+                <AlertTriangle size={17} color={colors.warning} />
+                <Text style={styles.detailConflictTitle}>Dolabınla detaylı karşılaştırma</Text>
+              </View>
+              {ingredientConflicts.map(conflict => (
+                <View key={`${conflict.productId}-${conflict.trigger}`} style={styles.detailConflictCard}>
+                  <View style={styles.detailConflictTopRow}>
+                    <Text style={styles.detailConflictProduct}>{conflict.productName}</Text>
+                    <View style={conflict.severity === 'high' ? styles.highBadge : styles.warningBadge}>
+                      <Text style={conflict.severity === 'high' ? styles.highBadgeText : styles.warningBadgeText}>
+                        {conflict.severity === 'high' ? 'Yüksek risk' : 'Dikkat'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.detailConflictTrigger}>{conflict.trigger}</Text>
+                  <Text style={styles.detailConflictRecommendation}>{conflict.recommendation}</Text>
+                </View>
+              ))}
+              {analysisWarnings
+                .filter(warning => !ingredientConflicts.some(conflict => warning.includes(conflict.productName)))
+                .map(warning => (
+                  <View key={warning} style={styles.warningLine}>
+                    <AlertCircle size={14} color={colors.warning} />
+                    <Text style={styles.warningLineText}>{warning}</Text>
+                  </View>
+                ))}
+            </View>
+          )}
+
           {/* RUTİN ZAMANI */}
           <View style={styles.routineSection}>
             <View style={styles.routineTitleContainer}>
@@ -760,6 +799,32 @@ const styles = StyleSheet.create({
   conflictHigh: { backgroundColor: colors.dangerSurface, borderColor: '#F2C7C2' },
   conflictWarning: { backgroundColor: colors.warningSurface, borderColor: '#EDD9A8' },
   conflictSynergy: { backgroundColor: colors.successSurface, borderColor: '#BFDFC8' },
+  detailConflictSection: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.lineGold,
+    padding: 16,
+    marginBottom: 22,
+  },
+  detailConflictHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 11 },
+  detailConflictTitle: { fontFamily: fonts.sansBold, fontSize: 14.5, color: colors.ink },
+  detailConflictCard: {
+    backgroundColor: colors.warningSurface,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 9,
+  },
+  detailConflictTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  detailConflictProduct: { flex: 1, fontFamily: fonts.sansBold, fontSize: 12.5, color: colors.ink },
+  detailConflictTrigger: { fontFamily: fonts.sansBold, fontSize: 10.5, color: colors.warning, marginTop: 6 },
+  detailConflictRecommendation: { fontFamily: fonts.sans, fontSize: 11.5, lineHeight: 17, color: colors.inkSoft, marginTop: 3 },
+  highBadge: { backgroundColor: colors.dangerSurface, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
+  warningBadge: { backgroundColor: colors.surface, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
+  highBadgeText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.danger },
+  warningBadgeText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.warning },
+  warningLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 5 },
+  warningLineText: { flex: 1, fontFamily: fonts.sansSemiBold, fontSize: 11.5, lineHeight: 17, color: colors.inkSoft },
   routineSection: { marginBottom: 40 },
   routineTitleContainer: { marginBottom: 16 },
   routineTitle: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.ink },

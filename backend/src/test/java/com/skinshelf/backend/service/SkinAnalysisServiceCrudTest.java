@@ -49,6 +49,9 @@ class SkinAnalysisServiceCrudTest {
         assertEquals("medium", response.getVisibleChanges().get("redness"));
         assertEquals("low", response.getRiskLevel());
         assertFalse(response.getTags().isEmpty());
+        assertTrue(response.isFallbackUsed());
+        assertFalse(response.getUsedContext().isEmpty());
+        assertTrue(response.getComparisonSummary().contains("ilk karşılaştırılabilir"));
 
         // Gizlilik: fotoğraf hiçbir koşulda saklanmamalı.
         var savedLog = skinLogRepository.findById(response.getLogId()).orElseThrow();
@@ -103,6 +106,24 @@ class SkinAnalysisServiceCrudTest {
 
         assertEquals(1, summary.getLogCount());
         assertFalse(summary.getShellyComment().isBlank());
+    }
+
+    @Test
+    void analysisComparesVisibleSignalsWithPreviousLog() {
+        User user = saveUser("skinlog-compare@example.com");
+        SkinAnalysisResponse first = skinAnalysisService.analyzeAndSave(
+                user, request("Kızarıklık var", false, "İlk kayıt"));
+        var previous = skinLogRepository.findById(first.getLogId()).orElseThrow();
+        previous.setRednessLevel("low");
+        skinLogRepository.saveAndFlush(previous);
+
+        SkinAnalysisResponse second = skinAnalysisService.analyzeAndSave(
+                user, request("Kızarıklık ve hassasiyet var", false, "İkinci kayıt"));
+
+        assertEquals("increased", second.getComparedToPrevious().get("redness"));
+        assertTrue(second.getComparisonSummary().contains("Kızarıklık"));
+        assertTrue(second.getComparisonSummary().contains("tıbbi teşhis değildir"));
+        assertTrue(second.getUsedContext().contains("Önceki cilt kaydıyla karşılaştırma"));
     }
 
     private SkinAnalysisRequest request(String skinFeeling, boolean usedNewProduct, String userNote) {

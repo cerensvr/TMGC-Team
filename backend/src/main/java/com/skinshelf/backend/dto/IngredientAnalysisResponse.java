@@ -14,4 +14,5 @@ public class IngredientAnalysisResponse {
     private String suggestedTimeOfDay;
     private List<String> notableIngredients;
     private List<String> warnings;
+    private List<IngredientConflictDetail> conflicts;
 }

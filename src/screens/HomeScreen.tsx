@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Alert,
@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp } from '@react-navigation/native';
+import { CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MainTabParamList, Product } from '../types';
 import { useProducts } from '../context/ProductContext';
@@ -25,6 +25,12 @@ import { useUser } from '../context/UserContext';
 import { AlertCircle, ArrowDownUp, Bell, Camera, Clock3, Plus, RotateCcw, ScanLine, Sparkles } from 'lucide-react-native';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { errorDev } from '../services/logger';
+import { getExpiryTimestamp, getRemainingDays } from '../services/expiryDate';
+import {
+  buildNotifications,
+  countUnread,
+  getReadNotificationIds,
+} from '../services/notificationService';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -51,14 +57,6 @@ const routineOrder: Product['category'][] = [
   'Maske',
   'Diğer',
 ];
-
-const getRemainingDays = (dateString?: string) => {
-  if (!dateString) return null;
-  const expiry = new Date(dateString);
-  const now = new Date();
-  const diffTime = expiry.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
 
 const isExpiringSoon = (dateString?: string) => {
   const days = getRemainingDays(dateString);
@@ -234,11 +232,12 @@ const CabinetShelfRow = ({ products, index, onDelete, onOpen, onReorder, disable
 
 export default function HomeScreen({ navigation }: Props) {
   const { products, deleteProduct, loadProducts, isLoading, loadError } = useProducts();
-  const { profile } = useUser();
+  const { profile, activeIssue, userId } = useUser();
   const [sortBy, setSortBy] = useState<SortMode>('category');
   const [shelfOrder, setShelfOrder] = useState<string[]>([]);
   const [doorOpen, setDoorOpen] = useState(true);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set());
   const doorProgress = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -259,8 +258,8 @@ export default function HomeScreen({ navigation }: Props) {
 
     if (sortBy === 'expiryDate') {
       return productsToDisplay.sort((a, b) => {
-        const dateA = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
-        const dateB = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+        const dateA = getExpiryTimestamp(a.expiryDate);
+        const dateB = getExpiryTimestamp(b.expiryDate);
         return dateA - dateB;
       });
     }
@@ -362,6 +361,29 @@ export default function HomeScreen({ navigation }: Props) {
   });
 
   const firstName = profile.displayName?.trim().split(' ')[0];
+  const notifications = useMemo(
+    () => buildNotifications(products, profile, activeIssue),
+    [activeIssue, products, profile]
+  );
+  const unreadNotificationCount = countUnread(notifications, readNotificationIds);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void getReadNotificationIds(userId)
+        .then((ids) => {
+          if (active) setReadNotificationIds(ids);
+        })
+        .catch((error) => {
+          errorDev('Bildirim okuma durumu yüklenemedi:', error);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [notifications, userId])
+  );
+
   const expiringCount = useMemo(
     () => products.filter(product => isExpiringSoon(product.expiryDate) || isExpired(product.expiryDate)).length,
     [products]
@@ -384,10 +406,14 @@ export default function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('Notifications')}
           hitSlop={TOUCH_SLOP}
           accessibilityRole="button"
-          accessibilityLabel="Bildirimler"
+          accessibilityLabel={
+            unreadNotificationCount > 0
+              ? `Bildirimler, ${unreadNotificationCount} okunmamış`
+              : 'Bildirimler'
+          }
         >
           <Bell size={20} color={colors.forest} />
-          <View style={styles.notificationDot} />
+          {unreadNotificationCount > 0 && <View style={styles.notificationDot} />}
         </TouchableOpacity>
       </View>
 

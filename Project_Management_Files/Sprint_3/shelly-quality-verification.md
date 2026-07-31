@@ -1,6 +1,6 @@
 # Shelly Yanıt Kalitesi Doğrulama Raporu
 
-Tarih: 29 Temmuz 2026
+Tarih: 31 Temmuz 2026
 
 ## Amaç
 
@@ -40,12 +40,30 @@ da üretken AI yanıtının devam etmesi.
 - Ana `gemini-3.6-flash` kotası dolduğunda `gemini-3.5-flash-lite` ücretsiz
   yedek modeli otomatik deneniyor. İki model de kullanılamazsa kişisel ve güvenli
   fallback yanıtı korunuyor.
+- Serbest metin model yanıtı, backend tarafından doğrulanan bir karar sözleşmesi
+  ile zenginleştiriliyor: `usedContext`, `shelfProducts`, `missingCategories`,
+  `routineSteps`, `safetyWarnings` ve `fallbackUsed`. Mobil istemci model
+  metnini ayrıştırmak yerine bu güvenilir alanları kartlara dönüştürüyor.
+- Shelly, öneride hangi profil/dolap/geçmiş/bilgi tabanı verisini kullandığını
+  “Bu öneriyi neden verdim?” bölümünde gösteriyor. Gemini çalışmadığında kaynak
+  açıkça güvenli bilgi tabanı olarak etiketleniyor.
+- Rutin yanıtları sabah, akşam ve haftalık günlere ayrılmış uygulanabilir
+  adımlar üretiyor; dolaptaki ürünler ile eksik ihtiyaç kategorileri görsel ve
+  anlamsal olarak ayrılıyor.
+- Yeni ürün analizinde Gemini'nin verdiği ürün ID'leri kullanıcı dolabına karşı
+  doğrulanıyor. Yerel bilgi tabanı retinoid + AHA/BHA, çoklu asit ve hassas
+  ciltte C vitamini + asit çatışmalarını tam ürün adı ve güvenli kullanım
+  önerisiyle yapılandırılmış olarak döndürüyor.
+- Cilt fotoğrafı/günlük analizi görünür sinyalleri önceki kayıtla
+  `increased|decreased|stable|unknown` olarak karşılaştırıyor; kullanılan
+  bağlamı ve Gemini/fallback kaynağını görünür kılıyor. Bu karşılaştırma tıbbi
+  teşhis olarak sunulmuyor.
 
 ## Otomatik doğrulama
 
 ```text
 ./mvnw test
-Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -57,11 +75,25 @@ BUILD SUCCESS
   tavsiyesi, pasif ürünün rutine sızması ve kalıcı sohbet hafızasının gerçekten
   temizlenmesi test edildi.
 - Bilinen içeriklerin Gemini kotası harcamadığı test edildi.
+- Haftalık retinoid/BHA ayrımı, eksik temel rutin adımları, açıklanabilir bağlam
+  alanları, dolaptaki ürünle yapılandırılmış çatışma ve önceki cilt kaydıyla
+  görünür değişim karşılaştırması test edildi.
 
 ```text
 npm run build
 tsc --noEmit: başarılı
+
+npm test
+Tests: 5 passed, 0 failed
+
+npx expo-doctor
+18/18 checks passed
 ```
+
+Yeni karar sözleşmesini de doğrulayan `npm run smoke:api`, izole H2 test
+veritabanında üç profille çalıştırıldı. Kayıt, profil, ürün, içerik analizi,
+Shelly bağlamı, rutin/eksik kategori alanları, cilt karşılaştırması ve veri
+temizliği kontrollerinin tamamı geçti.
 
 ## Gerçek Gemini uçtan uca testi
 

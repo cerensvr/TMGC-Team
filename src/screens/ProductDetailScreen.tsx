@@ -34,6 +34,7 @@ import {
 import { useProducts } from '../context/ProductContext';
 import { getProductVisualSource } from '../services/productVisualCatalog';
 import { getProductShellyComment, getProductStatus } from '../services/shellyInsights';
+import { getRemainingDays } from '../services/expiryDate';
 import { errorDev, logDev } from '../services/logger';
 import { colors, fonts, radius, shadows } from '../theme';
 
@@ -54,14 +55,6 @@ const getCategoryIcon = (category: string) => {
     case 'Güneş Kremi': return <Sun size={48} color={colors.sage} />;
     default: return <Sparkles size={48} color={colors.sage} />;
   }
-};
-
-const getRemainingDays = (dateString?: string) => {
-  if (!dateString) return null;
-  const expiry = new Date(dateString);
-  const now = new Date();
-  const diffTime = expiry.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
 const isExpired = (dateString?: string) => {

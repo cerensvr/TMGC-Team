@@ -10,7 +10,12 @@ import { colors, fonts, tabBarStyle } from '../theme';
 import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { useProducts } from '../context/ProductContext';
-import { syncAllNotifications, attachNotificationResponseListener } from '../services/notificationScheduler';
+import {
+  attachNotificationResponseListener,
+  clearScheduledNotifications,
+  syncAllNotifications,
+} from '../services/notificationScheduler';
+import { errorDev } from '../services/logger';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignInScreen from '../screens/SignInScreen';
@@ -44,12 +49,14 @@ const navTheme = {
 };
 
 function MainTabs() {
-  const { profile } = useUser();
+  const { profile, userId } = useUser();
   const { products } = useProducts();
 
   useEffect(() => {
-    syncAllNotifications(profile.reminderPreferences, products);
-  }, [profile.reminderPreferences, products]);
+    void syncAllNotifications(profile.reminderPreferences, products, userId).catch((error) => {
+      errorDev('Bildirimler eşitlenemedi:', error);
+    });
+  }, [profile.reminderPreferences, products, userId]);
 
   return (
     <Tab.Navigator
@@ -106,7 +113,7 @@ function MainTabs() {
 }
 
 export default function RootNavigator() {
-  const { loadProfile, setAccount } = useUser();
+  const { loadProfile, setAccount, userId } = useUser();
   const { loadProducts } = useProducts();
   const [bootState, setBootState] = useState<'checking' | 'authenticated' | 'anonymous'>('checking');
 
@@ -117,6 +124,7 @@ export default function RootNavigator() {
       try {
         const user = await authService.restoreSession();
         if (!user) {
+          await clearScheduledNotifications();
           if (!cancelled) setBootState('anonymous');
           return;
         }
@@ -129,6 +137,7 @@ export default function RootNavigator() {
         await Promise.all([loadProfile(user.id), loadProducts()]);
         if (!cancelled) setBootState('authenticated');
       } catch {
+        await clearScheduledNotifications();
         if (!cancelled) setBootState('anonymous');
       }
     };
@@ -141,7 +150,7 @@ export default function RootNavigator() {
   }, []);
 
   useEffect(() => {
-    if (bootState !== 'authenticated') return;
+    if (!userId || bootState === 'checking') return;
 
     const unsubscribe = attachNotificationResponseListener(destination => {
       if (!navigationRef.isReady()) return;
@@ -151,10 +160,15 @@ export default function RootNavigator() {
         return;
       }
 
+      if (destination.screen === 'SkinTracking') {
+        navigationRef.navigate('MainTabs', { screen: 'SkinTracking' });
+        return;
+      }
+
       navigationRef.navigate('ProductDetail', destination.params);
     });
     return unsubscribe;
-  }, [bootState]);
+  }, [bootState, userId]);
 
   if (bootState === 'checking') {
     return (

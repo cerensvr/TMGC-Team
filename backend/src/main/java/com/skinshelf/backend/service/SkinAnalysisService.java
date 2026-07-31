@@ -57,7 +57,23 @@ public class SkinAnalysisService {
         List<Product> products = productRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         List<SkinLog> recentLogs = skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user);
 
-        SkinAnalysisResponse analysis = runAnalysis(profile, products, recentLogs, request);
+        SkinAnalysisResponse rawAnalysis = runAnalysis(profile, products, recentLogs, request);
+        Map<String, String> comparison = compareWithPrevious(rawAnalysis.getVisibleChanges(), recentLogs);
+        SkinAnalysisResponse analysis = new SkinAnalysisResponse(
+                null,
+                rawAnalysis.getTitle(),
+                rawAnalysis.getSummary(),
+                rawAnalysis.getVisibleChanges(),
+                rawAnalysis.getRoutineConnection(),
+                rawAnalysis.getSuggestion(),
+                rawAnalysis.getWarning(),
+                rawAnalysis.getRiskLevel(),
+                rawAnalysis.getTags(),
+                comparison,
+                buildComparisonSummary(comparison, recentLogs.isEmpty()),
+                buildAnalysisContext(profile, products, recentLogs, request),
+                rawAnalysis.isFallbackUsed(),
+                null);
 
         SkinLog skinLog = new SkinLog();
         skinLog.setUser(user);
@@ -84,6 +100,10 @@ public class SkinAnalysisService {
                 analysis.getWarning(),
                 analysis.getRiskLevel(),
                 analysis.getTags(),
+                analysis.getComparedToPrevious(),
+                analysis.getComparisonSummary(),
+                analysis.getUsedContext(),
+                analysis.isFallbackUsed(),
                 saved.getCreatedAt() == null
                         ? LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                         : saved.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -181,6 +201,10 @@ public class SkinAnalysisService {
                 textOrDefault(json.path("warning"), "Şiddetli yanma, şişlik, su toplama veya göz çevresinde reaksiyon varsa dermatoloğa danışman daha güvenli olur."),
                 normalizeRisk(json.path("riskLevel").asText("low")),
                 tags,
+                Map.of(),
+                "",
+                List.of(),
+                false,
                 null);
     }
 
@@ -213,7 +237,125 @@ public class SkinAnalysisService {
                 "Şiddetli yanma, şişlik, su toplama veya göz çevresinde reaksiyon varsa dermatoloğa danışman daha güvenli olur.",
                 "low",
                 List.of("Cilt günlüğü"),
+                Map.of(),
+                "",
+                List.of(),
+                true,
                 null);
+    }
+
+    private Map<String, String> compareWithPrevious(
+            Map<String, String> current,
+            List<SkinLog> recentLogs) {
+        Map<String, String> comparison = new LinkedHashMap<>();
+        SkinLog previous = recentLogs == null || recentLogs.isEmpty() ? null : recentLogs.get(0);
+        comparison.put("redness", compareLevel(
+                current.get("redness"), previous == null ? null : previous.getRednessLevel()));
+        comparison.put("dryness", compareLevel(
+                current.get("dryness"), previous == null ? null : previous.getDrynessLevel()));
+        comparison.put("oiliness", compareLevel(
+                current.get("oiliness"), previous == null ? null : previous.getOilinessLevel()));
+        comparison.put("blemishAppearance", compareLevel(
+                current.get("blemishAppearance"), previous == null ? null : previous.getBlemishLevel()));
+        comparison.put("irritationAppearance", compareLevel(
+                current.get("irritationAppearance"), previous == null ? null : previous.getIrritationLevel()));
+        return comparison;
+    }
+
+    private String compareLevel(String current, String previous) {
+        int currentScore = levelScore(current);
+        int previousScore = levelScore(previous);
+        if (currentScore < 0 || previousScore < 0) {
+            return "unknown";
+        }
+        if (currentScore > previousScore) {
+            return "increased";
+        }
+        if (currentScore < previousScore) {
+            return "decreased";
+        }
+        return "stable";
+    }
+
+    private String buildComparisonSummary(Map<String, String> comparison, boolean firstRecord) {
+        if (firstRecord) {
+            return "Bu ilk karşılaştırılabilir kaydın. Düzenli kayıt ekledikçe görünür değişimleri önceki günlerle birlikte yorumlayacağım.";
+        }
+
+        List<String> increased = new ArrayList<>();
+        List<String> decreased = new ArrayList<>();
+        List<String> stable = new ArrayList<>();
+        comparison.forEach((key, trend) -> {
+            String label = changeLabel(key);
+            if ("increased".equals(trend)) increased.add(label);
+            if ("decreased".equals(trend)) decreased.add(label);
+            if ("stable".equals(trend)) stable.add(label);
+        });
+
+        List<String> sentences = new ArrayList<>();
+        if (!increased.isEmpty()) {
+            sentences.add(String.join(", ", increased) + " görünümünde artış kaydedildi");
+        }
+        if (!decreased.isEmpty()) {
+            sentences.add(String.join(", ", decreased) + " görünümünde azalma kaydedildi");
+        }
+        if (sentences.isEmpty() && !stable.isEmpty()) {
+            sentences.add("Karşılaştırılabilir görünür işaretler önceki kayda göre dengeli");
+        }
+        if (sentences.isEmpty()) {
+            return "Önceki kayıtla güvenilir karşılaştırma için henüz yeterli ortak görünür işaret yok.";
+        }
+        return String.join(". ", sentences) + ". Bu bir tıbbi teşhis değildir.";
+    }
+
+    private List<String> buildAnalysisContext(
+            UserProfile profile,
+            List<Product> products,
+            List<SkinLog> recentLogs,
+            SkinAnalysisRequest request) {
+        List<String> context = new ArrayList<>();
+        if (request.getImageBase64() != null && !request.getImageBase64().isBlank()) {
+            context.add("Güncel cilt fotoğrafı");
+        }
+        if (request.getSkinFeeling() != null && !request.getSkinFeeling().isBlank()) {
+            context.add("Bugünkü hissiyat: " + request.getSkinFeeling().trim());
+        }
+        if (Boolean.TRUE.equals(request.getUsedNewProduct())) {
+            context.add("Son 24 saatte yeni ürün kullanımı");
+        }
+        if (profile != null) {
+            List<String> profileSignals = new ArrayList<>();
+            if (profile.getSkinTypeGuess() != null && !profile.getSkinTypeGuess().isBlank()) {
+                profileSignals.add(profile.getSkinTypeGuess());
+            }
+            if (profile.getSensitivity() != null && !profile.getSensitivity().isBlank()) {
+                profileSignals.add(profile.getSensitivity());
+            }
+            if (!profileSignals.isEmpty()) {
+                context.add("Cilt profili: " + String.join(" • ", profileSignals));
+            }
+        }
+        long activeProducts = products == null ? 0 : products.stream()
+                .filter(product -> product.getIsActive() == null || product.getIsActive())
+                .count();
+        if (activeProducts > 0) {
+            context.add("Aktif rutin: " + activeProducts + " dolap ürünü");
+        }
+        if (recentLogs != null && !recentLogs.isEmpty()) {
+            context.add("Önceki cilt kaydıyla karşılaştırma");
+        }
+        return context.stream().limit(6).toList();
+    }
+
+    private String changeLabel(String key) {
+        return switch (key) {
+            case "redness" -> "Kızarıklık";
+            case "dryness" -> "Kuruluk";
+            case "oiliness" -> "Yağlanma";
+            case "blemishAppearance" -> "Sivilce benzeri";
+            case "irritationAppearance" -> "Hassasiyet";
+            default -> "Cilt";
+        };
     }
 
     private String buildWeeklyComment(int logCount, Map<String, String> trends, List<String> newProducts) {

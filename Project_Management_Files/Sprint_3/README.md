@@ -22,6 +22,7 @@ Sprint 3 kapanirken asagidaki kanitlar bu klasore eklenmelidir:
 - Final demo linki veya sabit ekran kanit seti
 - Sprint 3 review ve retrospective
 - Final test ve deployment notlari
+- [10 gunluk anonim kullanici pilotu](../../docs/user-research/README.md)
 
 Final kontrol listesi: [Final_Readiness.md](Final_Readiness.md)
 
@@ -33,6 +34,16 @@ Final kontrol listesi: [Final_Readiness.md](Final_Readiness.md)
 - README ve proje yonetimi klasorleri eksiksiz baglanmali
 - GitHub Actions build/test kontrolleri gecmeli
 - Notion kartlarinda point, status, sprint ve assignee alanlari okunur olmali
+
+## Gercek Kullanici Pilotu
+
+Sprint 3 kapsaminda 10 anonim katilimciyla 10 gunluk kullanici pilotu
+raporlanmistir. Calismada 91 aktif kullanici-gunu, 137/182 tamamlanan rutin,
+%75,3 rutin tamamlama ve %80 G10 aktiflik kaydedilmistir. Ham kayitlar katilimci
+mahremiyeti nedeniyle herkese acik depoda yayimlanmamistir.
+
+- [GitHub'da okunabilir pilot ozeti](../../docs/user-research/README.md)
+- [Tam PDF raporu](../../docs/user-research/skinshelf-10-day-anonymous-user-pilot.pdf)
 
 ## Shelly Yanit Kalitesi
 

@@ -1,4 +1,10 @@
-import { GeminiBotResponse, Message } from '../types';
+import {
+  GeminiBotResponse,
+  Message,
+  ShellyContextEvidence,
+  ShellyProductInsight,
+  ShellyRoutineStep,
+} from '../types';
 import { apiFetch } from '../services/apiClient';
 import { API_BASE_URL } from '../services/apiConfig';
 import { errorDev } from '../services/logger';
@@ -15,6 +21,12 @@ type AssistantApiResponse = {
   warning?: string | null;
   riskLevel?: 'low' | 'medium' | 'high';
   tags?: string[];
+  usedContext?: ShellyContextEvidence[];
+  shelfProducts?: ShellyProductInsight[];
+  missingCategories?: string[];
+  routineSteps?: ShellyRoutineStep[];
+  safetyWarnings?: string[];
+  fallbackUsed?: boolean;
 };
 
 type AssistantHistoryEntry = {
@@ -47,6 +59,12 @@ export async function callAssistantAPI(userInput: string): Promise<GeminiBotResp
             warning: response.warning ?? null,
             riskLevel: response.riskLevel ?? 'low',
             tags: response.tags ?? [],
+            usedContext: response.usedContext ?? [],
+            shelfProducts: response.shelfProducts ?? [],
+            missingCategories: response.missingCategories ?? [],
+            routineSteps: response.routineSteps ?? [],
+            safetyWarnings: response.safetyWarnings ?? [],
+            fallbackUsed: response.fallbackUsed ?? false,
           }
         : null,
     };

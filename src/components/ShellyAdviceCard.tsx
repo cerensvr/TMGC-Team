@@ -1,27 +1,84 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AlertTriangle, Lightbulb, Sparkles } from 'lucide-react-native';
-import { ShellyStructuredResponse } from '../types';
+import {
+  AlertTriangle,
+  BookOpenCheck,
+  BrainCircuit,
+  CalendarDays,
+  CheckCircle2,
+  History,
+  Lightbulb,
+  Moon,
+  PackageCheck,
+  PackagePlus,
+  PauseCircle,
+  Sparkles,
+  Sun,
+  UserRound,
+} from 'lucide-react-native';
+import { ShellyContextEvidence, ShellyRoutineStep, ShellyStructuredResponse } from '../types';
 import { colors, fonts, radius, shadows } from '../theme';
 
 const riskLabels = { low: 'Düşük risk', medium: 'Orta risk', high: 'Yüksek risk' } as const;
 const riskColors = { low: colors.success, medium: colors.warning, high: colors.danger } as const;
 
+const periodLabels: Record<string, string> = {
+  MORNING: 'Sabah',
+  EVENING: 'Akşam',
+  MONDAY_EVENING: 'Pazartesi akşamı',
+  THURSDAY_EVENING: 'Perşembe akşamı',
+  ALTERNATE_EVENING: 'Dönüşümlü akşam',
+  OTHER_EVENING: 'Diğer akşam',
+};
+
 type Props = {
   response: ShellyStructuredResponse;
 };
 
-/** Shelly'nin yapılandırılmış yanıtını (değerlendirme / öneri / dikkat) kart olarak gösterir. */
+const ContextIcon = ({ type }: { type: ShellyContextEvidence['type'] }) => {
+  if (type === 'PROFILE') return <UserRound size={14} color={colors.sage} />;
+  if (type === 'SHELF') return <PackageCheck size={14} color={colors.sage} />;
+  if (type === 'SKIN_LOG' || type === 'MEMORY') return <History size={14} color={colors.sage} />;
+  if (type === 'KNOWLEDGE_BASE') return <BookOpenCheck size={14} color={colors.sage} />;
+  return <BrainCircuit size={14} color={colors.sage} />;
+};
+
+const PeriodIcon = ({ period }: { period: string }) =>
+  period === 'MORNING' ? (
+    <Sun size={15} color={colors.warning} />
+  ) : period === 'EVENING' ? (
+    <Moon size={15} color={colors.sage} />
+  ) : (
+    <CalendarDays size={15} color={colors.sage} />
+  );
+
+/** Shelly'nin doğrulanmış bağlamını, dolap kararlarını ve uygulanabilir rutinini gösterir. */
 export default function ShellyAdviceCard({ response }: Props) {
+  const usedContext = response.usedContext ?? [];
+  const shelfProducts = response.shelfProducts ?? [];
+  const missingCategories = response.missingCategories ?? [];
+  const routineSteps = response.routineSteps ?? [];
+  const safetyWarnings = response.safetyWarnings ?? [];
+  const warnings = [response.warning, ...safetyWarnings]
+    .filter((warning): warning is string => Boolean(warning?.trim()))
+    .filter((warning, index, values) => values.indexOf(warning) === index);
+  const routineGroups = routineSteps.reduce<Record<string, ShellyRoutineStep[]>>((groups, step) => {
+    groups[step.period] = [...(groups[step.period] ?? []), step];
+    return groups;
+  }, {});
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconWrap}>
           <Sparkles size={15} color={colors.gold} />
         </View>
-        <Text style={styles.title} numberOfLines={1}>
-          {response.title}
-        </Text>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title}>{response.title}</Text>
+          <Text style={styles.sourceText}>
+            {response.fallbackUsed ? 'Güvenli bilgi tabanı' : 'Gemini + kişisel bağlam'}
+          </Text>
+        </View>
         <View style={[styles.riskPill, { borderColor: riskColors[response.riskLevel] }]}>
           <View style={[styles.riskDot, { backgroundColor: riskColors[response.riskLevel] }]} />
           <Text style={[styles.riskText, { color: riskColors[response.riskLevel] }]}>
@@ -33,19 +90,124 @@ export default function ShellyAdviceCard({ response }: Props) {
       <Text style={styles.summary}>{response.summary}</Text>
       {response.reason ? <Text style={styles.reason}>{response.reason}</Text> : null}
 
+      {usedContext.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <BrainCircuit size={15} color={colors.forest} />
+            <Text style={styles.sectionTitle}>Bu öneriyi neden verdim?</Text>
+          </View>
+          <View style={styles.contextList}>
+            {usedContext.map((item, index) => (
+              <View key={`${item.type}-${item.label}-${index}`} style={styles.contextRow}>
+                <View style={styles.contextIcon}>
+                  <ContextIcon type={item.type} />
+                </View>
+                <View style={styles.contextTextWrap}>
+                  <Text style={styles.contextLabel}>{item.label}</Text>
+                  <Text style={styles.contextDetail}>{item.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {shelfProducts.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <PackageCheck size={15} color={colors.forest} />
+            <Text style={styles.sectionTitle}>Dolabından değerlendirdiklerim</Text>
+          </View>
+          {shelfProducts.map(product => {
+            const paused = product.status === 'PAUSE';
+            const inactive = product.status === 'IN_SHELF_INACTIVE';
+            return (
+              <View key={product.productId} style={styles.productRow}>
+                {paused ? (
+                  <PauseCircle size={16} color={colors.danger} />
+                ) : (
+                  <CheckCircle2 size={16} color={inactive ? colors.warning : colors.success} />
+                )}
+                <View style={styles.productTextWrap}>
+                  <Text style={styles.productName}>{[product.brand, product.productName].filter(Boolean).join(' ')}</Text>
+                  <Text style={styles.productReason}>{product.reason}</Text>
+                </View>
+                <View style={[styles.statusPill, paused && styles.statusPillDanger, inactive && styles.statusPillWarning]}>
+                  <Text style={[styles.statusText, paused && styles.statusTextDanger, inactive && styles.statusTextWarning]}>
+                    {paused ? 'Ara ver' : inactive ? 'Pasif' : 'Dolabında'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {missingCategories.length > 0 && (
+        <View style={[styles.section, styles.missingSection]}>
+          <View style={styles.sectionHeader}>
+            <PackagePlus size={15} color={colors.warning} />
+            <Text style={styles.sectionTitle}>Dolabında eksik görünenler</Text>
+          </View>
+          {missingCategories.map(category => (
+            <Text key={category} style={styles.missingText}>• {category}</Text>
+          ))}
+          <Text style={styles.missingNote}>Marka değil, yalnızca ihtiyaç kategorisi önerilir.</Text>
+        </View>
+      )}
+
+      {Object.keys(routineGroups).length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <CalendarDays size={15} color={colors.forest} />
+            <Text style={styles.sectionTitle}>Uygulanabilir rutin planın</Text>
+          </View>
+          {Object.entries(routineGroups).map(([period, steps]) => (
+            <View key={period} style={styles.routineGroup}>
+              <View style={styles.periodHeader}>
+                <PeriodIcon period={period} />
+                <Text style={styles.periodTitle}>{periodLabels[period] ?? period}</Text>
+              </View>
+              {steps
+                .sort((left, right) => left.order - right.order)
+                .map(step => (
+                  <View key={`${period}-${step.order}-${step.productId ?? step.productName}`} style={styles.stepRow}>
+                    <View style={[styles.stepNumber, step.status === 'MISSING' && styles.stepNumberMissing]}>
+                      <Text style={[styles.stepNumberText, step.status === 'MISSING' && styles.stepNumberTextMissing]}>
+                        {step.order}
+                      </Text>
+                    </View>
+                    <View style={styles.stepTextWrap}>
+                      <Text style={styles.stepName}>{step.productName}</Text>
+                      <Text style={styles.stepInstruction}>{step.instruction}</Text>
+                    </View>
+                    {step.status === 'MISSING' && <Text style={styles.missingBadge}>Eksik</Text>}
+                  </View>
+                ))}
+            </View>
+          ))}
+        </View>
+      )}
+
       {response.suggestion ? (
         <View style={styles.suggestionRow}>
           <Lightbulb size={15} color={colors.success} style={styles.rowIcon} />
-          <Text style={styles.suggestionText}>{response.suggestion}</Text>
+          <View style={styles.calloutTextWrap}>
+            <Text style={styles.calloutLabel}>Sonraki adım</Text>
+            <Text style={styles.suggestionText}>{response.suggestion}</Text>
+          </View>
         </View>
       ) : null}
 
-      {response.warning ? (
-        <View style={styles.warningRow}>
+      {warnings.map((warning, index) => (
+        <View key={`${warning}-${index}`} style={styles.warningRow}>
           <AlertTriangle size={15} color={colors.danger} style={styles.rowIcon} />
-          <Text style={styles.warningText}>{response.warning}</Text>
+          <View style={styles.calloutTextWrap}>
+            <Text style={[styles.calloutLabel, { color: colors.danger }]}>Dikkat</Text>
+            <Text style={styles.warningText}>{warning}</Text>
+          </View>
         </View>
-      ) : null}
+      ))}
 
       {response.tags.length > 0 && (
         <View style={styles.tagRow}>
@@ -73,89 +235,83 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: colors.surfaceMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    flex: 1,
-    fontFamily: fonts.sansBold,
-    fontSize: 14,
-    color: colors.ink,
-  },
+  titleWrap: { flex: 1 },
+  title: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.ink },
+  sourceText: { fontFamily: fonts.sansSemiBold, fontSize: 9.5, color: colors.inkMuted, marginTop: 2 },
   riskPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radius.pill,
     borderWidth: 1,
   },
   riskDot: { width: 6, height: 6, borderRadius: 3 },
-  riskText: {
-    fontFamily: fonts.sansBold,
-    fontSize: 10,
+  riskText: { fontFamily: fonts.sansBold, fontSize: 9.5 },
+  summary: { fontFamily: fonts.sansSemiBold, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
+  reason: { fontFamily: fonts.sans, fontSize: 12.5, lineHeight: 18, color: colors.inkMuted, marginTop: 7 },
+  section: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    marginTop: 13,
+    paddingTop: 12,
   },
-  summary: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.inkSoft,
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 9 },
+  sectionTitle: { fontFamily: fonts.sansBold, fontSize: 12.5, color: colors.forest },
+  contextList: { gap: 8 },
+  contextRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+  contextIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceSage,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  reason: {
-    fontFamily: fonts.sans,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: colors.inkMuted,
-    marginTop: 7,
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.successSurface,
-    borderRadius: radius.md,
-    padding: 11,
-    marginTop: 11,
-  },
-  warningRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.dangerSurface,
-    borderRadius: radius.md,
-    padding: 11,
-    marginTop: 9,
-  },
+  contextTextWrap: { flex: 1 },
+  contextLabel: { fontFamily: fonts.sansBold, fontSize: 11.5, color: colors.inkSoft },
+  contextDetail: { fontFamily: fonts.sans, fontSize: 11, lineHeight: 16, color: colors.inkMuted, marginTop: 1 },
+  productRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 7 },
+  productTextWrap: { flex: 1 },
+  productName: { fontFamily: fonts.sansBold, fontSize: 11.5, color: colors.ink },
+  productReason: { fontFamily: fonts.sans, fontSize: 10.5, lineHeight: 15, color: colors.inkMuted, marginTop: 2 },
+  statusPill: { backgroundColor: colors.successSurface, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
+  statusPillDanger: { backgroundColor: colors.dangerSurface },
+  statusPillWarning: { backgroundColor: colors.warningSurface },
+  statusText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.success },
+  statusTextDanger: { color: colors.danger },
+  statusTextWarning: { color: colors.warning },
+  missingSection: { backgroundColor: colors.warningSurface, marginHorizontal: -5, paddingHorizontal: 10, paddingBottom: 10, borderRadius: radius.md },
+  missingText: { fontFamily: fonts.sansSemiBold, fontSize: 11, lineHeight: 17, color: colors.inkSoft, marginBottom: 3 },
+  missingNote: { fontFamily: fonts.sans, fontSize: 9.5, color: colors.inkMuted, marginTop: 5 },
+  routineGroup: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: 10, marginBottom: 8 },
+  periodHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 7 },
+  periodTitle: { fontFamily: fonts.sansBold, fontSize: 11.5, color: colors.ink },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 5 },
+  stepNumber: { width: 21, height: 21, borderRadius: 11, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
+  stepNumberMissing: { backgroundColor: colors.warningSurface, borderWidth: 1, borderColor: colors.gold },
+  stepNumberText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.onDark },
+  stepNumberTextMissing: { color: colors.warning },
+  stepTextWrap: { flex: 1 },
+  stepName: { fontFamily: fonts.sansBold, fontSize: 11, color: colors.ink },
+  stepInstruction: { fontFamily: fonts.sans, fontSize: 10, lineHeight: 14, color: colors.inkMuted, marginTop: 1 },
+  missingBadge: { fontFamily: fonts.sansBold, fontSize: 8.5, color: colors.warning },
+  suggestionRow: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.successSurface, borderRadius: radius.md, padding: 11, marginTop: 11 },
+  warningRow: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.dangerSurface, borderRadius: radius.md, padding: 11, marginTop: 9 },
   rowIcon: { marginTop: 1, marginRight: 8 },
-  suggestionText: {
-    flex: 1,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: colors.inkSoft,
-  },
-  warningText: {
-    flex: 1,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: colors.inkSoft,
-  },
+  calloutTextWrap: { flex: 1 },
+  calloutLabel: { fontFamily: fonts.sansBold, fontSize: 10.5, color: colors.success, marginBottom: 2 },
+  suggestionText: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 17, color: colors.inkSoft },
+  warningText: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 17, color: colors.inkSoft },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 11 },
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  tagText: {
-    fontFamily: fonts.sansBold,
-    fontSize: 10.5,
-    color: colors.sage,
-  },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.line },
+  tagText: { fontFamily: fonts.sansBold, fontSize: 10.5, color: colors.sage },
 });
