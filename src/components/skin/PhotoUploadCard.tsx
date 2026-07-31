@@ -27,7 +27,8 @@ export default function PhotoUploadCard({ photoUri, onTakePhoto, onPickFromGalle
     <View style={styles.card}>
       <Text style={styles.title}>Cilt fotoğrafı ekle</Text>
       <Text style={styles.subtitle}>
-        Doğal ışıkta, makyajsız bir fotoğraf Shelly'nin değişimleri daha iyi takip etmesini sağlar.
+        Arka kamerayla; net, filtresiz ve makyajsız çek. Haftalık karşılaştırma için aynı açı, mesafe ve eşit ışığı
+        koru.
       </Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.optionButton} onPress={onTakePhoto} activeOpacity={0.8}>

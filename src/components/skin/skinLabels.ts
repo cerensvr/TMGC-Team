@@ -42,6 +42,7 @@ export const trendMetricLabels: Record<string, string> = {
   redness: 'Kızarıklık',
   oiliness: 'Yağlanma',
   blemish: 'Sivilce görünümü',
+  irritation: 'Tahriş görünümü',
 };
 
 export const feelingOptions = [

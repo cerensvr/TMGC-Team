@@ -58,6 +58,8 @@ export type SkinAnalysis = {
   title: string;
   summary: string;
   visibleChanges: SkinVisibleChanges;
+  photoQuality?: 'good' | 'acceptable' | 'poor' | 'unknown';
+  photoQualityNote?: string;
   routineConnection: string;
   suggestion: string;
   warning: string;
@@ -86,13 +88,19 @@ export type SkinLogEntry = {
 
 export type SkinWeeklySummary = {
   logCount: number;
+  comparableLogCount?: number;
+  previousWeekComparableLogCount?: number;
   trends: {
     dryness: SkinTrend;
     redness: SkinTrend;
     oiliness: SkinTrend;
     blemish: SkinTrend;
+    irritation?: SkinTrend;
   };
   newProducts: string[];
+  monitoredActives?: string[];
+  guidanceStatus?: 'continue' | 'reduce' | 'pause' | 'observe' | 'not_applicable';
+  activeGuidance?: string;
   shellyComment: string;
 };
 

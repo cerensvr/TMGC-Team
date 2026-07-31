@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Sparkles, TrendingDown, TrendingUp, Minus } from 'lucide-react-native';
+import { Sparkles, TrendingDown, TrendingUp, Minus, ShieldCheck } from 'lucide-react-native';
 import { SkinTrend, SkinWeeklySummary } from '../../types';
 import { colors, fonts, gradients, radius, shadows } from '../../theme';
 import { trendLabels, trendMetricLabels } from './skinLabels';
@@ -18,6 +18,16 @@ type Props = {
 
 export default function WeeklySkinSummaryCard({ summary }: Props) {
   const trendEntries = Object.entries(summary.trends) as [keyof typeof summary.trends, SkinTrend][];
+  const comparableCount = summary.comparableLogCount ?? summary.logCount;
+  const previousCount = summary.previousWeekComparableLogCount;
+  const guidanceLabels = {
+    continue: 'Mevcut sıklığı koru',
+    reduce: 'Sıklığı azalt',
+    pause: 'Aktiflere ara ver',
+    observe: 'Takip et',
+    not_applicable: '',
+  } as const;
+  const guidanceLabel = summary.guidanceStatus ? guidanceLabels[summary.guidanceStatus] : '';
 
   return (
     <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
@@ -28,7 +38,11 @@ export default function WeeklySkinSummaryCard({ summary }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Haftalık Özet</Text>
           <Text style={styles.subtitle}>
-            {summary.logCount > 0 ? `${summary.logCount} kayıt üzerinden` : 'Henüz kayıt yok'}
+            {summary.logCount > 0
+              ? previousCount === undefined
+                ? `${comparableCount} karşılaştırılabilir kayıt`
+                : `Bu hafta ${comparableCount} • önceki hafta ${previousCount} uygun kayıt`
+              : 'Henüz kayıt yok'}
           </Text>
         </View>
       </View>
@@ -55,6 +69,20 @@ export default function WeeklySkinSummaryCard({ summary }: Props) {
       )}
 
       <Text style={styles.comment}>{summary.shellyComment}</Text>
+
+      {summary.activeGuidance ? (
+        <View style={styles.guidanceCard}>
+          <View style={styles.guidanceHeader}>
+            <ShieldCheck size={15} color={colors.goldSoft} />
+            <Text style={styles.guidanceTitle}>Aktif içerik kararı</Text>
+            {guidanceLabel ? <Text style={styles.guidanceStatus}>{guidanceLabel}</Text> : null}
+          </View>
+          {(summary.monitoredActives?.length ?? 0) > 0 ? (
+            <Text style={styles.guidanceProducts}>{summary.monitoredActives?.join(' • ')}</Text>
+          ) : null}
+          <Text style={styles.guidanceText}>{summary.activeGuidance}</Text>
+        </View>
+      ) : null}
     </LinearGradient>
   );
 }
@@ -136,6 +164,39 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 13,
     lineHeight: 20,
+    color: 'rgba(255,255,255,0.88)',
+  },
+  guidanceCard: {
+    marginTop: 14,
+    borderRadius: radius.md,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    borderWidth: 1,
+    borderColor: 'rgba(216,195,154,0.3)',
+  },
+  guidanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 7 },
+  guidanceTitle: {
+    flex: 1,
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    color: colors.onDark,
+  },
+  guidanceStatus: {
+    fontFamily: fonts.sansExtraBold,
+    fontSize: 10,
+    color: colors.goldSoft,
+  },
+  guidanceProducts: {
+    fontFamily: fonts.sansBold,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: 'rgba(216,195,154,0.92)',
+    marginBottom: 5,
+  },
+  guidanceText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 18,
     color: 'rgba(255,255,255,0.88)',
   },
 });

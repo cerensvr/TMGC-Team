@@ -14,6 +14,9 @@ public class SkinAnalysisResponse {
     private String summary;
     /** redness / dryness / oiliness / blemishAppearance / irritationAppearance -> low|medium|high|unknown */
     private Map<String, String> visibleChanges;
+    /** good / acceptable / poor / unknown. Poor photos are not used in longitudinal comparisons. */
+    private String photoQuality;
+    private String photoQualityNote;
     private String routineConnection;
     private String suggestion;
     private String warning;

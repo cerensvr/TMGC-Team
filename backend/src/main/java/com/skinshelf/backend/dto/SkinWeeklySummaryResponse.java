@@ -10,8 +10,14 @@ import java.util.Map;
 @AllArgsConstructor
 public class SkinWeeklySummaryResponse {
     private int logCount;
-    /** dryness / redness / oiliness / blemish -> increased|decreased|stable|unknown */
+    private int comparableLogCount;
+    private int previousWeekComparableLogCount;
+    /** dryness / redness / oiliness / blemish / irritation -> increased|decreased|stable|unknown */
     private Map<String, String> trends;
     private List<String> newProducts;
+    private List<String> monitoredActives;
+    /** continue / reduce / pause / observe / not_applicable */
+    private String guidanceStatus;
+    private String activeGuidance;
     private String shellyComment;
 }

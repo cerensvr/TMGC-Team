@@ -130,13 +130,16 @@ public class ShellyPromptService {
                 .add("redness").add("dryness").add("oiliness")
                 .add("blemishAppearance").add("irritationAppearance");
 
+        enumField(properties, "photoQuality", "good", "acceptable", "poor", "unknown");
+        stringField(properties, "photoQualityNote");
         stringField(properties, "routineConnection");
         stringField(properties, "suggestion");
         stringField(properties, "warning");
         enumField(properties, "riskLevel", "low", "medium", "high");
         properties.set("tags", stringArraySchema());
         schema.putArray("required")
-                .add("title").add("summary").add("visibleChanges").add("routineConnection")
+                .add("title").add("summary").add("visibleChanges")
+                .add("photoQuality").add("photoQualityNote").add("routineConnection")
                 .add("suggestion").add("warning").add("riskLevel").add("tags");
         return schema;
     }
@@ -332,6 +335,8 @@ public class ShellyPromptService {
                             "blemishAppearance": "low|medium|high|unknown",
                             "irritationAppearance": "low|medium|high|unknown"
                           },
+                          "photoQuality": "good|acceptable|poor|unknown",
+                          "photoQualityNote": "netlik, isik, kadraj, filtre veya karsilastirilabilirlik notu",
                           "routineConnection": "rutin ve urunlerle olasi baglanti (kesin konusma)",
                           "suggestion": "bugunku oneri",
                           "warning": "dikkat notu",
@@ -344,7 +349,13 @@ public class ShellyPromptService {
                 + "- Cilt hissi: " + value(skinFeeling) + "\n"
                 + "- Son 24 saatte yeni urun: " + (Boolean.TRUE.equals(usedNewProduct) ? "Evet" : "Hayir") + "\n"
                 + "- Kullanici notu: " + value(userNote) + "\n"
-                + "\nFotograftaki cilt gorunumunu degerlendir. Teshis koyma; yalnizca gorunum dili kullan.";
+                + "\nOnce fotograf kalitesini degerlendir; netlik, esit isik, yakinlik, gorunen cilt alani ve "
+                + "filtre/guzellestirme ihtimalini dikkate al. Kalite poor ise gorunur degisimleri unknown yap ve "
+                + "ayni aci, mesafe ve isikta yeni fotograf iste. Cilt hissini fotograf bulgusu gibi sunma. "
+                + "Tek fotografa dayanarak iyilesme/kotulesme iddia etme; yalnizca o anki gorunumu siniflandir. "
+                + "Rutin baglantisinda aktif/asit urunlerinin sikligini ancak onceki kayitlar ve kizariklik, kuruluk, "
+                + "tahris birlikte destekliyorsa korumayi oner; siklik artirma. Belirgin hassasiyet varsa azaltma veya "
+                + "ara verme yonunde ihtiyatli konus. Teshis koyma; yalnizca gorunum dili kullan.";
     }
 
     public String buildUserContext(UserProfile profile, List<Product> products, List<SkinLog> recentLogs) {
@@ -461,8 +472,12 @@ public class ShellyPromptService {
                     - Bilinmeyen bilgiyi varsayma ve konuyu cilt bakimi kapsaminda tut.
                     """;
             case SKIN_PHOTO_ANALYSIS -> """
-                    - Yalniz gorulebilir degisiklik dili kullan; teshis koyma.
-                    - Fotografi profil, son gunluk ve yeni urun bilgisiyle ihtiyatli bagla.
+                    - Once fotograf kalitesini degerlendir; kotu kalitede bulgu uydurma ve yeniden cekim iste.
+                    - Yalniz gorulebilir degisiklik dili kullan; teshis veya kesin neden soyleme.
+                    - Fotografi profil, son gunluk ve yeni urun bilgisiyle ihtiyatli bagla; kullanici hissini goruntu
+                      bulgusu gibi sunma.
+                    - Tek fotografa "azaldi/artti" deme. Asit/aktif devam onerisi icin onceki kayitlarda kizariklik,
+                      kuruluk ve tahrisin artmamis olmasini ara; hicbir zaman kullanim sikligini otomatik artirma.
                     """;
         };
     }

@@ -25,16 +25,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SkinAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(SkinAnalysisService.class);
     private static final List<String> LEVELS = List.of("low", "medium", "high", "unknown");
+    private static final Set<String> PHOTO_QUALITIES = Set.of("good", "acceptable", "poor", "unknown");
+    private static final Set<String> TRACKED_ACID_RULES = Set.of("AHA", "BHA", "azelaic acid", "PHA");
 
     private final SkinLogRepository skinLogRepository;
     private final GeminiApiClient geminiApiClient;
     private final ShellyPromptService shellyPromptService;
+    private final IngredientKnowledgeBase ingredientKnowledgeBase;
     private final ProductRepository productRepository;
     private final UserProfileRepository userProfileRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -43,11 +47,13 @@ public class SkinAnalysisService {
             SkinLogRepository skinLogRepository,
             GeminiApiClient geminiApiClient,
             ShellyPromptService shellyPromptService,
+            IngredientKnowledgeBase ingredientKnowledgeBase,
             ProductRepository productRepository,
             UserProfileRepository userProfileRepository) {
         this.skinLogRepository = skinLogRepository;
         this.geminiApiClient = geminiApiClient;
         this.shellyPromptService = shellyPromptService;
+        this.ingredientKnowledgeBase = ingredientKnowledgeBase;
         this.productRepository = productRepository;
         this.userProfileRepository = userProfileRepository;
     }
@@ -58,19 +64,28 @@ public class SkinAnalysisService {
         List<SkinLog> recentLogs = skinLogRepository.findTop30ByUserOrderByCreatedAtDesc(user);
 
         SkinAnalysisResponse rawAnalysis = runAnalysis(profile, products, recentLogs, request);
-        Map<String, String> comparison = compareWithPrevious(rawAnalysis.getVisibleChanges(), recentLogs);
+        boolean hasComparablePrevious = recentLogs.stream().anyMatch(this::isTrendEligible);
+        boolean analysisComparable = isAnalysisComparable(rawAnalysis);
+        Map<String, String> comparison = analysisComparable
+                ? compareWithPrevious(rawAnalysis.getVisibleChanges(), recentLogs)
+                : unknownComparison();
+        String comparisonSummary = analysisComparable
+                ? buildComparisonSummary(comparison, !hasComparablePrevious)
+                : buildNonComparableSummary(rawAnalysis);
         SkinAnalysisResponse analysis = new SkinAnalysisResponse(
                 null,
                 rawAnalysis.getTitle(),
                 rawAnalysis.getSummary(),
                 rawAnalysis.getVisibleChanges(),
+                rawAnalysis.getPhotoQuality(),
+                rawAnalysis.getPhotoQualityNote(),
                 rawAnalysis.getRoutineConnection(),
                 rawAnalysis.getSuggestion(),
                 rawAnalysis.getWarning(),
                 rawAnalysis.getRiskLevel(),
                 rawAnalysis.getTags(),
                 comparison,
-                buildComparisonSummary(comparison, recentLogs.isEmpty()),
+                comparisonSummary,
                 buildAnalysisContext(profile, products, recentLogs, request),
                 rawAnalysis.isFallbackUsed(),
                 null);
@@ -95,6 +110,8 @@ public class SkinAnalysisService {
                 analysis.getTitle(),
                 analysis.getSummary(),
                 analysis.getVisibleChanges(),
+                analysis.getPhotoQuality(),
+                analysis.getPhotoQualityNote(),
                 analysis.getRoutineConnection(),
                 analysis.getSuggestion(),
                 analysis.getWarning(),
@@ -122,28 +139,72 @@ public class SkinAnalysisService {
 
     @Transactional(readOnly = true)
     public SkinWeeklySummaryResponse weeklySummary(User user) {
-        LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-        List<SkinLog> weekLogs = skinLogRepository.findByUserAndCreatedAtAfterOrderByCreatedAtDesc(user, weekAgo);
-        List<Product> newProducts = productRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
-                .filter(product -> product.getCreatedAt() != null && product.getCreatedAt().isAfter(weekAgo))
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime currentWeekStart = now.minusDays(7);
+        LocalDateTime previousWeekStart = now.minusDays(14);
+        List<SkinLog> twoWeekLogs = skinLogRepository
+                .findByUserAndCreatedAtAfterOrderByCreatedAtDesc(user, previousWeekStart);
+        List<SkinLog> weekLogs = twoWeekLogs.stream()
+                .filter(item -> item.getCreatedAt() != null && !item.getCreatedAt().isBefore(currentWeekStart))
+                .toList();
+        List<SkinLog> previousWeekLogs = twoWeekLogs.stream()
+                .filter(item -> item.getCreatedAt() != null
+                        && !item.getCreatedAt().isBefore(previousWeekStart)
+                        && item.getCreatedAt().isBefore(currentWeekStart))
+                .toList();
+        List<SkinLog> comparableWeekLogs = weekLogs.stream().filter(this::isTrendEligible).toList();
+        List<SkinLog> comparablePreviousWeekLogs = previousWeekLogs.stream().filter(this::isTrendEligible).toList();
+
+        List<Product> products = productRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Product> newProducts = products.stream()
+                .filter(product -> product.getCreatedAt() != null && product.getCreatedAt().isAfter(currentWeekStart))
                 .toList();
 
         Map<String, String> trends = new LinkedHashMap<>();
-        trends.put("dryness", trend(weekLogs, SkinLog::getDrynessLevel));
-        trends.put("redness", trend(weekLogs, SkinLog::getRednessLevel));
-        trends.put("oiliness", trend(weekLogs, SkinLog::getOilinessLevel));
-        trends.put("blemish", trend(weekLogs, SkinLog::getBlemishLevel));
+        trends.put("dryness", trend(comparableWeekLogs, comparablePreviousWeekLogs, SkinLog::getDrynessLevel));
+        trends.put("redness", trend(comparableWeekLogs, comparablePreviousWeekLogs, SkinLog::getRednessLevel));
+        trends.put("oiliness", trend(comparableWeekLogs, comparablePreviousWeekLogs, SkinLog::getOilinessLevel));
+        trends.put("blemish", trend(comparableWeekLogs, comparablePreviousWeekLogs, SkinLog::getBlemishLevel));
+        trends.put("irritation", trend(
+                comparableWeekLogs, comparablePreviousWeekLogs, SkinLog::getIrritationLevel));
 
         List<String> newProductNames = newProducts.stream()
                 .limit(5)
                 .map(product -> product.getBrand() + " " + product.getName())
                 .toList();
+        List<Product> monitoredAcidProducts = products.stream()
+                .filter(product -> product.getIsActive() == null || product.getIsActive())
+                .filter(this::isTrackedAcidProduct)
+                .toList();
+        List<String> monitoredActives = monitoredAcidProducts.stream()
+                .limit(5)
+                .map(product -> product.getBrand() + " " + product.getName())
+                .toList();
+        boolean hasNewAcidProduct = newProducts.stream().anyMatch(this::isTrackedAcidProduct);
+        SkinLog latestComparableLog = comparableWeekLogs.isEmpty() ? null : comparableWeekLogs.get(0);
+        ActiveGuidance activeGuidance = buildActiveGuidance(
+                monitoredActives,
+                hasNewAcidProduct,
+                comparableWeekLogs.size(),
+                comparablePreviousWeekLogs.size(),
+                trends,
+                latestComparableLog);
 
         return new SkinWeeklySummaryResponse(
                 weekLogs.size(),
+                comparableWeekLogs.size(),
+                comparablePreviousWeekLogs.size(),
                 trends,
                 newProductNames,
-                buildWeeklyComment(weekLogs.size(), trends, newProductNames));
+                monitoredActives,
+                activeGuidance.status(),
+                activeGuidance.text(),
+                buildWeeklyComment(
+                        weekLogs.size(),
+                        comparableWeekLogs.size(),
+                        comparablePreviousWeekLogs.size(),
+                        trends,
+                        newProductNames));
     }
 
     private SkinAnalysisResponse runAnalysis(
@@ -175,6 +236,10 @@ public class SkinAnalysisService {
     }
 
     private SkinAnalysisResponse parseAnalysis(JsonNode json) {
+        String photoQuality = normalizePhotoQuality(json.path("photoQuality").asText("unknown"));
+        String photoQualityNote = textOrDefault(
+                json.path("photoQualityNote"),
+                "Fotoğraf kalitesi kesin olarak değerlendirilemedi.");
         Map<String, String> visibleChanges = new LinkedHashMap<>();
         JsonNode changes = json.path("visibleChanges");
         visibleChanges.put("redness", normalizeLevel(changes.path("redness").asText("unknown")));
@@ -182,6 +247,9 @@ public class SkinAnalysisService {
         visibleChanges.put("oiliness", normalizeLevel(changes.path("oiliness").asText("unknown")));
         visibleChanges.put("blemishAppearance", normalizeLevel(changes.path("blemishAppearance").asText("unknown")));
         visibleChanges.put("irritationAppearance", normalizeLevel(changes.path("irritationAppearance").asText("unknown")));
+        if ("poor".equals(photoQuality)) {
+            visibleChanges.replaceAll((key, value) -> "unknown");
+        }
 
         List<String> tags = new ArrayList<>();
         json.path("tags").forEach(tag -> {
@@ -196,6 +264,8 @@ public class SkinAnalysisService {
                 textOrDefault(json.path("title"), "Shelly'nin Cilt Yorumu"),
                 textOrDefault(json.path("summary"), "Cilt görünümün kaydedildi; belirgin bir değişim işareti görünmüyor."),
                 visibleChanges,
+                photoQuality,
+                photoQualityNote,
                 textOrDefault(json.path("routineConnection"), "Rutinle belirgin bir bağlantı kurmak için birkaç kayıt daha faydalı olur."),
                 textOrDefault(json.path("suggestion"), "Bugün rutini sade tutup nemlendirici ve SPF'e odaklanabilirsin."),
                 textOrDefault(json.path("warning"), "Şiddetli yanma, şişlik, su toplama veya göz çevresinde reaksiyon varsa dermatoloğa danışman daha güvenli olur."),
@@ -212,11 +282,11 @@ public class SkinAnalysisService {
         String feeling = request.getSkinFeeling() == null ? "" : request.getSkinFeeling().toLowerCase(Locale.forLanguageTag("tr-TR"));
 
         Map<String, String> visibleChanges = new LinkedHashMap<>();
-        visibleChanges.put("redness", feeling.contains("hassas") || feeling.contains("kızarık") ? "medium" : "unknown");
-        visibleChanges.put("dryness", feeling.contains("kuru") || feeling.contains("gergin") ? "medium" : "unknown");
-        visibleChanges.put("oiliness", feeling.contains("yağlı") || feeling.contains("parlak") ? "medium" : "unknown");
-        visibleChanges.put("blemishAppearance", feeling.contains("sivilce") ? "medium" : "unknown");
-        visibleChanges.put("irritationAppearance", feeling.contains("hassas") ? "medium" : "unknown");
+        visibleChanges.put("redness", "unknown");
+        visibleChanges.put("dryness", "unknown");
+        visibleChanges.put("oiliness", "unknown");
+        visibleChanges.put("blemishAppearance", "unknown");
+        visibleChanges.put("irritationAppearance", "unknown");
 
         String reasonText = rateLimited
                 ? "Shelly şu an çok yoğun olduğu için görsel analiz yapılamadı; birazdan tekrar deneyebilirsin."
@@ -230,6 +300,8 @@ public class SkinAnalysisService {
                 "Shelly'nin Cilt Yorumu",
                 summary,
                 visibleChanges,
+                "unknown",
+                "Görsel analiz tamamlanamadığı için bu kayıt haftalık fotoğraf karşılaştırmasına eklenmeyecek.",
                 Boolean.TRUE.equals(request.getUsedNewProduct())
                         ? "Son 24 saatte yeni ürün kullanmışsın; cildinde değişim hissedersen önce bu ürünü gözlemlemek iyi olur."
                         : "Rutinle bağlantı kurmak için düzenli kayıt eklemeye devam et.",
@@ -248,7 +320,9 @@ public class SkinAnalysisService {
             Map<String, String> current,
             List<SkinLog> recentLogs) {
         Map<String, String> comparison = new LinkedHashMap<>();
-        SkinLog previous = recentLogs == null || recentLogs.isEmpty() ? null : recentLogs.get(0);
+        SkinLog previous = recentLogs == null
+                ? null
+                : recentLogs.stream().filter(this::isTrendEligible).findFirst().orElse(null);
         comparison.put("redness", compareLevel(
                 current.get("redness"), previous == null ? null : previous.getRednessLevel()));
         comparison.put("dryness", compareLevel(
@@ -259,6 +333,16 @@ public class SkinAnalysisService {
                 current.get("blemishAppearance"), previous == null ? null : previous.getBlemishLevel()));
         comparison.put("irritationAppearance", compareLevel(
                 current.get("irritationAppearance"), previous == null ? null : previous.getIrritationLevel()));
+        return comparison;
+    }
+
+    private Map<String, String> unknownComparison() {
+        Map<String, String> comparison = new LinkedHashMap<>();
+        comparison.put("redness", "unknown");
+        comparison.put("dryness", "unknown");
+        comparison.put("oiliness", "unknown");
+        comparison.put("blemishAppearance", "unknown");
+        comparison.put("irritationAppearance", "unknown");
         return comparison;
     }
 
@@ -306,6 +390,76 @@ public class SkinAnalysisService {
             return "Önceki kayıtla güvenilir karşılaştırma için henüz yeterli ortak görünür işaret yok.";
         }
         return String.join(". ", sentences) + ". Bu bir tıbbi teşhis değildir.";
+    }
+
+    private String buildNonComparableSummary(SkinAnalysisResponse analysis) {
+        if (analysis.isFallbackUsed()) {
+            return "Görsel analiz tamamlanamadığı için bu kayıt fotoğraf değişimi karşılaştırmasına eklenmedi.";
+        }
+        return "Fotoğraf kalitesi güvenilir karşılaştırma için yeterli değildi. Aynı açı, mesafe ve ışıkta net, "
+                + "filtresiz bir fotoğrafla tekrar deneyebilirsin.";
+    }
+
+    private boolean isAnalysisComparable(SkinAnalysisResponse analysis) {
+        return analysis != null
+                && !analysis.isFallbackUsed()
+                && ("good".equals(analysis.getPhotoQuality()) || "acceptable".equals(analysis.getPhotoQuality()))
+                && hasComparableSignal(analysis.getVisibleChanges());
+    }
+
+    private boolean isTrendEligible(SkinLog skinLog) {
+        if (skinLog == null || !hasComparableSignal(Map.of(
+                "redness", valueOrUnknown(skinLog.getRednessLevel()),
+                "dryness", valueOrUnknown(skinLog.getDrynessLevel()),
+                "oiliness", valueOrUnknown(skinLog.getOilinessLevel()),
+                "blemish", valueOrUnknown(skinLog.getBlemishLevel()),
+                "irritation", valueOrUnknown(skinLog.getIrritationLevel())))) {
+            return false;
+        }
+        if (skinLog.getAnalysisJson() == null || skinLog.getAnalysisJson().isBlank()) {
+            return false;
+        }
+        try {
+            JsonNode analysis = objectMapper.readTree(skinLog.getAnalysisJson());
+            if (analysis.path("fallbackUsed").asBoolean(false)) {
+                return false;
+            }
+            if (analysis.has("photoQuality")) {
+                String photoQuality = normalizePhotoQuality(analysis.path("photoQuality").asText("unknown"));
+                return "good".equals(photoQuality) || "acceptable".equals(photoQuality);
+            }
+            // Yeni kalite alanından önce oluşturulmuş, gerçek Gemini analizleri geriye dönük olarak kullanılabilir.
+            return true;
+        } catch (Exception exception) {
+            log.debug("Cilt kaydı karşılaştırma uygunluğu okunamadı: {}", exception.getMessage());
+            return false;
+        }
+    }
+
+    private boolean hasComparableSignal(Map<String, String> signals) {
+        return signals != null && signals.values().stream().anyMatch(value -> levelScore(value) >= 0);
+    }
+
+    private String valueOrUnknown(String value) {
+        return value == null ? "unknown" : value;
+    }
+
+    private boolean isTrackedAcidProduct(Product product) {
+        if (product == null) {
+            return false;
+        }
+        String ingredients = product.getActiveIngredients() == null
+                ? ""
+                : String.join(" ", product.getActiveIngredients());
+        String searchable = String.join(" ",
+                valueOrEmpty(product.getName()),
+                valueOrEmpty(product.getDescription()),
+                ingredients);
+        return ingredientKnowledgeBase.matchRules(searchable).keySet().stream().anyMatch(TRACKED_ACID_RULES::contains);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private List<String> buildAnalysisContext(
@@ -358,49 +512,166 @@ public class SkinAnalysisService {
         };
     }
 
-    private String buildWeeklyComment(int logCount, Map<String, String> trends, List<String> newProducts) {
+    private String buildWeeklyComment(
+            int logCount,
+            int comparableLogCount,
+            int previousWeekComparableLogCount,
+            Map<String, String> trends,
+            List<String> newProducts) {
         if (logCount == 0) {
             return "Bu hafta henüz cilt kaydın yok. Birkaç kayıt eklersen haftalık değişimi birlikte yorumlayabiliriz.";
         }
+        if (comparableLogCount == 0) {
+            return "Bu haftaki kayıtların görsel karşılaştırmaya uygun değildi. Net, filtresiz ve önceki kayıtla "
+                    + "aynı açı ile ışıkta yeni bir fotoğraf ekleyebilirsin.";
+        }
+        if (previousWeekComparableLogCount == 0) {
+            return "Bu hafta " + comparableLogCount + " karşılaştırılabilir kayıt oluştu. Önceki haftada uygun kayıt "
+                    + "olmadığı için değişim yönü henüz söylenemez; bu hafta yeni başlangıç noktan olacak.";
+        }
+
+        List<String> increased = new ArrayList<>();
+        List<String> decreased = new ArrayList<>();
+        trends.forEach((metric, trend) -> {
+            if ("increased".equals(trend)) increased.add(weeklyMetricLabel(metric));
+            if ("decreased".equals(trend)) decreased.add(weeklyMetricLabel(metric));
+        });
 
         StringBuilder comment = new StringBuilder();
-        boolean mentioned = false;
-
-        if ("increased".equals(trends.get("dryness"))) {
-            comment.append("Bu hafta kuruluk bildirimin arttı. ");
-            mentioned = true;
+        if (!decreased.isEmpty()) {
+            comment.append(String.join(", ", decreased)).append(" görünümünde önceki haftaya göre azalma var. ");
         }
-        if ("increased".equals(trends.get("redness"))) {
-            comment.append("Kızarıklık görünümünde artış var. ");
-            mentioned = true;
+        if (!increased.isEmpty()) {
+            comment.append(String.join(", ", increased)).append(" görünümünde önceki haftaya göre artış var. ");
         }
-        if ("increased".equals(trends.get("blemish"))) {
-            comment.append("Sivilce benzeri görünümde artış kaydettin. ");
-            mentioned = true;
+        if (decreased.isEmpty() && increased.isEmpty()) {
+            comment.append("Karşılaştırılabilir görünür işaretler önceki haftaya göre dengeli. ");
         }
-
         if (!newProducts.isEmpty()) {
-            comment.append("Aynı dönemde yeni ürün eklemişsin (")
+            comment.append("Bu dönemde yeni ürün de eklenmiş (")
                     .append(String.join(", ", newProducts))
-                    .append("). Birkaç gün kullanım sıklığını azaltıp gözlemlemek iyi olabilir.");
-        } else if (mentioned) {
-            comment.append("Rutinini birkaç gün sade tutup değişimi gözlemlemek iyi olabilir.");
-        } else {
-            comment.append("Kayıtların dengeli görünüyor; rutinini aynı şekilde sürdürebilirsin.");
+                    .append("); tek başına fotoğraf bu ürünün neden olduğunu göstermez. ");
         }
-
+        comment.append("Bu, görünüm takibidir; tıbbi teşhis değildir.");
         return comment.toString().trim();
     }
 
-    private String trend(List<SkinLog> logs, java.util.function.Function<SkinLog, String> levelGetter) {
-        if (logs.size() < 2) {
+    private ActiveGuidance buildActiveGuidance(
+            List<String> monitoredActives,
+            boolean hasNewAcidProduct,
+            int comparableLogCount,
+            int previousWeekComparableLogCount,
+            Map<String, String> trends,
+            SkinLog latestLog) {
+        if (monitoredActives.isEmpty()) {
+            return new ActiveGuidance("not_applicable", "");
+        }
+
+        String productNames = String.join(", ", monitoredActives);
+        if (comparableLogCount == 0 || previousWeekComparableLogCount == 0) {
+            return new ActiveGuidance(
+                    "observe",
+                    "Dolabındaki asit/peeling ürünleri (" + productNames + ") için haftalar arası yeterli görsel "
+                            + "veri yok. Şimdilik kullanım sıklığını artırma; aynı koşullarda kayıt toplamaya devam et.");
+        }
+
+        if (hasLatestSafetyLevel(latestLog, "high")) {
+            return new ActiveGuidance(
+                    "pause",
+                    "Son karşılaştırılabilir kayıtta belirgin kızarıklık, kuruluk veya tahriş görünümü var. "
+                            + "Asit/peeling ürünlerine (" + productNames + ") şimdilik ara verip rutini sadeleştir; "
+                            + "ağrı, şişlik veya yayılma varsa dermatoloğa danış.");
+        }
+
+        boolean safetyIncreased = "increased".equals(trends.get("redness"))
+                || "increased".equals(trends.get("dryness"))
+                || "increased".equals(trends.get("irritation"));
+        if (safetyIncreased) {
+            return new ActiveGuidance(
+                    "reduce",
+                    "Kızarıklık, kuruluk veya tahriş görünümünden en az biri arttı. " + productNames
+                            + " için sıklığı artırma; birkaç kullanım azaltıp cildin sakinleşmesini gözlemle.");
+        }
+
+        if (hasNewAcidProduct) {
+            return new ActiveGuidance(
+                    "observe",
+                    "Bu hafta yeni bir asit/peeling ürünü eklenmiş. Değişimi tek ürüne bağlamak için erken; yeni ürünü "
+                            + "düşük sıklıkta, tek başına ve etiketiyle uyumlu kullanarak gözlemle.");
+        }
+
+        if (hasLatestSafetyLevel(latestLog, "medium")) {
+            return new ActiveGuidance(
+                    "observe",
+                    "Son kayıtta hâlâ orta düzey kızarıklık, kuruluk veya tahriş görünümü var. " + productNames
+                            + " için mevcut sıklığı artırma; yanma veya gerginlik varsa kullanıma ara ver.");
+        }
+
+        boolean hasSafetyEvidence = isKnownTrend(trends.get("redness"))
+                || isKnownTrend(trends.get("dryness"))
+                || isKnownTrend(trends.get("irritation"));
+        if (!hasSafetyEvidence) {
+            return new ActiveGuidance(
+                    "observe",
+                    "Sivilce görünümü izlenebilse de kızarıklık, kuruluk ve tahriş için yeterli ortak veri yok. "
+                            + "Asit sıklığını değiştirmeden önce birkaç karşılaştırılabilir kayıt daha ekle.");
+        }
+
+        if ("decreased".equals(trends.get("blemish")) || "stable".equals(trends.get("blemish"))) {
+            String progress = "decreased".equals(trends.get("blemish"))
+                    ? "Sivilce benzeri görünüm azalırken"
+                    : "Sivilce benzeri görünüm dengeliyken";
+            return new ActiveGuidance(
+                    "continue",
+                    progress + " kızarıklık, kuruluk ve tahrişte artış görünmüyor. Yanma veya gerginlik de yoksa "
+                            + productNames + " için mevcut kullanım sıklığını artırmadan sürdürebilirsin; ürün etiketi "
+                            + "ve dermatolog önerisi her zaman önceliklidir.");
+        }
+
+        if ("increased".equals(trends.get("blemish"))) {
+            return new ActiveGuidance(
+                    "observe",
+                    "Sivilce benzeri görünüm artmış; bu tek başına daha sık asit kullanmak için yeterli değil. "
+                            + productNames + " sıklığını artırma ve birkaç hafta aynı düzenle takip et.");
+        }
+
+        return new ActiveGuidance(
+                "observe",
+                "Asit/peeling ürünlerinin sıklığını değiştirmek için henüz yeterli ortak görünür işaret yok; mevcut "
+                        + "düzeni artırmadan izlemeye devam et.");
+    }
+
+    private String weeklyMetricLabel(String metric) {
+        return switch (metric) {
+            case "dryness" -> "Kuruluk";
+            case "redness" -> "Kızarıklık";
+            case "oiliness" -> "Yağlanma";
+            case "blemish" -> "Sivilce benzeri";
+            case "irritation" -> "Tahriş";
+            default -> "Cilt";
+        };
+    }
+
+    private boolean isKnownTrend(String trend) {
+        return trend != null && !"unknown".equals(trend);
+    }
+
+    private boolean hasLatestSafetyLevel(SkinLog log, String level) {
+        return log != null && (level.equals(log.getRednessLevel())
+                || level.equals(log.getDrynessLevel())
+                || level.equals(log.getIrritationLevel()));
+    }
+
+    private String trend(
+            List<SkinLog> recentLogs,
+            List<SkinLog> previousLogs,
+            java.util.function.Function<SkinLog, String> levelGetter) {
+        if (recentLogs.isEmpty() || previousLogs.isEmpty()) {
             return "unknown";
         }
 
-        // Kayıtlar yeniden eskiye sıralı: son yarı ile ilk yarıyı karşılaştır.
-        int midpoint = logs.size() / 2;
-        double recentAvg = averageLevel(logs.subList(0, midpoint), levelGetter);
-        double olderAvg = averageLevel(logs.subList(midpoint, logs.size()), levelGetter);
+        double recentAvg = averageLevel(recentLogs, levelGetter);
+        double olderAvg = averageLevel(previousLogs, levelGetter);
 
         if (recentAvg < 0 || olderAvg < 0) {
             return "unknown";
@@ -412,6 +683,9 @@ public class SkinAnalysisService {
             return "decreased";
         }
         return "stable";
+    }
+
+    private record ActiveGuidance(String status, String text) {
     }
 
     private double averageLevel(List<SkinLog> logs, java.util.function.Function<SkinLog, String> levelGetter) {
@@ -438,6 +712,11 @@ public class SkinAnalysisService {
     private String normalizeLevel(String level) {
         String normalized = level == null ? "" : level.trim().toLowerCase(Locale.ROOT);
         return LEVELS.contains(normalized) ? normalized : "unknown";
+    }
+
+    private String normalizePhotoQuality(String quality) {
+        String normalized = quality == null ? "" : quality.trim().toLowerCase(Locale.ROOT);
+        return PHOTO_QUALITIES.contains(normalized) ? normalized : "unknown";
     }
 
     private String normalizeRisk(String risk) {

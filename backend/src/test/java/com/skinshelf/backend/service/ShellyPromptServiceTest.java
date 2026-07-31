@@ -155,11 +155,14 @@ class ShellyPromptServiceTest {
 
         assertTrue(prompt.contains("nickname: Ceren"));
         assertTrue(prompt.contains("Son 24 saatte yeni urun: Evet"));
-        assertTrue(prompt.contains("Fotograftaki cilt gorunumunu degerlendir"));
+        assertTrue(prompt.contains("Once fotograf kalitesini degerlendir"));
+        assertTrue(prompt.contains("sikligini otomatik artirma"));
         assertTrue(prompt.contains("Teshis koyma"));
 
         JsonNode schema = service.buildSkinPhotoResponseSchema();
         assertTrue(schema.path("required").toString().contains("\"visibleChanges\""));
+        assertTrue(schema.path("required").toString().contains("\"photoQuality\""));
+        assertTrue(schema.path("properties").path("photoQuality").path("enum").isArray());
         assertEquals("OBJECT", schema.path("properties").path("visibleChanges").path("type").asText());
     }
 

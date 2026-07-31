@@ -24,6 +24,12 @@ type Props = {
 export default function ShellySkinAdviceCard({ analysis }: Props) {
   const changeEntries = Object.entries(analysis.visibleChanges) as [string, SkinChangeLevel][];
   const comparisonEntries = Object.entries(analysis.comparedToPrevious ?? {}) as [string, SkinTrend][];
+  const photoQualityLabels = {
+    good: 'Karşılaştırmaya uygun',
+    acceptable: 'Kullanılabilir',
+    poor: 'Yeniden çekilmeli',
+    unknown: 'Değerlendirilemedi',
+  } as const;
 
   const trendMeta = (trend: SkinTrend) => {
     if (trend === 'increased') return { label: 'Artmış', color: colors.warning, icon: TrendingUp };
@@ -45,6 +51,14 @@ export default function ShellySkinAdviceCard({ analysis }: Props) {
         <Text style={styles.sourceText}>
           {analysis.fallbackUsed ? 'Güvenli günlük değerlendirmesi' : 'Gemini görsel analizi + kişisel bağlam'}
         </Text>
+        {analysis.photoQuality ? (
+          <View style={styles.qualityWrap}>
+            <Text style={styles.qualityTitle}>Fotoğraf: {photoQualityLabels[analysis.photoQuality]}</Text>
+            {analysis.photoQualityNote ? (
+              <Text style={styles.qualityText}>{analysis.photoQualityNote}</Text>
+            ) : null}
+          </View>
+        ) : null}
         {analysis.tags.length > 0 && (
           <View style={styles.tagRow}>
             {analysis.tags.map(tag => (
@@ -189,6 +203,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(216,195,154,0.9)',
     marginTop: 9,
+  },
+  qualityWrap: {
+    marginTop: 10,
+    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  qualityTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 10.5,
+    color: colors.goldSoft,
+  },
+  qualityText: {
+    fontFamily: fonts.sans,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: 'rgba(255,255,255,0.78)',
+    marginTop: 3,
   },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 13 },
   tag: {

@@ -35,7 +35,7 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   allowsEditing: true,
   aspect: [3, 4],
-  quality: 0.5,
+  quality: 0.8,
   base64: true,
 };
 
@@ -163,7 +163,8 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
               </View>
               <Text style={styles.infoText}>
                 Shelly teşhis koymaz. Fotoğraflar yalnızca cilt görünümündeki değişimleri ve rutin etkilerini takip
-                etmek için yorumlanır.
+                etmek için yorumlanır. Haftalık kıyas için fotoğrafları mümkün olduğunca aynı açı, mesafe ve ışıkta
+                çek.
               </Text>
               <TouchableOpacity
                 style={styles.infoButton}
