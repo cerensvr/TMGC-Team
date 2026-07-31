@@ -25,6 +25,16 @@ type RegisterPayload = LoginCredentials & {
   lastName?: string;
 };
 
+type UpdateAccountPayload = {
+  firstName: string;
+  lastName?: string;
+};
+
+type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 let activeUserId: string | null = getCachedAuthUserId();
 
 const requestAuth = async (path: string, body: unknown): Promise<AuthResponse> => {
@@ -94,6 +104,22 @@ export const authService = {
       activeUserId = null;
       return null;
     }
+  },
+
+  updateAccount: async (data: UpdateAccountPayload) => {
+    const user = await apiFetch<AuthUser>(`${API_AUTH_URL}/me`, {
+      method: 'PATCH',
+      body: data,
+    });
+    return { ...user, id: String(user.id) };
+  },
+
+  changePassword: async (data: ChangePasswordPayload) => {
+    await apiFetch<void>(`${API_AUTH_URL}/change-password`, {
+      method: 'POST',
+      body: data,
+    });
+    return true;
   },
 
   logout: async () => {

@@ -1,8 +1,10 @@
 package com.skinshelf.backend.service;
 
 import com.skinshelf.backend.dto.AuthResponse;
+import com.skinshelf.backend.dto.ChangePasswordRequest;
 import com.skinshelf.backend.dto.LoginRequest;
 import com.skinshelf.backend.dto.RegisterRequest;
+import com.skinshelf.backend.dto.UpdateAccountRequest;
 import com.skinshelf.backend.dto.UserResponse;
 import com.skinshelf.backend.entity.User;
 import com.skinshelf.backend.repository.AssistantMessageRepository;
@@ -75,16 +77,41 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteAccount(User user) {
-        if (user == null || user.getId() == null) {
-            throw new RuntimeException("Kullanıcı oturumu bulunamadı.");
+    public UserResponse updateAccount(User user, UpdateAccountRequest request) {
+        requireAuthenticatedUser(user);
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName() == null ? "" : request.getLastName().trim());
+        return UserResponse.from(userRepository.save(user));
+    }
+
+    @Transactional
+    public void changePassword(User user, ChangePasswordRequest request) {
+        requireAuthenticatedUser(user);
+        if (!passwordMatches(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("Mevcut şifre hatalı.");
         }
+        if (passwordMatches(request.getNewPassword(), user.getPassword())) {
+            throw new RuntimeException("Yeni şifre mevcut şifreden farklı olmalıdır.");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteAccount(User user) {
+        requireAuthenticatedUser(user);
 
         assistantMessageRepository.deleteByUser(user);
         skinLogRepository.deleteByUser(user);
         productRepository.deleteByUserId(user.getId());
         userProfileRepository.deleteByUserId(user.getId());
         userRepository.delete(user);
+    }
+
+    private void requireAuthenticatedUser(User user) {
+        if (user == null || user.getId() == null) {
+            throw new RuntimeException("Kullanıcı oturumu bulunamadı.");
+        }
     }
 
     private AuthResponse toAuthResponse(User user) {

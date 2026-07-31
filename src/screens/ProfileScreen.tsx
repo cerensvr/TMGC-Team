@@ -50,8 +50,8 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const fullName =
-    profile.displayName?.trim() ||
     [account?.firstName, account?.lastName].filter(Boolean).join(' ').trim() ||
+    profile.displayName?.trim() ||
     'SkinShelf Kullanıcısı';
   const email = account?.email || '';
   const initials = fullName
@@ -127,11 +127,7 @@ export default function ProfileScreen({ navigation }: Props) {
     {
       icon: Settings,
       label: 'Hesap Ayarları',
-      onPress: () =>
-        Alert.alert(
-          'Hesap Ayarları',
-          'E-posta ve profil bilgilerini bu ekrandan yönetebilir, cilt profilini düzenleyebilirsin.'
-        ),
+      onPress: () => navigation.navigate('AccountSettings'),
     },
     {
       icon: Shield,

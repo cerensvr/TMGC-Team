@@ -131,13 +131,6 @@ export default function SignInScreen({ navigation }: Props) {
     }
   };
 
-  const handleForgotPassword = () => {
-    Alert.alert(
-      'Şifre Sıfırlama',
-      'Şifre sıfırlama e-postası için destek ekibiyle iletişime geçmen gerekiyor. Otomatik sıfırlama e-posta servisi prod ortamında ayrıca bağlanacak.'
-    );
-  };
-
   return (
     <ImageBackground source={{ uri: BACKGROUND_URI }} style={styles.background}>
       <LinearGradient
@@ -232,15 +225,6 @@ export default function SignInScreen({ navigation }: Props) {
                   editable={!loading}
                 />
               </View>
-
-              {/* ŞİFREMİ UNUTTUM */}
-              <TouchableOpacity
-                style={[styles.forgotPassword, isCompactHeight && styles.forgotPasswordCompact]}
-                onPress={handleForgotPassword}
-                hitSlop={TOUCH_SLOP}
-              >
-                <Text style={styles.forgotPasswordText}>Şifremi unuttum</Text>
-              </TouchableOpacity>
 
               {/* GİRİŞ BUTONU */}
               <TouchableOpacity
@@ -384,13 +368,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontFamily: fonts.sansSemiBold,
     fontSize: 15,
-  },
-  forgotPassword: { alignSelf: 'flex-end', marginBottom: 20, paddingVertical: 2 },
-  forgotPasswordCompact: { marginBottom: 10 },
-  forgotPasswordText: {
-    fontFamily: fonts.sansBold,
-    fontSize: 13,
-    color: colors.sage,
   },
   primaryButton: {
     flexDirection: 'row',

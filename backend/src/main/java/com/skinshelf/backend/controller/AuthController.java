@@ -1,8 +1,10 @@
 package com.skinshelf.backend.controller;
 
 import com.skinshelf.backend.dto.AuthResponse;
+import com.skinshelf.backend.dto.ChangePasswordRequest;
 import com.skinshelf.backend.dto.LoginRequest;
 import com.skinshelf.backend.dto.RegisterRequest;
+import com.skinshelf.backend.dto.UpdateAccountRequest;
 import com.skinshelf.backend.dto.UserResponse;
 import com.skinshelf.backend.entity.User;
 import com.skinshelf.backend.service.UserService;
@@ -34,6 +36,21 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(UserResponse.from(currentUser));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponse> updateMe(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody UpdateAccountRequest request) {
+        return ResponseEntity.ok(userService.updateAccount(currentUser, request));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(currentUser, request);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me")

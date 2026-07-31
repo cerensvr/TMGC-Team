@@ -25,6 +25,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   Onboarding: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
+  AccountSettings: undefined;
   Scanner: undefined;
   ProductReview: { scannedProduct?: ProductDraft; editingProductId?: string; source?: 'barcode' | 'manual' } | undefined;
   ProductDetail: { productId: string };

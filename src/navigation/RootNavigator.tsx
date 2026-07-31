@@ -25,6 +25,7 @@ import HomeScreen from '../screens/HomeScreen';
 import RoutineScreen from '../screens/RoutineScreen';
 import AssistantScreen from '../screens/AssistantScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import AccountSettingsScreen from '../screens/AccountSettingsScreen';
 import ScannerScreen from '../screens/ScannerScreen';
 import ProductReviewScreen from '../screens/ProductReviewScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
@@ -190,6 +191,7 @@ export default function RootNavigator() {
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen
           name="Scanner"
           component={ScannerScreen}

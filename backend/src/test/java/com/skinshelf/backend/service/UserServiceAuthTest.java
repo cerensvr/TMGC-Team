@@ -1,10 +1,13 @@
 package com.skinshelf.backend.service;
 
 import com.skinshelf.backend.dto.AuthResponse;
+import com.skinshelf.backend.dto.ChangePasswordRequest;
 import com.skinshelf.backend.dto.LoginRequest;
 import com.skinshelf.backend.dto.ProductRequest;
 import com.skinshelf.backend.dto.RegisterRequest;
 import com.skinshelf.backend.dto.SkinAnalysisRequest;
+import com.skinshelf.backend.dto.UpdateAccountRequest;
+import com.skinshelf.backend.dto.UserResponse;
 import com.skinshelf.backend.dto.UserProfileRequest;
 import com.skinshelf.backend.entity.AssistantMessage;
 import com.skinshelf.backend.entity.User;
@@ -101,6 +104,43 @@ class UserServiceAuthTest {
     }
 
     @Test
+    void updatesAuthenticatedAccountNames() {
+        userService.register(registerRequest("auth-update@example.com", "SecurePass1"));
+        User user = userRepository.findByEmail("auth-update@example.com").orElseThrow();
+        UpdateAccountRequest request = new UpdateAccountRequest();
+        request.setFirstName("  Ceren  ");
+        request.setLastName("  Sivri  ");
+
+        UserResponse response = userService.updateAccount(user, request);
+
+        assertEquals("Ceren", response.getFirstName());
+        assertEquals("Sivri", response.getLastName());
+    }
+
+    @Test
+    void changesPasswordOnlyAfterCurrentPasswordVerification() {
+        userService.register(registerRequest("auth-password@example.com", "SecurePass1"));
+        User user = userRepository.findByEmail("auth-password@example.com").orElseThrow();
+        ChangePasswordRequest request = changePasswordRequest("SecurePass1", "NewSecurePass2");
+
+        userService.changePassword(user, request);
+
+        assertThrows(RuntimeException.class,
+                () -> userService.login(loginRequest("auth-password@example.com", "SecurePass1")));
+        assertNotNull(userService.login(loginRequest("auth-password@example.com", "NewSecurePass2")).getToken());
+    }
+
+    @Test
+    void rejectsPasswordChangeWithWrongCurrentPassword() {
+        userService.register(registerRequest("auth-password-reject@example.com", "SecurePass1"));
+        User user = userRepository.findByEmail("auth-password-reject@example.com").orElseThrow();
+
+        assertThrows(RuntimeException.class,
+                () -> userService.changePassword(user, changePasswordRequest("WrongPass1", "NewSecurePass2")));
+        assertNotNull(userService.login(loginRequest("auth-password-reject@example.com", "SecurePass1")).getToken());
+    }
+
+    @Test
     void deleteAccountCascadesProductsProfileSkinLogsAndAssistantMessages() {
         userService.register(registerRequest("auth-delete@example.com", "SecurePass1"));
         User user = userRepository.findByEmail("auth-delete@example.com").orElseThrow();
@@ -147,6 +187,13 @@ class UserServiceAuthTest {
         LoginRequest request = new LoginRequest();
         request.setEmail(email);
         request.setPassword(password);
+        return request;
+    }
+
+    private ChangePasswordRequest changePasswordRequest(String currentPassword, String newPassword) {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword(currentPassword);
+        request.setNewPassword(newPassword);
         return request;
     }
 

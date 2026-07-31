@@ -48,6 +48,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if ("POST".equals(method) && ("/api/auth/login".equals(path) || "/api/auth/register".equals(path))) {
             return new Limit(10, 60);
         }
+        if ("POST".equals(method) && "/api/auth/change-password".equals(path)) {
+            return new Limit(5, 60);
+        }
         if ("POST".equals(method) && "/api/assistant/chat".equals(path)) {
             // Ücretsiz Gemini kotasını tek kullanıcının hızlı tekrarlarından korur.
             // Kota aşılırsa AssistantService ayrıca kişisel fallback üretir.
