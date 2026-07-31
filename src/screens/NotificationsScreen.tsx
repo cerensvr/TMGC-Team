@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Bell,
+  CalendarDays,
   CalendarClock,
   CheckCheck,
   Lightbulb,
@@ -46,6 +47,7 @@ const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 const kindMeta = {
   expiry: { icon: AlertTriangle, tint: colors.danger, bg: colors.dangerSurface },
   routine: { icon: CalendarClock, tint: colors.sage, bg: colors.surfaceSage },
+  weekly: { icon: CalendarDays, tint: colors.sage, bg: colors.surfaceSage },
   tip: { icon: Lightbulb, tint: colors.gold, bg: colors.warningSurface },
   safety: { icon: Sparkles, tint: colors.blush, bg: colors.surfaceBlush },
   product: { icon: Package, tint: colors.forest, bg: colors.surfaceMuted },
@@ -91,7 +93,7 @@ const NotificationRow = ({
 
 export default function NotificationsScreen({ navigation }: Props) {
   const { products } = useProducts();
-  const { profile, activeIssue } = useUser();
+  const { profile, activeIssue, userId } = useUser();
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -104,11 +106,11 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const refreshReadState = useCallback(async () => {
     try {
-      setReadIds(await getReadNotificationIds());
+      setReadIds(await getReadNotificationIds(userId));
     } catch (error) {
       errorDev('Failed to refresh notification read state:', error);
     }
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,7 +123,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     setIsProcessing(true);
 
     try {
-      await markNotificationRead(item.id);
+      await markNotificationRead(item.id, userId);
       setReadIds((prev) => new Set([...prev, item.id]));
 
       if (item.productId) {
@@ -129,7 +131,11 @@ export default function NotificationsScreen({ navigation }: Props) {
         return;
       }
       if (item.kind === 'routine') {
-        navigation.navigate('MainTabs');
+        navigation.navigate('MainTabs', { screen: 'Routine' });
+        return;
+      }
+      if (item.kind === 'weekly') {
+        navigation.navigate('MainTabs', { screen: 'SkinTracking' });
         return;
       }
       if (item.kind === 'product' && products.length === 0) {
@@ -148,7 +154,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     setIsProcessing(true);
 
     try {
-      await markAllNotificationsRead(notifications.map((n) => n.id));
+      await markAllNotificationsRead(notifications.map((n) => n.id), userId);
       setReadIds(new Set(notifications.map((n) => n.id)));
     } catch (error) {
       errorDev('Mark all notifications read error:', error);
@@ -199,7 +205,7 @@ export default function NotificationsScreen({ navigation }: Props) {
               {unreadCount > 0 ? `${unreadCount} yeni bildirim` : 'Hepsi okundu'}
             </Text>
             <Text style={styles.heroText}>
-              SKT uyarıları, rutin hatırlatmaları ve Shelly ipuçları burada toplanır.
+              SKT uyarıları, rutinler, haftalık özetler ve Shelly ipuçları burada toplanır.
             </Text>
           </View>
         </LinearGradient>
@@ -233,7 +239,7 @@ export default function NotificationsScreen({ navigation }: Props) {
                   textAlign: 'center',
                 }}
               >
-                SKT uyarıları, rutin hatırlatmaları ve Shelly ipuçları burada görünecektir.
+                SKT uyarıları, rutinler, haftalık özetler ve Shelly ipuçları burada görünecektir.
               </Text>
             </View>
           ) : (

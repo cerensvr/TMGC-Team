@@ -1,4 +1,5 @@
 import { Product } from '../types';
+import { getRemainingDays } from './expiryDate';
 
 export type ProductRole =
   | 'retinol'
@@ -31,14 +32,6 @@ const normalize = (value = '') => value.toLocaleLowerCase('tr-TR');
 
 const productText = (product: Product) =>
   normalize(`${product.brand} ${product.name} ${product.description} ${(product.activeIngredients || []).join(' ')}`);
-
-const getRemainingDays = (dateString?: string) => {
-  if (!dateString) return null;
-  const expiry = new Date(dateString);
-  const now = new Date();
-  const diffTime = expiry.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
 
 const hasAny = (value: string, terms: string[]) => terms.some(term => value.includes(term));
 

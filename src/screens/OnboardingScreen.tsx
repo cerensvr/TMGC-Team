@@ -21,6 +21,7 @@ import { userService } from '../services/userService';
 import { useRoute } from '@react-navigation/native';
 import { authService } from '../services/authService';
 import { errorDev, logDev, warnDev } from '../services/logger';
+import { NOTIFICATION_PREFERENCES } from '../services/notificationPreferences';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type Props = {
@@ -104,11 +105,12 @@ const trackingOptions = [
   'Şimdilik istemiyorum',
 ];
 const reminderOptions = [
-  'Sabah rutinim için',
-  'Akşam rutinim için',
-  'Ürün kullanım takibi için',
-  'Haftalık cilt özeti için',
-  'Bildirim istemiyorum',
+  NOTIFICATION_PREFERENCES.morningRoutine,
+  NOTIFICATION_PREFERENCES.eveningRoutine,
+  NOTIFICATION_PREFERENCES.productTracking,
+  NOTIFICATION_PREFERENCES.weeklySummary,
+  NOTIFICATION_PREFERENCES.expiry,
+  NOTIFICATION_PREFERENCES.none,
 ];
 
 const manualProductDraft: ProductDraft = {
@@ -491,7 +493,9 @@ export default function OnboardingScreen({ navigation }: Props) {
               label={item}
               selected={reminderPreferences.includes(item)}
               onPress={() =>
-                toggleList(item, reminderPreferences, setReminderPreferences, ['Bildirim istemiyorum'])
+                toggleList(item, reminderPreferences, setReminderPreferences, [
+                  NOTIFICATION_PREFERENCES.none,
+                ])
               }
               disabled={isSaving}
             />
