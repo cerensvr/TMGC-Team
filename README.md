@@ -10,7 +10,7 @@
 
 ---
 
-## Jüri İçin Hızlı Özet
+## Proje İçin Hızlı Özet
 
 SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shelly'nin ise bu rafı, cilt profilini, içerikleri ve rutin geçmişini birlikte yorumladığı AI destekli mobil cilt bakım dolabıdır.
 
@@ -20,6 +20,7 @@ SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shel
 | Kurulabilir Android APK | [SkinShelf 1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25), [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
 | Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
 | AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
+| Gerçek kullanıcı kanıtı | [10 günlük anonim kullanıcı pilotu](docs/user-research/README.md): 10 katılımcı, 91 aktif kullanıcı-günü, %75,3 rutin tamamlama |
 | Scrum/board kanıtı | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
 | Teknik kalite | [GitHub Actions kalite kontrolü](.github/workflows/quality-check.yml), [test doğrulama](Project_Management_Files/Sprint_2/Test_and_Verification.md) |
 | Final demo akışı | [Sprint 3 final hazırlık kontrolü](Project_Management_Files/Sprint_3/Final_Readiness.md) |
@@ -249,6 +250,8 @@ Sprint 1 kanıt indeksi: [Project_Management_Files/Sprint_1/README.md](Project_M
 Sprint 2 kanıt indeksi: [Project_Management_Files/Sprint_2/README.md](Project_Management_Files/Sprint_2/README.md)
 
 Sprint 3 final hazırlık kontrolü: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
+
+10 günlük anonim kullanıcı pilotu: [docs/user-research/README.md](docs/user-research/README.md)
 
 ## 📌 Sprint - 1
 

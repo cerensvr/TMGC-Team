@@ -24,6 +24,7 @@ Final demoda anlatilacak ana hikaye:
 | Sprint 3 burndown | Hedef/tamamlanan/kalan puan ozeti | Devam ediyor |
 | Daily scrum kanitlari | 2-4 ekran goruntusu veya ozet | Devam ediyor |
 | Final test | Frontend build, backend 22/22 test, canlı login ve iki temiz emülatörde APK kurulumu geçti | Tamamlandı |
+| Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
 | Final sunum linki | Video olmadan da demo akisi ve ekran seti yeterli kanit sunmali | Devam ediyor |
 
 ## Zaten Hazir Teknik Kanitlar
