@@ -4,6 +4,7 @@ import {
   Alert,
   ImageBackground,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -21,6 +22,7 @@ import { User, Mail, Lock, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { errorDev } from '../services/logger';
+import { LEGAL_DOCUMENT_URLS } from '../services/legalDocuments';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type Props = {
@@ -47,6 +49,14 @@ export default function SignUpScreen({ navigation }: Props) {
 
   const { loadProfile, setAccount } = useUser();
   const isCompactHeight = height < 620;
+
+  const openDocument = async (title: string, url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(title, 'Belge şu anda açılamadı. İnternet bağlantını kontrol edip tekrar dene.');
+    }
+  };
 
   const handleSignUp = async () => {
     // 1. Çift Kayıt / Çift Tıklama Koruması
@@ -282,7 +292,23 @@ export default function SignUpScreen({ navigation }: Props) {
               </TouchableOpacity>
 
               <Text style={styles.privacyNote}>
-                Kayıt olarak verilerinin yalnızca rutin önerileri için kullanılmasını kabul edersin.
+                Kayıt olarak{' '}
+                <Text
+                  style={styles.privacyLink}
+                  onPress={() => void openDocument('Gizlilik Politikası', LEGAL_DOCUMENT_URLS.privacy)}
+                  accessibilityRole="link"
+                >
+                  Gizlilik Politikası
+                </Text>{' '}
+                ve{' '}
+                <Text
+                  style={styles.privacyLink}
+                  onPress={() => void openDocument('Kullanım Koşulları', LEGAL_DOCUMENT_URLS.terms)}
+                  accessibilityRole="link"
+                >
+                  Kullanım Koşulları
+                </Text>
+                ’nı kabul edersin.
               </Text>
             </View>
 
@@ -395,6 +421,11 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     textAlign: 'center',
     marginTop: 14,
+  },
+  privacyLink: {
+    fontFamily: fonts.sansBold,
+    color: colors.forest,
+    textDecorationLine: 'underline',
   },
   footerLink: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 12 },
   footerText: {

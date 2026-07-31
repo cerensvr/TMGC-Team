@@ -139,8 +139,14 @@ npx eas-cli build --profile production --platform ios
 
 ## Legal Documents
 
-- Privacy policy draft: `docs/privacy-policy.md`
-- Terms of use draft: `docs/terms-of-use.md`
-- Data deletion instructions: `docs/data-deletion.md`
+The backend serves versioned, mobile-responsive legal pages without requiring
+authentication. After deploying the commit that contains these resources,
+verify the following public URLs and use them in the app store listing:
 
-Publish these documents and use their public URLs in the app store listing before a public release.
+- Privacy policy: `https://skinshelf-backend.onrender.com/legal/privacy`
+- Terms of use: `https://skinshelf-backend.onrender.com/legal/terms`
+- Account and data deletion: `https://skinshelf-backend.onrender.com/legal/data-deletion`
+
+The Sign Up and Profile screens link to these routes. The app derives their
+origin from `EXPO_PUBLIC_API_URL`; `EXPO_PUBLIC_LEGAL_BASE_URL` can override the
+legal host when the documents move to a dedicated domain.

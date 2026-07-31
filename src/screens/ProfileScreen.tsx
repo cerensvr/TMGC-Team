@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -14,13 +15,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { ChevronRight, Settings, Shield, CircleHelp, LogOut, Sparkles, Trash2 } from 'lucide-react-native';
+import { ChevronRight, Settings, Shield, CircleHelp, FileText, LogOut, Sparkles, Trash2 } from 'lucide-react-native';
 import { authService } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { useProducts } from '../context/ProductContext';
 import { errorDev } from '../services/logger';
 import { clearNotificationReadState } from '../services/notificationService';
 import { clearScheduledNotifications } from '../services/notificationScheduler';
+import { LEGAL_DOCUMENT_URLS } from '../services/legalDocuments';
 import { colors, fonts, radius, shadows } from '../theme';
 
 type Props = {
@@ -38,6 +40,14 @@ export default function ProfileScreen({ navigation }: Props) {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const isProcessing = isLoggingOut || isDeletingAccount;
+
+  const openDocument = async (title: string, url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(title, 'Belge şu anda açılamadı. İnternet bağlantını kontrol edip tekrar dene.');
+    }
+  };
 
   const fullName =
     profile.displayName?.trim() ||
@@ -125,12 +135,18 @@ export default function ProfileScreen({ navigation }: Props) {
     },
     {
       icon: Shield,
-      label: 'Gizlilik ve Güvenlik',
-      onPress: () =>
-        Alert.alert(
-          'Gizlilik ve Güvenlik',
-          'Cilt fotoğrafları varsayılan olarak saklanmaz; analiz için işlenir ve yalnızca analiz sonucu kaydedilir. Hesabını silersen profil, ürün, sohbet ve cilt takip verilerin kalıcı olarak silinir.'
-        ),
+      label: 'Gizlilik Politikası',
+      onPress: () => void openDocument('Gizlilik Politikası', LEGAL_DOCUMENT_URLS.privacy),
+    },
+    {
+      icon: FileText,
+      label: 'Kullanım Koşulları',
+      onPress: () => void openDocument('Kullanım Koşulları', LEGAL_DOCUMENT_URLS.terms),
+    },
+    {
+      icon: Trash2,
+      label: 'Veri Silme Bilgisi',
+      onPress: () => void openDocument('Veri Silme Bilgisi', LEGAL_DOCUMENT_URLS.dataDeletion),
     },
     {
       icon: CircleHelp,
