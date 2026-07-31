@@ -877,12 +877,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   referenceShelfSlot: {
-    minHeight: 252,
+    minHeight: 280,
     justifyContent: 'flex-end',
     position: 'relative',
   },
   referenceProductsRow: {
-    minHeight: 224,
+    minHeight: 252,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     minWidth: 0,
     maxWidth: 112,
-    height: 224,
+    height: 252,
     alignItems: 'center',
     justifyContent: 'flex-end',
     position: 'relative',
@@ -940,7 +940,7 @@ const styles = StyleSheet.create({
   },
   productTapArea: {
     width: '100%',
-    height: 164,
+    height: 184,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
