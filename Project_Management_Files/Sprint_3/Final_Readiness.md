@@ -23,7 +23,7 @@ Final demoda anlatilacak ana hikaye:
 | Notion board close-up | Status, Sprint, Point, Assignee alanlari okunur | Devam ediyor |
 | Sprint 3 burndown | Hedef/tamamlanan/kalan puan ozeti | Devam ediyor |
 | Daily scrum kanitlari | 2-4 ekran goruntusu veya ozet | Devam ediyor |
-| Final test | Frontend build, backend 22/22 test, canlı login ve iki temiz emülatörde APK kurulumu geçti | Tamamlandı |
+| Final test | TypeScript, mobil 12/12, backend 53/53, Expo Doctor 20/20, audit 0 ve güncel committen temiz APK/AAB doğrulaması geçti | [Tamamlandı](android-production-release-verification.md) |
 | Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
 | Final sunum linki | Video olmadan da demo akisi ve ekran seti yeterli kanit sunmali | Devam ediyor |
 
@@ -40,12 +40,16 @@ Sprint 2'de tamamlanan fullstack altyapi final teslimin teknik temelini olusturu
 | Canli Android ekran seti | [../Sprint_2/Product_Screenshots](../Sprint_2/Product_Screenshots) |
 | Canli Render/Supabase/Gemini smoke testi | [live-api-smoke-report.md](live-api-smoke-report.md) |
 | EAS preview APK ve temiz kurulum | [android-preview-apk-verification.md](android-preview-apk-verification.md) |
+| Güncel Android production release doğrulaması | [android-production-release-verification.md](android-production-release-verification.md) |
 
 ## Final Test Komutlari
 
 ```bash
 npm ci
+npm audit --omit=dev --audit-level=moderate
+npx expo-doctor
 npm run build
+npm test
 cd backend
 ./mvnw test
 ```
