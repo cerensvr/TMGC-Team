@@ -168,12 +168,18 @@ const ShelfProduct = ({ product, onDelete, onPress, onReorder, disabled }: Shelf
         accessibilityLabel={`${product.brand} ${product.name}`}
       >
         <View style={styles.productShadow} />
+
+        {/* 1. YÖNTEM: İnternetten (barkodla) gelen görsellerin beyaz arka planını silip şeffaflaştırır */}
         <Image
           source={productImageSource}
-          style={styles.productPhoto}
+          style={[
+            styles.productPhoto,
+            product.imageUrl ? ({ mixBlendMode: 'multiply' } as any) : null,
+          ]}
           resizeMode="contain"
           onError={() => setImageFailed(true)}
         />
+
         {(expiring || expired) && (
           <View style={styles.expiryBadge}>
             <Text style={styles.expiryBadgeText}>

@@ -1,7 +1,8 @@
 import { ImageSourcePropType } from 'react-native';
 import { Category, ProductDraft } from '../types';
 
-type ProductVisualInput = Pick<ProductDraft, 'brand' | 'name' | 'category' | 'cutoutImageUrl'>;
+// imageUrl alanını da Pick tipine ekledik
+type ProductVisualInput = Pick<ProductDraft, 'brand' | 'name' | 'category' | 'cutoutImageUrl' | 'imageUrl'>;
 
 const fallbackProductAssets: Record<Category, ImageSourcePropType> = {
   Temizleyici: require('../../assets/products/cleanser-pump.png'),
@@ -31,11 +32,18 @@ export const matchProductCutout = (brand?: string, name?: string) => {
 };
 
 export const getProductVisualSource = (product: ProductVisualInput, imageFailed = false): ImageSourcePropType => {
+  // 1. ÖNCE ÖZEL YEREL DEKUPE RESİM VAR MI KONTROL ET (local:la-roche-...)
   const matchedCutout = product.cutoutImageUrl || matchProductCutout(product.brand, product.name);
 
-  if (!imageFailed && matchedCutout) {
-    return localCutoutAssets[matchedCutout] || { uri: matchedCutout };
+  if (matchedCutout && localCutoutAssets[matchedCutout]) {
+    return localCutoutAssets[matchedCutout];
   }
 
-  return fallbackProductAssets[product.category];
+  // 2. EĞER İNTERNET RESMİ HATA VERMEDİYDSE VE OPEN BEAUTY FACTS'TEN GELEN 'imageUrl' VARSA O RESMİ GÖSTER
+  if (!imageFailed && product.imageUrl?.trim()) {
+    return { uri: product.imageUrl.trim() };
+  }
+
+  // 3. HİÇBİRİ YOKSA VEYA İNTERNET RESMİ YÜKLENEMEDİYSE (imageFailed=true) KATEGORİ VARSAYILAN RESMİNİ DÖN
+  return fallbackProductAssets[product.category] || fallbackProductAssets['Diğer'];
 };
