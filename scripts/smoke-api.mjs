@@ -234,6 +234,10 @@ for (const scenario of scenarios) {
       },
     });
     assert(ingredientAnalysis.summary, `Ingredient analysis is empty for ${email}`);
+    assert(
+      Array.isArray(ingredientAnalysis.conflicts),
+      `Ingredient analysis conflicts contract is missing for ${email}`,
+    );
 
     const assistant = await request('/assistant/chat', {
       method: 'POST',
@@ -249,6 +253,34 @@ for (const scenario of scenarios) {
       assistant.summary?.includes(updatedDisplayName),
       `Assistant summary is not personalized with ${updatedDisplayName}`,
     );
+    assert(
+      Array.isArray(assistant.usedContext) && assistant.usedContext.length > 0,
+      `Assistant did not expose the context used for ${email}`,
+    );
+    assert(
+      assistant.usedContext.some((item) => item.type === 'PROFILE'),
+      `Assistant context does not include the profile for ${email}`,
+    );
+    assert(
+      assistant.usedContext.some((item) => item.type === 'SHELF'),
+      `Assistant context does not include the shelf for ${email}`,
+    );
+    assert(
+      Array.isArray(assistant.shelfProducts)
+        && Array.isArray(assistant.missingCategories)
+        && Array.isArray(assistant.routineSteps)
+        && Array.isArray(assistant.safetyWarnings),
+      `Assistant structured decision contract is incomplete for ${email}`,
+    );
+    assert(
+      typeof assistant.fallbackUsed === 'boolean',
+      `Assistant fallback source flag is missing for ${email}`,
+    );
+    if (scenario.expectedMode === 'ROUTINE_CHECK') {
+      assert(assistant.shelfProducts.length > 0, `Routine did not use a shelf product for ${email}`);
+      assert(assistant.routineSteps.length > 0, `Routine steps are missing for ${email}`);
+      assert(assistant.missingCategories.length > 0, `Routine gaps are missing for ${email}`);
+    }
     const assistantHistory = await request('/assistant/history', { headers });
     assert(
       assistantHistory.some((entry) => entry.prompt === scenario.prompt),
@@ -266,6 +298,19 @@ for (const scenario of scenarios) {
       },
     });
     assert(skinAnalysis.logId, `Skin analysis did not create a log for ${email}`);
+    assert(
+      skinAnalysis.comparedToPrevious && typeof skinAnalysis.comparedToPrevious === 'object',
+      `Skin comparison contract is missing for ${email}`,
+    );
+    assert(skinAnalysis.comparisonSummary, `Skin comparison summary is missing for ${email}`);
+    assert(
+      Array.isArray(skinAnalysis.usedContext) && skinAnalysis.usedContext.length > 0,
+      `Skin analysis context is missing for ${email}`,
+    );
+    assert(
+      typeof skinAnalysis.fallbackUsed === 'boolean',
+      `Skin analysis fallback source flag is missing for ${email}`,
+    );
     const skinLogs = await request('/skin-logs', { headers });
     assert(
       skinLogs.some((entry) => entry.id === skinAnalysis.logId),
@@ -306,7 +351,13 @@ for (const scenario of scenarios) {
       suggestedTimeOfDay: ingredientAnalysis.suggestedTimeOfDay,
       assistantIntent: assistant.intentType,
       assistantMode: assistant.mode,
+      assistantContextTypes: assistant.usedContext.map((item) => item.type),
+      assistantFallbackUsed: assistant.fallbackUsed,
+      routineStepCount: assistant.routineSteps.length,
+      missingCategoryCount: assistant.missingCategories.length,
       assistantHistoryCount: assistantHistory.length,
+      skinComparison: skinAnalysis.comparisonSummary,
+      skinAnalysisFallbackUsed: skinAnalysis.fallbackUsed,
       weeklySkinLogCount: weeklySummary.logCount,
       cleanup: 'account, product and skin log deleted',
     });

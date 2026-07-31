@@ -9,6 +9,13 @@ export type ProductIngredientAnalysis = {
   suggestedTimeOfDay: 'morning' | 'evening' | 'both';
   notableIngredients: string[];
   warnings: string[];
+  conflicts: {
+    productId: number;
+    productName: string;
+    trigger: string;
+    severity: 'high' | 'warning';
+    recommendation: string;
+  }[];
 };
 
 export const analyzeProductIngredients = async (product: ProductDraft): Promise<ProductIngredientAnalysis> => {

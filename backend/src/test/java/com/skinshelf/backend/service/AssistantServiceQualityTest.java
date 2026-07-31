@@ -294,6 +294,52 @@ class AssistantServiceQualityTest {
     }
 
     @Test
+    void fallbackRoutineExposesEvidenceMissingStepsAndSeparatesStrongActives() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        Product retinol = product(101L, "Retinol Serum", "Serum", true, "Retinol");
+        Product bha = product(102L, "BHA Tonik", "Tonik", true, "Salicylic Acid");
+
+        stubFallbackContext(user, profile, List.of(retinol, bha));
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Dolabımdan haftalık rutin planı oluşturur musun?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertEquals("WEEKLY_PLAN", response.getMode());
+        assertTrue(response.isFallbackUsed());
+        assertTrue(response.getUsedContext().stream().anyMatch(item -> item.type().equals("PROFILE")));
+        assertTrue(response.getUsedContext().stream().anyMatch(item -> item.type().equals("SHELF")));
+        assertEquals(2, response.getShelfProducts().size());
+        assertEquals(3, response.getMissingCategories().size());
+        assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.period().equals("MONDAY_EVENING")));
+        assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.period().equals("THURSDAY_EVENING")));
+        assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.status().equals("MISSING")));
+        assertTrue(response.getSafetyWarnings().stream().anyMatch(warning -> warning.contains("aynı gece")));
+    }
+
+    @Test
+    void purchaseFallbackNamesMissingCategoryWithoutInventingBrand() {
+        IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
+        AssistantService service = service(knowledgeBase);
+        User user = user();
+        UserProfile profile = profile();
+        stubFallbackContext(user, profile, List.of());
+
+        AssistantChatRequest request = new AssistantChatRequest();
+        request.setMessage("Yeni bir nemlendirici almalı mıyım?");
+        AssistantChatResponse response = service.chat(user, request);
+
+        assertTrue(response.isFallbackUsed());
+        assertTrue(response.getShelfProducts().isEmpty());
+        assertEquals(1, response.getMissingCategories().size());
+        assertTrue(response.getMissingCategories().get(0).startsWith("Nemlendirici"));
+        assertFalse(response.getAiResponse().contains("marka satın al"));
+    }
+
+    @Test
     void clearHistoryDeletesPersistentConversationMemory() {
         IngredientKnowledgeBase knowledgeBase = new IngredientKnowledgeBase();
         AssistantService service = service(knowledgeBase);

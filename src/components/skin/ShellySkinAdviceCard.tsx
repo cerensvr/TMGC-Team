@@ -1,8 +1,19 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertTriangle, Eye, Link2, Lightbulb, Sparkles } from 'lucide-react-native';
-import { SkinAnalysis, SkinChangeLevel } from '../../types';
+import {
+  AlertTriangle,
+  BrainCircuit,
+  Eye,
+  History,
+  Link2,
+  Lightbulb,
+  Minus,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react-native';
+import { SkinAnalysis, SkinChangeLevel, SkinTrend } from '../../types';
 import { colors, fonts, gradients, radius, shadows } from '../../theme';
 import { changeLabels, levelColors, levelLabels } from './skinLabels';
 
@@ -12,6 +23,13 @@ type Props = {
 
 export default function ShellySkinAdviceCard({ analysis }: Props) {
   const changeEntries = Object.entries(analysis.visibleChanges) as [string, SkinChangeLevel][];
+  const comparisonEntries = Object.entries(analysis.comparedToPrevious ?? {}) as [string, SkinTrend][];
+
+  const trendMeta = (trend: SkinTrend) => {
+    if (trend === 'increased') return { label: 'Artmış', color: colors.warning, icon: TrendingUp };
+    if (trend === 'decreased') return { label: 'Azalmış', color: colors.success, icon: TrendingDown };
+    return { label: 'Dengeli', color: colors.inkMuted, icon: Minus };
+  };
 
   return (
     <View style={styles.container}>
@@ -24,6 +42,9 @@ export default function ShellySkinAdviceCard({ analysis }: Props) {
           <Text style={styles.heroTitle}>{analysis.title || "Shelly'nin Yorumu"}</Text>
         </View>
         <Text style={styles.heroText}>{analysis.summary}</Text>
+        <Text style={styles.sourceText}>
+          {analysis.fallbackUsed ? 'Güvenli günlük değerlendirmesi' : 'Gemini görsel analizi + kişisel bağlam'}
+        </Text>
         {analysis.tags.length > 0 && (
           <View style={styles.tagRow}>
             {analysis.tags.map(tag => (
@@ -51,6 +72,51 @@ export default function ShellySkinAdviceCard({ analysis }: Props) {
           </View>
         ))}
       </View>
+
+      {/* Önceki Kayıtla Karşılaştırma */}
+      {analysis.comparisonSummary ? (
+        <View style={[styles.card, styles.comparisonCard]}>
+          <View style={styles.cardHeader}>
+            <History size={16} color={colors.sage} />
+            <Text style={styles.cardTitle}>Önceki Kayda Göre</Text>
+          </View>
+          <Text style={styles.cardText}>{analysis.comparisonSummary}</Text>
+          {comparisonEntries.some(([, trend]) => trend !== 'unknown') && (
+            <View style={styles.trendGrid}>
+              {comparisonEntries
+                .filter(([, trend]) => trend !== 'unknown')
+                .map(([key, trend]) => {
+                  const meta = trendMeta(trend);
+                  const TrendIcon = meta.icon;
+                  return (
+                    <View key={key} style={styles.trendPill}>
+                      <TrendIcon size={12} color={meta.color} />
+                      <Text style={styles.trendLabel}>{changeLabels[key]}</Text>
+                      <Text style={[styles.trendValue, { color: meta.color }]}>{meta.label}</Text>
+                    </View>
+                  );
+                })}
+            </View>
+          )}
+        </View>
+      ) : null}
+
+      {/* Kullanılan Bağlam */}
+      {(analysis.usedContext?.length ?? 0) > 0 && (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <BrainCircuit size={16} color={colors.sage} />
+            <Text style={styles.cardTitle}>Bu Yorumda Kullanılanlar</Text>
+          </View>
+          <View style={styles.contextWrap}>
+            {analysis.usedContext?.map(item => (
+              <View key={item} style={styles.contextPill}>
+                <Text style={styles.contextText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Rutinle Bağlantı */}
       {analysis.routineConnection ? (
@@ -118,6 +184,12 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: 'rgba(255,255,255,0.9)',
   },
+  sourceText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    color: 'rgba(216,195,154,0.9)',
+    marginTop: 9,
+  },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 13 },
   tag: {
     paddingHorizontal: 11,
@@ -140,6 +212,10 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     ...shadows.soft,
   },
+  comparisonCard: {
+    backgroundColor: colors.surfaceSage,
+    borderColor: colors.lineSage,
+  },
   suggestionCard: {
     backgroundColor: colors.successSurface,
     borderColor: '#D3E6D8',
@@ -160,6 +236,28 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.inkSoft,
   },
+  trendGrid: { gap: 6, marginTop: 11 },
+  trendPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  trendLabel: { flex: 1, fontFamily: fonts.sansSemiBold, fontSize: 11.5, color: colors.inkSoft },
+  trendValue: { fontFamily: fonts.sansBold, fontSize: 10.5 },
+  contextWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  contextPill: {
+    backgroundColor: colors.surfaceSage,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.lineSage,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  contextText: { fontFamily: fonts.sansSemiBold, fontSize: 10.5, color: colors.sage },
   changeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

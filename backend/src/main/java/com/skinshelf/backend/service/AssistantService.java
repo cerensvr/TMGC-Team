@@ -3,7 +3,10 @@ package com.skinshelf.backend.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.skinshelf.backend.dto.AssistantChatRequest;
 import com.skinshelf.backend.dto.AssistantChatResponse;
+import com.skinshelf.backend.dto.AssistantContextEvidence;
 import com.skinshelf.backend.dto.AssistantMessageResponse;
+import com.skinshelf.backend.dto.AssistantProductInsight;
+import com.skinshelf.backend.dto.AssistantRoutineStep;
 import com.skinshelf.backend.entity.AssistantMessage;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.SkinLog;
@@ -84,9 +87,11 @@ public class AssistantService {
     }
 
     private AssistantChatResponse buildResponse(User user, String prompt) {
+        ShellyMode mode = shellyPromptService.detectMode(prompt);
+
         // GÜVENLİK FİLTRESİ: Acil durumlarda doğrudan yönlendir
         if (safetyGuard.isRisky(prompt)) {
-            return new AssistantChatResponse(
+            AssistantChatResponse safetyResponse = new AssistantChatResponse(
                     "ISSUE",
                     "Riskli belirti",
                     SafetyGuard.SAFE_REFERRAL_MESSAGE,
@@ -98,9 +103,18 @@ public class AssistantService {
                     "Belirtiler artarsa vakit kaybetme.",
                     "high",
                     List.of("Dermatolog", "Güvenlik"));
+            return safetyResponse.withDecisionDetails(
+                    List.of(new AssistantContextEvidence(
+                            "SAFETY",
+                            "Güvenlik kuralı",
+                            "Ciddi belirti ifadesi algılandığı için ürün önerisi yerine profesyonel destek yönlendirmesi uygulandı.")),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of("Ürün kullanımını durdur ve belirtiler artıyorsa gecikmeden sağlık profesyoneline başvur."),
+                    false);
         }
 
-        ShellyMode mode = shellyPromptService.detectMode(prompt);
         boolean rateLimited = false;
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
 
@@ -127,14 +141,19 @@ public class AssistantService {
                     null,
                     shellyPromptService.buildChatResponseSchema());
             if (result.json().isPresent()) {
-                return parseGeminiResponse(result.json().get(), profile, products, mode, prompt);
+                AssistantChatResponse response = parseGeminiResponse(
+                        result.json().get(), profile, products, mode, prompt);
+                return enrichResponse(
+                        response, profile, products, recentLogs, conversationHistory, prompt, mode, false);
             }
             rateLimited = result.isRateLimited();
         }
 
         AssistantChatResponse fallback = buildFallbackResponse(
                 prompt, mode, profile, products, recentLogs, conversationHistory);
-        return rateLimited ? withBusyNotice(fallback) : fallback;
+        AssistantChatResponse finalFallback = rateLimited ? withBusyNotice(fallback) : fallback;
+        return enrichResponse(
+                finalFallback, profile, products, recentLogs, conversationHistory, prompt, mode, true);
     }
 
     private static final String BUSY_NOTICE = "Shelly şu an çok yoğun; bu, rafına göre hazırlanmış hızlı bir ön değerlendirme. "
@@ -554,6 +573,360 @@ public class AssistantService {
                 blankToNull(warning),
                 riskLevel,
                 tags);
+    }
+
+    private AssistantChatResponse enrichResponse(
+            AssistantChatResponse response,
+            UserProfile profile,
+            List<Product> products,
+            List<SkinLog> recentLogs,
+            List<AssistantMessage> conversationHistory,
+            String prompt,
+            ShellyMode mode,
+            boolean fallbackUsed) {
+        List<String> missingCategories = buildMissingCategories(prompt, mode, products);
+        return response.withDecisionDetails(
+                buildContextEvidence(profile, products, recentLogs, conversationHistory, prompt),
+                buildProductInsights(response, prompt, mode, products),
+                missingCategories,
+                buildRoutineSteps(mode, products),
+                buildSafetyWarnings(response, profile, products),
+                fallbackUsed);
+    }
+
+    private List<AssistantContextEvidence> buildContextEvidence(
+            UserProfile profile,
+            List<Product> products,
+            List<SkinLog> recentLogs,
+            List<AssistantMessage> conversationHistory,
+            String prompt) {
+        List<AssistantContextEvidence> evidence = new ArrayList<>();
+
+        if (profile != null) {
+            List<String> profileSignals = new ArrayList<>();
+            addNonBlank(profileSignals, profile.getSkinTypeGuess());
+            addNonBlank(profileSignals, profile.getMainGoal());
+            addNonBlank(profileSignals, profile.getSensitivity());
+            if (!profileSignals.isEmpty()) {
+                evidence.add(new AssistantContextEvidence(
+                        "PROFILE",
+                        "Cilt profilin",
+                        boundedText(String.join(" • ", profileSignals), 220)));
+            }
+        }
+
+        if (products != null && !products.isEmpty()) {
+            long activeCount = products.stream().filter(this::isRoutineActive).count();
+            evidence.add(new AssistantContextEvidence(
+                    "SHELF",
+                    "Ürün dolabın",
+                    products.size() + " ürün • " + activeCount + " rutinde aktif • "
+                            + boundedText(shelfNames(products), 180)));
+        }
+
+        if (recentLogs != null && !recentLogs.isEmpty()) {
+            String latestSignal = latestSkinLogSignal(recentLogs);
+            String detail = latestSignal.isBlank()
+                    ? recentLogs.size() + " yakın dönem cilt kaydı"
+                    : "Son kayıt: " + latestSignal;
+            evidence.add(new AssistantContextEvidence(
+                    "SKIN_LOG",
+                    "Cilt takip geçmişin",
+                    boundedText(detail, 220)));
+        }
+
+        String rememberedIssue = latestRememberedIssue(conversationHistory);
+        if (!rememberedIssue.isBlank()) {
+            evidence.add(new AssistantContextEvidence(
+                    "MEMORY",
+                    "Sohbet hafızası",
+                    "Önceki konuşmadaki " + rememberedIssue + " bilgisi"));
+        }
+
+        String productContext = products == null ? "" : products.stream()
+                .map(this::productSearchText)
+                .reduce((left, right) -> left + " " + right)
+                .orElse("");
+        List<String> matchedKnowledge = knowledgeBase.matchRules(value(prompt) + " " + productContext)
+                .keySet().stream()
+                .limit(3)
+                .toList();
+        if (!matchedKnowledge.isEmpty()) {
+            evidence.add(new AssistantContextEvidence(
+                    "KNOWLEDGE_BASE",
+                    "İçerik bilgi tabanı",
+                    boundedText(String.join(" • ", matchedKnowledge), 220)));
+        }
+
+        return evidence.stream().limit(5).toList();
+    }
+
+    private List<AssistantProductInsight> buildProductInsights(
+            AssistantChatResponse response,
+            String prompt,
+            ShellyMode mode,
+            List<Product> products) {
+        if (products == null || products.isEmpty()) {
+            return List.of();
+        }
+
+        String responseText = value(response.getAiResponse()) + " "
+                + value(response.getSummary()) + " "
+                + value(response.getReason()) + " "
+                + value(response.getSuggestion()) + " "
+                + value(response.getWarning());
+        String normalizedResponse = responseText.toLowerCase(Locale.forLanguageTag("tr-TR"));
+        List<Product> promptMatches = findRelevantShelfProducts(prompt, products);
+        List<AssistantProductInsight> insights = new ArrayList<>();
+
+        products.stream()
+                .sorted(Comparator.comparingInt(this::routineOrder))
+                .forEach(product -> {
+                    String cleanName = productName(product);
+                    String normalizedName = cleanName.toLowerCase(Locale.forLanguageTag("tr-TR"));
+                    boolean mentioned = normalizedName.length() >= 4 && normalizedResponse.contains(normalizedName);
+                    boolean explicitAvoid = normalizedResponse.contains("kaçın: " + normalizedName)
+                            || normalizedResponse.contains("ara ver") && normalizedResponse.contains(normalizedName);
+                    boolean relevant = mentioned
+                            || promptMatches.contains(product)
+                            || ((mode == ShellyMode.ROUTINE_CHECK || mode == ShellyMode.WEEKLY_PLAN)
+                                    && isRoutineActive(product))
+                            || (mode == ShellyMode.SKIN_REACTION
+                                    && isRoutineActive(product)
+                                    && hasPotentiallyIrritatingActive(product))
+                            || (mode == ShellyMode.INGREDIENT_ANALYSIS
+                                    && product.getActiveIngredients() != null
+                                    && !product.getActiveIngredients().isEmpty());
+
+                    if (!relevant || insights.size() >= 6) {
+                        return;
+                    }
+
+                    String status = explicitAvoid
+                            ? "PAUSE"
+                            : isRoutineActive(product) ? "IN_SHELF_ACTIVE" : "IN_SHELF_INACTIVE";
+                    String reason;
+                    if (explicitAvoid) {
+                        reason = "Yanıttaki güvenlik değerlendirmesi nedeniyle şimdilik ara ver.";
+                    } else if (mentioned || promptMatches.contains(product)) {
+                        reason = "Shelly yanıtında doğrudan değerlendirilen dolap ürünü.";
+                    } else {
+                        reason = value(product.getCategory()) + " adımı olarak aktif rutininde yer alıyor.";
+                    }
+
+                    insights.add(new AssistantProductInsight(
+                            product.getId(),
+                            value(product.getBrand()),
+                            value(product.getName()),
+                            value(product.getCategory()),
+                            status,
+                            normalizeTimeOfDay(product.getTimeOfDay()),
+                            reason));
+                });
+
+        return insights;
+    }
+
+    private List<String> buildMissingCategories(String prompt, ShellyMode mode, List<Product> products) {
+        List<Product> activeProducts = products == null
+                ? List.of()
+                : products.stream().filter(this::isRoutineActive).toList();
+        List<String> missing = new ArrayList<>();
+
+        if (mode == ShellyMode.ROUTINE_CHECK || mode == ShellyMode.WEEKLY_PLAN) {
+            if (!hasProductCategory(activeProducts, "temizley", "cleanser", "cleansing")) {
+                missing.add("Nazik temizleyici — temel temizleme adımı dolabında aktif görünmüyor.");
+            }
+            if (!hasProductCategory(activeProducts, "nemlendir", "moistur", "cream", "krem")) {
+                missing.add("Nemlendirici — bariyer desteği için dolabında aktif bir seçenek görünmüyor.");
+            }
+            if (!hasProductCategory(activeProducts, "güneş", "gunes", "sunscreen", "spf")) {
+                missing.add("Güneş koruyucu (SPF) — gündüz koruma adımı dolabında görünmüyor.");
+            }
+            return missing;
+        }
+
+        if (hasPurchaseIntent(prompt)) {
+            String requestedCategory = inferRequestedCategory(prompt);
+            if (!requestedCategory.isBlank()
+                    && findRelevantShelfProducts(prompt, products == null ? List.of() : products).isEmpty()) {
+                missing.add(requestedCategory + " — dolabında bu ihtiyaca güvenle eşleştirebildiğim bir ürün yok.");
+            }
+        }
+        return missing;
+    }
+
+    private List<AssistantRoutineStep> buildRoutineSteps(ShellyMode mode, List<Product> products) {
+        if (mode != ShellyMode.ROUTINE_CHECK && mode != ShellyMode.WEEKLY_PLAN) {
+            return List.of();
+        }
+
+        List<Product> activeProducts = products == null
+                ? List.of()
+                : products.stream()
+                        .filter(this::isRoutineActive)
+                        .sorted(Comparator.comparingInt(this::routineOrder))
+                        .toList();
+        String productContext = activeProducts.stream()
+                .map(this::productSearchText)
+                .reduce((left, right) -> left + " " + right)
+                .orElse("");
+        boolean splitStrongActives = hasStrongActiveConflict(productContext);
+        List<AssistantRoutineStep> steps = new ArrayList<>();
+        Map<String, Integer> periodOrder = new LinkedHashMap<>();
+
+        for (Product product : activeProducts) {
+            for (String period : routinePeriods(product, mode, splitStrongActives)) {
+                int order = periodOrder.merge(period, 1, Integer::sum);
+                steps.add(new AssistantRoutineStep(
+                        period,
+                        order,
+                        product.getId(),
+                        productName(product),
+                        "IN_SHELF",
+                        routineInstruction(product, period)));
+            }
+        }
+
+        if (!hasProductCategory(activeProducts, "temizley", "cleanser", "cleansing")) {
+            addMissingRoutineStep(steps, periodOrder, "MORNING", "Nazik temizleyici", "Temel temizleme adımı eksik.");
+            addMissingRoutineStep(steps, periodOrder, "EVENING", "Nazik temizleyici", "Gün sonu temizleme adımı eksik.");
+        }
+        if (!hasProductCategory(activeProducts, "nemlendir", "moistur", "cream", "krem")) {
+            addMissingRoutineStep(steps, periodOrder, "MORNING", "Nemlendirici", "Bariyer desteği adımı eksik.");
+            addMissingRoutineStep(steps, periodOrder, "EVENING", "Nemlendirici", "Aktiflerden sonra nem desteği eksik.");
+        }
+        if (!hasProductCategory(activeProducts, "güneş", "gunes", "sunscreen", "spf")) {
+            addMissingRoutineStep(steps, periodOrder, "MORNING", "Güneş koruyucu (SPF)", "Sabah rutininin son koruma adımı eksik.");
+        }
+
+        return steps.stream().limit(14).toList();
+    }
+
+    private List<String> buildSafetyWarnings(
+            AssistantChatResponse response,
+            UserProfile profile,
+            List<Product> products) {
+        List<String> warnings = new ArrayList<>();
+        String productContext = products == null ? "" : products.stream()
+                .map(this::productSearchText)
+                .reduce((left, right) -> left + " " + right)
+                .orElse("");
+
+        if (hasStrongActiveConflict(productContext)) {
+            warnings.add("Retinoid ile AHA/BHA veya benzoil peroksit içeren ürünleri aynı gece üst üste kullanma; farklı gecelere dağıt.");
+        }
+        if (profile != null && Boolean.TRUE.equals(profile.getPregnant())
+                && matchesAny(productContext, List.of("retinol", "retinal", "retinoid", "tretinoin"))) {
+            warnings.add("Profilindeki gebelik bilgisi nedeniyle retinoid içeren ürünleri kullanmadan önce sağlık profesyoneline danış.");
+        }
+        if (profile != null && profile.getAllergens() != null) {
+            for (String allergen : profile.getAllergens()) {
+                String normalized = value(allergen).toLowerCase(Locale.forLanguageTag("tr-TR"));
+                if (!normalized.isBlank() && productContext.contains(normalized)) {
+                    warnings.add("Alerjen profilindeki " + allergen
+                            + " dolabındaki bir ürünün içerik bilgisinde geçiyor; kullanmadan önce tam INCI listesini doğrula.");
+                }
+            }
+        }
+        if ("high".equals(response.getRiskLevel()) && value(response.getWarning()).isBlank()) {
+            warnings.add("Belirti hızla artarsa uygulama önerisiyle yetinme ve sağlık profesyoneline başvur.");
+        }
+        return warnings.stream().distinct().limit(4).toList();
+    }
+
+    private void addMissingRoutineStep(
+            List<AssistantRoutineStep> steps,
+            Map<String, Integer> periodOrder,
+            String period,
+            String label,
+            String instruction) {
+        int order = periodOrder.merge(period, 1, Integer::sum);
+        steps.add(new AssistantRoutineStep(period, order, null, label, "MISSING", instruction));
+    }
+
+    private List<String> routinePeriods(Product product, ShellyMode mode, boolean splitStrongActives) {
+        String text = productSearchText(product);
+        boolean retinoid = matchesAny(text, List.of("retinol", "retinal", "retinoid", "tretinoin"));
+        boolean acid = matchesAny(text, List.of(
+                "aha", "bha", "salicylic", "salisilik", "glycolic", "glikolik",
+                "lactic", "laktik", "mandelic", "benzoyl", "benzoil", "peeling"));
+        if (splitStrongActives && retinoid) {
+            return List.of(mode == ShellyMode.WEEKLY_PLAN ? "MONDAY_EVENING" : "ALTERNATE_EVENING");
+        }
+        if (splitStrongActives && acid) {
+            return List.of(mode == ShellyMode.WEEKLY_PLAN ? "THURSDAY_EVENING" : "OTHER_EVENING");
+        }
+
+        String time = normalizeTimeOfDay(product.getTimeOfDay());
+        if ("MORNING".equals(time)) {
+            return List.of("MORNING");
+        }
+        if ("EVENING".equals(time) || retinoid || acid) {
+            return List.of("EVENING");
+        }
+        if (hasProductCategory(List.of(product), "güneş", "gunes", "sunscreen", "spf")) {
+            return List.of("MORNING");
+        }
+        return List.of("MORNING", "EVENING");
+    }
+
+    private String routineInstruction(Product product, String period) {
+        String text = productSearchText(product);
+        if (matchesAny(text, List.of("temizley", "cleanser", "cleansing"))) {
+            return "Rutinin ilk adımında nazikçe temizle.";
+        }
+        if (matchesAny(text, List.of("güneş", "gunes", "sunscreen", "spf"))) {
+            return "Sabah rutininin son adımı olarak uygula.";
+        }
+        if (matchesAny(text, List.of("nemlendir", "moistur", "cream", "krem", "ceramide", "seramid"))) {
+            return "Aktiflerden sonra bariyer desteği için uygula.";
+        }
+        if (period.contains("MONDAY") || period.contains("ALTERNATE")) {
+            return "Tek güçlü aktif olarak planlanan gecede kullan; toleransını izle.";
+        }
+        if (period.contains("THURSDAY") || period.contains("OTHER")) {
+            return "Diğer güçlü aktiften ayrı bir gecede kullan.";
+        }
+        return "İnce yapıdan yoğun yapıya doğru uygula.";
+    }
+
+    private int routineOrder(Product product) {
+        String text = productSearchText(product);
+        if (matchesAny(text, List.of("temizley", "cleanser", "cleansing"))) return 10;
+        if (matchesAny(text, List.of("tonik", "toner", "essence"))) return 20;
+        if (matchesAny(text, List.of("serum", "retinol", "aha", "bha", "acid", "asit"))) return 30;
+        if (matchesAny(text, List.of("nemlendir", "moistur", "cream", "krem"))) return 40;
+        if (matchesAny(text, List.of("güneş", "gunes", "sunscreen", "spf"))) return 50;
+        return 35;
+    }
+
+    private boolean hasProductCategory(List<Product> products, String... terms) {
+        return products.stream().map(this::productSearchText).anyMatch(text -> containsAny(text, terms));
+    }
+
+    private String inferRequestedCategory(String prompt) {
+        String normalized = value(prompt).toLowerCase(Locale.forLanguageTag("tr-TR"));
+        if (containsAny(normalized, "nemlendirici", "nem kremi", "bariyer kremi")) return "Nemlendirici";
+        if (containsAny(normalized, "güneş kremi", "gunes kremi", "spf")) return "Güneş koruyucu";
+        if (containsAny(normalized, "temizleyici", "yüz yıkama", "yuz yikama")) return "Temizleyici";
+        if (containsAny(normalized, "serum", "aktif")) return "Serum / aktif bakım";
+        return "";
+    }
+
+    private String normalizeTimeOfDay(String value) {
+        String normalized = value(value).toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "morning", "sabah" -> "MORNING";
+            case "evening", "akşam", "aksam" -> "EVENING";
+            default -> "BOTH";
+        };
+    }
+
+    private void addNonBlank(List<String> target, String value) {
+        if (value != null && !value.isBlank()) {
+            target.add(value.trim());
+        }
     }
 
     private String productSearchText(Product product) {

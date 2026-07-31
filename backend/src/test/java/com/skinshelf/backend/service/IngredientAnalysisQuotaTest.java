@@ -2,6 +2,7 @@ package com.skinshelf.backend.service;
 
 import com.skinshelf.backend.dto.IngredientAnalysisRequest;
 import com.skinshelf.backend.dto.IngredientAnalysisResponse;
+import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.User;
 import com.skinshelf.backend.repository.ProductRepository;
 import com.skinshelf.backend.repository.UserProfileRepository;
@@ -50,6 +51,41 @@ class IngredientAnalysisQuotaTest {
 
         assertEquals("evening", response.getSuggestedTimeOfDay());
         assertTrue(response.getNotableIngredients().contains("Salicylic Acid"));
+        verifyNoInteractions(geminiApiClient);
+    }
+
+    @Test
+    void localAnalysisReturnsExactShelfConflictAndSaferSchedule() {
+        IngredientAnalysisService service = new IngredientAnalysisService(
+                geminiApiClient,
+                productRepository,
+                userProfileRepository,
+                new IngredientKnowledgeBase());
+
+        User user = new User();
+        user.setId(13L);
+        Product retinol = new Product();
+        retinol.setId(88L);
+        retinol.setBrand("SkinShelf");
+        retinol.setName("Retinol Serum");
+        retinol.setCategory("Serum");
+        retinol.setTimeOfDay("evening");
+        retinol.setActiveIngredients(List.of("Retinol"));
+
+        when(userProfileRepository.findByUserId(13L)).thenReturn(Optional.empty());
+        when(productRepository.findByUserIdOrderByCreatedAtDesc(13L)).thenReturn(List.of(retinol));
+
+        IngredientAnalysisRequest request = new IngredientAnalysisRequest();
+        request.setName("BHA Tonik");
+        request.setCategory("Tonik");
+        request.setActiveIngredients(List.of("Salicylic Acid"));
+
+        IngredientAnalysisResponse response = service.analyze(user, request);
+
+        assertEquals(1, response.getConflicts().size());
+        assertEquals(88L, response.getConflicts().get(0).productId());
+        assertEquals("Retinoid + AHA/BHA", response.getConflicts().get(0).trigger());
+        assertTrue(response.getConflicts().get(0).recommendation().contains("farklı gecelere"));
         verifyNoInteractions(geminiApiClient);
     }
 }

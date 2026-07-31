@@ -19,5 +19,10 @@ public class SkinAnalysisResponse {
     private String warning;
     private String riskLevel;
     private List<String> tags;
+    /** Önceki kayıtla karşılaştırma: increased|decreased|stable|unknown. */
+    private Map<String, String> comparedToPrevious;
+    private String comparisonSummary;
+    private List<String> usedContext;
+    private boolean fallbackUsed;
     private String createdAt;
 }

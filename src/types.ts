@@ -63,6 +63,10 @@ export type SkinAnalysis = {
   warning: string;
   riskLevel: 'low' | 'medium' | 'high';
   tags: string[];
+  comparedToPrevious?: Record<keyof SkinVisibleChanges, SkinTrend>;
+  comparisonSummary?: string;
+  usedContext?: string[];
+  fallbackUsed?: boolean;
   createdAt: string | null;
 };
 
@@ -110,6 +114,37 @@ export type ShellyStructuredResponse = {
   warning: string | null;
   riskLevel: 'low' | 'medium' | 'high';
   tags: string[];
+  usedContext: ShellyContextEvidence[];
+  shelfProducts: ShellyProductInsight[];
+  missingCategories: string[];
+  routineSteps: ShellyRoutineStep[];
+  safetyWarnings: string[];
+  fallbackUsed: boolean;
+};
+
+export type ShellyContextEvidence = {
+  type: 'PROFILE' | 'SHELF' | 'SKIN_LOG' | 'MEMORY' | 'KNOWLEDGE_BASE' | 'SAFETY' | string;
+  label: string;
+  detail: string;
+};
+
+export type ShellyProductInsight = {
+  productId: number;
+  brand: string;
+  productName: string;
+  category: string;
+  status: 'IN_SHELF_ACTIVE' | 'IN_SHELF_INACTIVE' | 'PAUSE' | string;
+  timeOfDay: 'MORNING' | 'EVENING' | 'BOTH' | string;
+  reason: string;
+};
+
+export type ShellyRoutineStep = {
+  period: 'MORNING' | 'EVENING' | 'MONDAY_EVENING' | 'THURSDAY_EVENING' | 'ALTERNATE_EVENING' | 'OTHER_EVENING' | string;
+  order: number;
+  productId: number | null;
+  productName: string;
+  status: 'IN_SHELF' | 'MISSING' | string;
+  instruction: string;
 };
 
 export type GeminiBotResponse = {
