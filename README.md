@@ -14,15 +14,15 @@
 
 SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shelly'nin ise bu rafı, cilt profilini, içerikleri ve rutin geçmişini birlikte yorumladığı AI destekli mobil cilt bakım dolabıdır.
 
-| Değerlendirme başlığı | Kanıt |
-| --- | --- |
-| Çalışan mobil ürün | [Sprint 2 canlı Android ekranları](Project_Management_Files/Sprint_2/Product_Screenshots) |
+| Değerlendirme başlığı   | Kanıt                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Çalışan mobil ürün      | [Sprint 2 canlı Android ekranları](Project_Management_Files/Sprint_2/Product_Screenshots)                                                                                                                                                                                                                                                                             |
 | Kurulabilir Android APK | [SkinShelf 1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25), [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
-| Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
-| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
-| Scrum/board kanıtı | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
-| Teknik kalite | [GitHub Actions kalite kontrolü](.github/workflows/quality-check.yml), [test doğrulama](Project_Management_Files/Sprint_2/Test_and_Verification.md) |
-| Final demo akışı | [Sprint 3 final hazırlık kontrolü](Project_Management_Files/Sprint_3/Final_Readiness.md) |
+| Fullstack mimari        | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini                                                                                                                                                                                                                                                                                                        |
+| AI farkı                | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md)                                                                                                                                                                                                                                                                               |
+| Scrum/board kanıtı      | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md)                                                                                                                                                                                                              |
+| Teknik kalite           | [GitHub Actions kalite kontrolü](.github/workflows/quality-check.yml), [test doğrulama](Project_Management_Files/Sprint_2/Test_and_Verification.md)                                                                                                                                                                                                                   |
+| Final demo akışı        | [Sprint 3 final hazırlık kontrolü](Project_Management_Files/Sprint_3/Final_Readiness.md)                                                                                                                                                                                                                                                                              |
 
 **Rakiplerden ayrışan taraf:** SkinShelf yalnızca sohbet eden bir AI ekranı değildir. Ürün dolabı, ürün içerikleri, aktif/pasif rutin seçimi, haftalık rutin planı, cilt takibi ve Shelly yorumları aynı veri akışına bağlanmıştır. Bu nedenle demo sırasında bir ürünün dolaptaki durumu değiştiğinde rutin ve Shelly bağlamı da anlamlı şekilde değişir.
 
@@ -238,11 +238,11 @@ Proje yönetimi dosyaları sprint bazlı olarak [Project_Management_Files](Proje
 
 <img src="Project_Management_Files/General_Documents/sprints-overview.svg" width="720">
 
-| Sprint   | Durum      | Odak                                                                                    | Kanıt                                         |
-| -------- | ---------- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Sprint 1 | Tamamlandı | Mobil prototip, temel ekranlar, ürün dolabı, AI/tarama demo akışı, Scrum dokümantasyonu | [Sprint_1](Project_Management_Files/Sprint_1) |
-| Sprint 2 | Tamamlandı | Backend, database, Open Beauty Facts barkod akışı, Gemini AI analiz servisleri          | [Sprint_2](Project_Management_Files/Sprint_2) |
-| Sprint 3 | Devam Ediyor | Gelişmiş rutin önerileri, analiz geçmişi, bildirimler, final demo ve testler          | [Sprint_3](Project_Management_Files/Sprint_3) |
+| Sprint   | Durum        | Odak                                                                                    | Kanıt                                         |
+| -------- | ------------ | --------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Sprint 1 | Tamamlandı   | Mobil prototip, temel ekranlar, ürün dolabı, AI/tarama demo akışı, Scrum dokümantasyonu | [Sprint_1](Project_Management_Files/Sprint_1) |
+| Sprint 2 | Tamamlandı   | Backend, database, Open Beauty Facts barkod akışı, Gemini AI analiz servisleri          | [Sprint_2](Project_Management_Files/Sprint_2) |
+| Sprint 3 | Devam Ediyor | Gelişmiş rutin önerileri, analiz geçmişi, bildirimler, final demo ve testler            | [Sprint_3](Project_Management_Files/Sprint_3) |
 
 Sprint 1 kanıt indeksi: [Project_Management_Files/Sprint_1/README.md](Project_Management_Files/Sprint_1/README.md)
 
@@ -480,19 +480,19 @@ Sprint 2 plan dosyası: [Project_Management_Files/Sprint_2/README.md](Project_Ma
 
 Sprint 2 kanit dosyalari:
 
-| Kanit | Dosya |
-| --- | --- |
-| Story point dagilimi | [sprint2-story-points.md](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
-| Board ve backlog takibi | [Sprint_Board](Project_Management_Files/Sprint_2/Sprint_Board) |
-| Daily scrum | [Daily_Scrum](Project_Management_Files/Sprint_2/Daily_Scrum) |
-| Burndown / tamamlanma grafigi | [Burndown_Chart](Project_Management_Files/Sprint_2/Burndown_Chart) |
-| Backend API ve entegrasyon | [Backend_API](Project_Management_Files/Sprint_2/Backend_API) |
-| Sistem mimarisi | [System_Design](Project_Management_Files/Sprint_2/System_Design) |
-| Shelly AI kanıt senaryoları | [Shelly_AI_Scenarios.md](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
-| Urun durumu ve ekran akislari | [Product_Screenshots](Project_Management_Files/Sprint_2/Product_Screenshots) |
-| Review ve retrospective | [Review_and_Retrospective](Project_Management_Files/Sprint_2/Review_and_Retrospective) |
-| Test dogrulama | [Test_and_Verification.md](Project_Management_Files/Sprint_2/Test_and_Verification.md), [smoke-api-result.json](Project_Management_Files/Sprint_2/Backend_API/smoke-api-result.json) |
-| Sprint 2 demo hazirligi | [Jury_Readiness.md](Project_Management_Files/Sprint_2/Jury_Readiness.md) |
+| Kanit                         | Dosya                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Story point dagilimi          | [sprint2-story-points.md](Project_Management_Files/Sprint_2/sprint2-story-points.md)                                                                                                 |
+| Board ve backlog takibi       | [Sprint_Board](Project_Management_Files/Sprint_2/Sprint_Board)                                                                                                                       |
+| Daily scrum                   | [Daily_Scrum](Project_Management_Files/Sprint_2/Daily_Scrum)                                                                                                                         |
+| Burndown / tamamlanma grafigi | [Burndown_Chart](Project_Management_Files/Sprint_2/Burndown_Chart)                                                                                                                   |
+| Backend API ve entegrasyon    | [Backend_API](Project_Management_Files/Sprint_2/Backend_API)                                                                                                                         |
+| Sistem mimarisi               | [System_Design](Project_Management_Files/Sprint_2/System_Design)                                                                                                                     |
+| Shelly AI kanıt senaryoları   | [Shelly_AI_Scenarios.md](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md)                                                                                                   |
+| Urun durumu ve ekran akislari | [Product_Screenshots](Project_Management_Files/Sprint_2/Product_Screenshots)                                                                                                         |
+| Review ve retrospective       | [Review_and_Retrospective](Project_Management_Files/Sprint_2/Review_and_Retrospective)                                                                                               |
+| Test dogrulama                | [Test_and_Verification.md](Project_Management_Files/Sprint_2/Test_and_Verification.md), [smoke-api-result.json](Project_Management_Files/Sprint_2/Backend_API/smoke-api-result.json) |
+| Sprint 2 demo hazirligi       | [Jury_Readiness.md](Project_Management_Files/Sprint_2/Jury_Readiness.md)                                                                                                             |
 
 ## Sprint Notları
 
@@ -569,24 +569,24 @@ Sprint 2 sonunda uygulama; gerçek veritabanı bağlantısı olan, yapay zekâ a
 
 Bu ekranlar 20 Temmuz 2026'da Android emulator uzerinde, Spring Boot API ve Supabase baglantisi acikken alinmistir. Giris akisi smoke test kullanicisiyle dogrulanmis, Dolabim ve Rutinim ekranlari backend verisiyle render edilmiştir.
 
-| Welcome | Login | Dolabım | Rutinim |
-| --- | --- | --- | --- |
+| Welcome                                                                                                     | Login                                                                                                          | Dolabım                                                                                                     | Rutinim                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-current.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-login-form.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-dolabim.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-rutinim.png" width="180"> |
 
-| Shelly | Cilt Takibi | Profil |
-| --- | --- | --- |
+| Shelly                                                                                                     | Cilt Takibi                                                                                                       | Profil                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-shelly.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-skin-tracking.png" width="180"> | <img src="Project_Management_Files/Sprint_2/Product_Screenshots/live/android-live-profile.png" width="180"> |
 
 ### Sprint 2 Shelly AI Değer Kanıtı
 
 Shelly, Sprint 2 sonunda kullanıcının rafındaki gerçek ürünleri, cilt profilini ve aktif içerik risklerini birlikte değerlendiren bir danışman akışına taşınmıştır.
 
-| Senaryo | Beklenen değer |
-| --- | --- |
-| `Bugünkü rutinim ağır mı?` | Dolaptaki ürünlere göre sabah/akşam rutinin yoğunluğunu yorumlar. |
-| `Bu iki ürün birlikte kullanılır mı?` | Retinol, BHA/peeling ve benzeri aktifleri aynı geceye yığmadan plan önerir. |
-| `Cildim kızardı ve tepki verdi` | Tanı koymadan rutini sadeleştirir ve ciddi belirti sınırında profesyonel destek yönlendirmesi yapar. |
-| Raf boşken rutin isteme | Marka/ürün uydurmaz; önce ürün ekleme ve temel kategori rutini önerir. |
+| Senaryo                               | Beklenen değer                                                                                       |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `Bugünkü rutinim ağır mı?`            | Dolaptaki ürünlere göre sabah/akşam rutinin yoğunluğunu yorumlar.                                    |
+| `Bu iki ürün birlikte kullanılır mı?` | Retinol, BHA/peeling ve benzeri aktifleri aynı geceye yığmadan plan önerir.                          |
+| `Cildim kızardı ve tepki verdi`       | Tanı koymadan rutini sadeleştirir ve ciddi belirti sınırında profesyonel destek yönlendirmesi yapar. |
+| Raf boşken rutin isteme               | Marka/ürün uydurmaz; önce ürün ekleme ve temel kategori rutini önerir.                               |
 
 Detaylı demo senaryoları: [Shelly_AI_Scenarios.md](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md)
 
@@ -611,14 +611,14 @@ Kullanıcı kamerayla bir ürün tarattığında, harici API ürün içeriğini 
 
 Sprint 2 sonunda kod yapısı; mobil ekranlar, context state, client servisleri, Spring controller/service/repository katmanları ve Supabase migration dosyaları olarak ayrılmıştır. Bu yapı, örnek repolardaki ürün kanıtlarına ek olarak teknik değerlendirmede de projenin okunabilir ve sürdürülebilir görünmesini sağlar.
 
-| Katman | Dosya/Klasor | Sorumluluk |
-| --- | --- | --- |
-| Mobile screens | `src/screens` | Kullanıcı akışları ve ekran state'i |
-| Context | `src/context` | Kullanıcı profili ve ürün dolabı state yönetimi |
-| Client services | `src/services`, `src/api` | Auth, product, assistant, skin analysis ve Open Beauty Facts istekleri |
-| Backend controllers | `backend/src/main/java/com/skinshelf/backend/controller` | HTTP endpoint sözleşmeleri |
-| Backend services | `backend/src/main/java/com/skinshelf/backend/service` | İş kuralları, AI enrichment, guardrail ve analiz mantığı |
-| Persistence | `backend/src/main/java/com/skinshelf/backend/repository`, `backend/src/main/resources/db/migration` | Supabase PostgreSQL veri erişimi ve migration |
+| Katman              | Dosya/Klasor                                                                                        | Sorumluluk                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Mobile screens      | `src/screens`                                                                                       | Kullanıcı akışları ve ekran state'i                                    |
+| Context             | `src/context`                                                                                       | Kullanıcı profili ve ürün dolabı state yönetimi                        |
+| Client services     | `src/services`, `src/api`                                                                           | Auth, product, assistant, skin analysis ve Open Beauty Facts istekleri |
+| Backend controllers | `backend/src/main/java/com/skinshelf/backend/controller`                                            | HTTP endpoint sözleşmeleri                                             |
+| Backend services    | `backend/src/main/java/com/skinshelf/backend/service`                                               | İş kuralları, AI enrichment, guardrail ve analiz mantığı               |
+| Persistence         | `backend/src/main/java/com/skinshelf/backend/repository`, `backend/src/main/resources/db/migration` | Supabase PostgreSQL veri erişimi ve migration                          |
 
 ---
 
