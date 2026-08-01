@@ -2,20 +2,13 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   AlertTriangle,
-  BookOpenCheck,
-  BrainCircuit,
   CalendarDays,
-  CheckCircle2,
-  History,
   Lightbulb,
   Moon,
-  PackageCheck,
   PackagePlus,
-  PauseCircle,
   Sun,
-  UserRound,
 } from 'lucide-react-native';
-import { ShellyContextEvidence, ShellyRoutineStep, ShellyStructuredResponse } from '../types';
+import { ShellyRoutineStep, ShellyStructuredResponse } from '../types';
 import { colors, fonts, radius, shadows } from '../theme';
 import ShellyIcon from './ShellyIcon';
 
@@ -35,14 +28,6 @@ type Props = {
   response: ShellyStructuredResponse;
 };
 
-const ContextIcon = ({ type }: { type: ShellyContextEvidence['type'] }) => {
-  if (type === 'PROFILE') return <UserRound size={14} color={colors.sage} />;
-  if (type === 'SHELF') return <PackageCheck size={14} color={colors.sage} />;
-  if (type === 'SKIN_LOG' || type === 'MEMORY') return <History size={14} color={colors.sage} />;
-  if (type === 'KNOWLEDGE_BASE') return <BookOpenCheck size={14} color={colors.sage} />;
-  return <BrainCircuit size={14} color={colors.sage} />;
-};
-
 const PeriodIcon = ({ period }: { period: string }) =>
   period === 'MORNING' ? (
     <Sun size={15} color={colors.warning} />
@@ -54,8 +39,6 @@ const PeriodIcon = ({ period }: { period: string }) =>
 
 /** Shelly'nin doğrulanmış bağlamını, dolap kararlarını ve uygulanabilir rutinini gösterir. */
 export default function ShellyAdviceCard({ response }: Props) {
-  const usedContext = response.usedContext ?? [];
-  const shelfProducts = response.shelfProducts ?? [];
   const missingCategories = response.missingCategories ?? [];
   const routineSteps = response.routineSteps ?? [];
   const safetyWarnings = response.safetyWarnings ?? [];
@@ -85,59 +68,11 @@ export default function ShellyAdviceCard({ response }: Props) {
       <Text style={styles.summary}>{response.summary}</Text>
       {response.reason ? <Text style={styles.reason}>{response.reason}</Text> : null}
 
-      {usedContext.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <BrainCircuit size={15} color={colors.forest} />
-            <Text style={styles.sectionTitle}>Bu öneriyi neden verdim?</Text>
-          </View>
-          <View style={styles.contextList}>
-            {usedContext.map((item, index) => (
-              <View key={`${item.type}-${item.label}-${index}`} style={styles.contextRow}>
-                <View style={styles.contextIcon}>
-                  <ContextIcon type={item.type} />
-                </View>
-                <View style={styles.contextTextWrap}>
-                  <Text style={styles.contextLabel}>{item.label}</Text>
-                  <Text style={styles.contextDetail}>{item.detail}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      {/* "BU ÖNERİYİ NEDEN VERDİM" SİLİNDİ */}
 
-      {shelfProducts.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <PackageCheck size={15} color={colors.forest} />
-            <Text style={styles.sectionTitle}>Dolabından değerlendirdiklerim</Text>
-          </View>
-          {shelfProducts.map(product => {
-            const paused = product.status === 'PAUSE';
-            const inactive = product.status === 'IN_SHELF_INACTIVE';
-            return (
-              <View key={product.productId} style={styles.productRow}>
-                {paused ? (
-                  <PauseCircle size={16} color={colors.danger} />
-                ) : (
-                  <CheckCircle2 size={16} color={inactive ? colors.warning : colors.success} />
-                )}
-                <View style={styles.productTextWrap}>
-                  <Text style={styles.productName}>{[product.brand, product.productName].filter(Boolean).join(' ')}</Text>
-                  <Text style={styles.productReason}>{product.reason}</Text>
-                </View>
-                <View style={[styles.statusPill, paused && styles.statusPillDanger, inactive && styles.statusPillWarning]}>
-                  <Text style={[styles.statusText, paused && styles.statusTextDanger, inactive && styles.statusTextWarning]}>
-                    {paused ? 'Ara ver' : inactive ? 'Pasif' : 'Dolabında'}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
+      {/* "DOLABINDAN DEĞERLENDİRDİKLERİM" SİLİNDİ */}
 
+      {/* Dolabında Eksik Görünenler (Gerekirse kalsın diye bırakıldı) */}
       {missingCategories.length > 0 && (
         <View style={[styles.section, styles.missingSection]}>
           <View style={styles.sectionHeader}>
@@ -151,6 +86,7 @@ export default function ShellyAdviceCard({ response }: Props) {
         </View>
       )}
 
+      {/* Uygulanabilir Rutin Planı */}
       {Object.keys(routineGroups).length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -184,6 +120,7 @@ export default function ShellyAdviceCard({ response }: Props) {
         </View>
       )}
 
+      {/* Sonraki Adım */}
       {response.suggestion ? (
         <View style={styles.suggestionRow}>
           <Lightbulb size={15} color={colors.success} style={styles.rowIcon} />
@@ -194,6 +131,7 @@ export default function ShellyAdviceCard({ response }: Props) {
         </View>
       ) : null}
 
+      {/* Dikkat Mesajları */}
       {warnings.map((warning, index) => (
         <View key={`${warning}-${index}`} style={styles.warningRow}>
           <AlertTriangle size={15} color={colors.danger} style={styles.rowIcon} />
@@ -204,15 +142,7 @@ export default function ShellyAdviceCard({ response }: Props) {
         </View>
       ))}
 
-      {response.tags.length > 0 && (
-        <View style={styles.tagRow}>
-          {response.tags.map(tag => (
-            <View key={tag} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      {/* EN ALTTAKİ YAZI KUTUCUKLARI (TAGS) SİLİNDİ */}
     </View>
   );
 }
@@ -236,7 +166,6 @@ const styles = StyleSheet.create({
   },
   titleWrap: { flex: 1 },
   title: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.ink },
-  sourceText: { fontFamily: fonts.sansSemiBold, fontSize: 9.5, color: colors.inkMuted, marginTop: 2 },
   riskPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,29 +187,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 9 },
   sectionTitle: { fontFamily: fonts.sansBold, fontSize: 12.5, color: colors.forest },
-  contextList: { gap: 8 },
-  contextRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  contextIcon: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceSage,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contextTextWrap: { flex: 1 },
-  contextLabel: { fontFamily: fonts.sansBold, fontSize: 11.5, color: colors.inkSoft },
-  contextDetail: { fontFamily: fonts.sans, fontSize: 11, lineHeight: 16, color: colors.inkMuted, marginTop: 1 },
-  productRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 7 },
-  productTextWrap: { flex: 1 },
-  productName: { fontFamily: fonts.sansBold, fontSize: 11.5, color: colors.ink },
-  productReason: { fontFamily: fonts.sans, fontSize: 10.5, lineHeight: 15, color: colors.inkMuted, marginTop: 2 },
-  statusPill: { backgroundColor: colors.successSurface, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
-  statusPillDanger: { backgroundColor: colors.dangerSurface },
-  statusPillWarning: { backgroundColor: colors.warningSurface },
-  statusText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.success },
-  statusTextDanger: { color: colors.danger },
-  statusTextWarning: { color: colors.warning },
   missingSection: { backgroundColor: colors.warningSurface, marginHorizontal: -5, paddingHorizontal: 10, paddingBottom: 10, borderRadius: radius.md },
   missingText: { fontFamily: fonts.sansSemiBold, fontSize: 11, lineHeight: 17, color: colors.inkSoft, marginBottom: 3 },
   missingNote: { fontFamily: fonts.sans, fontSize: 9.5, color: colors.inkMuted, marginTop: 5 },
@@ -303,7 +209,4 @@ const styles = StyleSheet.create({
   calloutLabel: { fontFamily: fonts.sansBold, fontSize: 10.5, color: colors.success, marginBottom: 2 },
   suggestionText: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 17, color: colors.inkSoft },
   warningText: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 17, color: colors.inkSoft },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 11 },
-  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.line },
-  tagText: { fontFamily: fonts.sansBold, fontSize: 10.5, color: colors.sage },
 });

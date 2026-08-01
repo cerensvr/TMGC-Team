@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, ArrowRight, Camera, Check, PenLine, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, PenLine, Sparkles, X } from 'lucide-react-native';
 import { ProductDraft, RootStackParamList } from '../types';
 import { useUser } from '../context/UserContext';
 import { userService } from '../services/userService';
@@ -162,6 +162,9 @@ export default function OnboardingScreen({ navigation }: Props) {
   const route = useRoute<any>();
   const userId = route.params?.userId || authService.getUserId();
 
+  // SCROLLVIEW REF EKLEDİK
+  const scrollViewRef = useRef<ScrollView>(null);
+
   const [step, setStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -171,7 +174,16 @@ export default function OnboardingScreen({ navigation }: Props) {
   const [skinFeel, setSkinFeel] = useState(profile.skinFeel || '');
   const [postWashFeel, setPostWashFeel] = useState(profile.postWashFeel || '');
   const [productFitIntent, setProductFitIntent] = useState(profile.productFitIntent || '');
-  const [mainGoal, setMainGoal] = useState(profile.mainGoal || '');
+  
+  // MAIN GOAL ARTIK ÇOKLU SEÇİM (STRING DIZISI)
+  const [mainGoalsSelected, setMainGoalsSelected] = useState<string[]>(
+    Array.isArray(profile.mainGoal)
+      ? profile.mainGoal
+      : profile.mainGoal
+      ? [profile.mainGoal]
+      : []
+  );
+
   const [sensitivityLevel, setSensitivityLevel] = useState(profile.sensitivityLevel || '');
   const [reactionHistory, setReactionHistory] = useState(profile.reactionHistory || '');
   const [currentRoutine, setCurrentRoutine] = useState<string[]>(profile.currentRoutine || []);
@@ -183,11 +195,56 @@ export default function OnboardingScreen({ navigation }: Props) {
     profile.reminderPreferences || []
   );
 
+  // ADIM (STEP) DEĞİŞTİĞİNDE EKRANI OTOMATİK EN ÜSTE KAYDIRAN EFFECT
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, [step]);
+
   const inferredSkinType = useMemo(
     () => inferSkinType(skinFeel, postWashFeel),
     [skinFeel, postWashFeel]
   );
   const isLastStep = step === 6;
+
+  // ÇARPI (X) BUTONUNA BASILDIĞINDA ÇIKIŞ ONAYI
+  const handleClose = () => {
+    Alert.alert(
+      'Çıkmak İstiyor musun?',
+      'Profil kurulumunu tamamlamadan çıkarsan girdiğin bilgiler kaydedilmeyebilir.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Çıkış Yap',
+          style: 'destructive',
+          onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ÇOKLU SEÇİM İÇİN MAKSİMUM SINIR KOYAN YARDIMCI FONKSİYON (MAX 3)
+  const toggleListWithLimit = (
+    value: string,
+    selected: string[],
+    setSelected: (next: string[]) => void,
+    maxLimit: number = 3
+  ) => {
+    if (selected.includes(value)) {
+      setSelected(selected.filter((item) => item !== value));
+    } else {
+      if (selected.length < maxLimit) {
+        setSelected([...selected, value]);
+      } else {
+        Alert.alert('Hedef Sınırı', `En fazla ${maxLimit} ana hedef seçebilirsin.`);
+      }
+    }
+  };
 
   const toggleList = (
     value: string,
@@ -210,7 +267,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   const saveProfile = async () => {
     if (!userId) {
-      warnDev('Oturum açmış kullanıcı ID bilgisi bulunamadı!');
+      warnDev('Oturum açmış kullanıcı ID bilgi bulunamadı!');
       return;
     }
 
@@ -222,7 +279,7 @@ export default function OnboardingScreen({ navigation }: Props) {
       postWashFeel,
       skinType: inferredSkinType,
       productFitIntent,
-      mainGoal,
+      mainGoal: mainGoalsSelected.join(', '),
       sensitivityLevel,
       reactionHistory,
       currentRoutine,
@@ -279,7 +336,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const canContinue = () => {
     if (step === 0) return displayName.trim().length > 1 && ageRange && experienceLevel;
     if (step === 1) return skinFeel && postWashFeel;
-    if (step === 2) return productFitIntent && mainGoal;
+    if (step === 2) return productFitIntent && mainGoalsSelected.length > 0;
     if (step === 3) return sensitivityLevel && reactionHistory;
     return true;
   };
@@ -381,13 +438,13 @@ export default function OnboardingScreen({ navigation }: Props) {
               disabled={isSaving}
             />
           ))}
-          <Text style={styles.groupTitle}>Şu an en çok neye odaklanalım?</Text>
+          <Text style={styles.groupTitle}>Şu an en çok neye odaklanalım? (En fazla 3 hedef)</Text>
           {mainGoals.map((item) => (
             <OptionButton
               key={item}
               label={item}
-              selected={mainGoal === item}
-              onPress={() => setMainGoal(item)}
+              selected={mainGoalsSelected.includes(item)}
+              onPress={() => toggleListWithLimit(item, mainGoalsSelected, setMainGoalsSelected, 3)}
               disabled={isSaving}
             />
           ))}
@@ -568,10 +625,11 @@ export default function OnboardingScreen({ navigation }: Props) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* HEADER BÖLÜMÜNE GERİ VE ÇARPI (X) BUTONU EKLENDİ */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => (step > 0 ? setStep(step - 1) : navigation.goBack())}
+            onPress={() => (step > 0 ? setStep(step - 1) : handleClose())}
             activeOpacity={0.75}
             disabled={isSaving}
             hitSlop={TOUCH_SLOP}
@@ -580,13 +638,29 @@ export default function OnboardingScreen({ navigation }: Props) {
           >
             <ArrowLeft size={22} color={colors.sage} />
           </TouchableOpacity>
+
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${((step + 1) / 7) * 100}%` }]} />
           </View>
+          
           <Text style={styles.stepCounter}>{step + 1}/7</Text>
+
+          {/* SAĞ ÜST ÇARPI (X) BUTONU */}
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={handleClose}
+            activeOpacity={0.75}
+            disabled={isSaving}
+            hitSlop={TOUCH_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Çıkış"
+          >
+            <X size={20} color={colors.sage} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -636,6 +710,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.soft,
+  },
+  closeButton: {
     width: 44,
     height: 44,
     borderRadius: 22,

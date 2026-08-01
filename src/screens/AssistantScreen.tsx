@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -14,10 +14,23 @@ import {
   Animated,
   KeyboardAvoidingView,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, Send, Shield, RotateCcw, AlertTriangle } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  ArrowLeft,
+  Send,
+  Shield,
+  RotateCcw,
+  AlertTriangle,
+  Plus,
+  History,
+  X,
+  Trash2,
+  MessageSquare,
+} from 'lucide-react-native';
 import { RootStackParamList, Message, GeminiBotResponse } from '../types';
 import { useUser } from '../context/UserContext';
 import { callAssistantAPI, clearAssistantHistory, fetchAssistantHistory } from '../api/assistant';
@@ -43,7 +56,6 @@ const QUICK_ACTIONS = [
 
 const QUICK_PROMPTS = ['Bu ürün rutinime uygun mu?', 'Bugünkü rutinim ağır mı?', 'Cildim tepki verdi'];
 
-// Dokunma alanlarını genişletmek için standart hitSlop
 const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 // ============ CHAT BUBBLE COMPONENT ============
@@ -75,7 +87,6 @@ const ChatBubble = ({
       ]}
     >
       <Text style={from === 'ai' ? styles.chatText : styles.chatTextUser}>{text}</Text>
-      {/* Retry Aksiyonu */}
       {isError && onRetry && (
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 4 }}
@@ -100,24 +111,82 @@ export default function AssistantScreen({ navigation }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<GeminiBotResponse | null>(null);
+
+  // HISTORY MODAL STATE
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historySessions, setHistorySessions] = useState<Message[]>([]);
 
   // REFS
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // LOAD PREVIOUS CONVERSATION FROM BACKEND
-  const loadHistory = async () => {
+  // EKRANDAN ÇIKILDIĞINDA SADECE MESAJLARI TEMİZLE (GÜVENLİ MOD SIFIRLANMAZ!)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setMessages([]);
+        setLastResponse(null);
+        setLastFailedPrompt(null);
+        // setActiveIssue(null); -> BU SATIR SİLİNDİ, ARTIK GÜVENLİ MOD ANASAYFADA KAPANMAYACAK!
+      };
+    }, [])
+  );
+
+  // MANUEL YENİ SOHBET BAŞLAT
+  const startNewChat = () => {
+    setMessages([]);
+    setInputValue('');
+    setLastResponse(null);
+    setLastFailedPrompt(null);
+  };
+
+  // MESAJLARI AYRI AYRI SOHBET OTURUMLARINA BÖLME FONKSİYONU
+  const getGroupedSessions = (allMessages: Message[]): Message[][] => {
+    if (!allMessages || allMessages.length === 0) return [];
+
+    const hasSessionIds = allMessages.some((m) => (m as any).sessionId);
+    if (hasSessionIds) {
+      const groups: { [key: string]: Message[] } = {};
+      allMessages.forEach((m) => {
+        const sId = (m as any).sessionId || 'default';
+        if (!groups[sId]) groups[sId] = [];
+        groups[sId].push(m);
+      });
+      return Object.values(groups);
+    }
+
+    const sessions: Message[][] = [];
+    let currentSession: Message[] = [];
+
+    allMessages.forEach((msg) => {
+      if (msg.from === 'user' && currentSession.length > 0) {
+        sessions.push(currentSession);
+        currentSession = [];
+      }
+      currentSession.push(msg);
+    });
+
+    if (currentSession.length > 0) {
+      sessions.push(currentSession);
+    }
+
+    return sessions;
+  };
+
+  // GEÇMİŞ SOHBETLERİ AÇ
+  const handleOpenHistory = async () => {
+    setIsHistoryModalOpen(true);
     setIsHistoryLoading(true);
     setHistoryError(false);
     try {
       const history = await fetchAssistantHistory();
-      if (history && history.length > 0) {
-        setMessages(history);
+      if (history) {
+        setHistorySessions(history);
       }
     } catch (error) {
       errorDev('Failed to fetch assistant history:', error);
@@ -126,10 +195,6 @@ export default function AssistantScreen({ navigation }: Props) {
       setIsHistoryLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadHistory();
-  }, []);
 
   // AUTO-SCROLL TO BOTTOM
   useEffect(() => {
@@ -228,10 +293,9 @@ export default function AssistantScreen({ navigation }: Props) {
     }
   };
 
-  const handleResetChat = async () => {
-    if (isLoading) return;
+  const handleClearHistory = async () => {
     Alert.alert(
-      'Sohbeti Sıfırla',
+      'Sohbet Geçmişini Temizle',
       'Shelly ile olan tüm konuşma geçmişin silinecek. Emin misin?',
       [
         { text: 'Vazgeç', style: 'cancel' },
@@ -242,11 +306,9 @@ export default function AssistantScreen({ navigation }: Props) {
             setIsLoading(true);
             try {
               await clearAssistantHistory();
-              setMessages([]);
-              setInputValue('');
-              setLastResponse(null);
-              setActiveIssue(null);
-              setLastFailedPrompt(null);
+              startNewChat();
+              setHistorySessions([]);
+              setIsHistoryModalOpen(false);
             } catch {
               Alert.alert(
                 'Sohbet temizlenemedi',
@@ -261,10 +323,10 @@ export default function AssistantScreen({ navigation }: Props) {
     );
   };
 
-  // CONDITIONAL FLAGS
   const hasMessages = messages.length > 0;
   const showSafePlanButton =
     lastResponse?.intent_type === 'ISSUE' && lastResponse?.detected_issue && !isLoading;
+  const groupedSessions = getGroupedSessions(historySessions);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -285,6 +347,7 @@ export default function AssistantScreen({ navigation }: Props) {
           >
             <ArrowLeft size={21} color={colors.forest} />
           </TouchableOpacity>
+
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Shelly</Text>
             <View style={styles.onlineRow}>
@@ -292,36 +355,32 @@ export default function AssistantScreen({ navigation }: Props) {
               <Text style={styles.onlineText}>Cilt bakım asistanın</Text>
             </View>
           </View>
-          <View style={styles.headerSpacer} />
-        </View>
 
-        {/* ========== İLK YÜKLEME VE AĞ HATASI BANTLARI ========== */}
-        {historyError && (
-          <View
-            style={{
-              backgroundColor: '#FDE8E8',
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Text style={{ color: colors.danger, fontFamily: fonts.sansSemiBold, fontSize: 13, flex: 1 }}>
-              Sohbet geçmişi yüklenemedi. İnternet bağlantınızı kontrol edin.
-            </Text>
+          {/* SAĞ ÜST İKONLAR: (+) YENİ SOHBET VE GEÇMİŞ */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <TouchableOpacity
-              onPress={loadHistory}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              onPress={startNewChat}
+              activeOpacity={0.75}
               hitSlop={TOUCH_SLOP}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Yeni Sohbet"
             >
-              <RotateCcw size={14} color={colors.danger} />
-              <Text style={{ fontFamily: fonts.sansBold, fontSize: 13, color: colors.danger }}>
-                Yeniden Dene
-              </Text>
+              <Plus size={21} color={colors.forest} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleOpenHistory}
+              activeOpacity={0.75}
+              hitSlop={TOUCH_SLOP}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Geçmiş"
+            >
+              <History size={20} color={colors.forest} />
             </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {/* ========== MAIN CONTENT (SCROLLABLE) ========== */}
         <ScrollView
@@ -331,16 +390,9 @@ export default function AssistantScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {isHistoryLoading ? (
-            <View style={{ paddingVertical: 40, alignItems: 'center', justifyContent: 'center' }}>
-              <ActivityIndicator size="small" color={colors.sage} />
-              <Text style={{ marginTop: 10, fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.inkSoft }}>
-                Shelly hazırlanıyor...
-              </Text>
-            </View>
-          ) : !hasMessages ? (
+          {!hasMessages ? (
             <>
-              {/* BOŞ SOHBET (QUICK ACTIONS) EKANI */}
+              {/* BOŞ SOHBET (QUICK ACTIONS) EKRANI */}
               <LinearGradient
                 colors={['#1C4630', '#0F2919']}
                 start={{ x: 0, y: 0 }}
@@ -424,24 +476,13 @@ export default function AssistantScreen({ navigation }: Props) {
                   </View>
                 </View>
               )}
-
-              <TouchableOpacity
-                style={styles.resetButton}
-                onPress={handleResetChat}
-                activeOpacity={0.75}
-                disabled={isLoading}
-                hitSlop={TOUCH_SLOP}
-              >
-                <RotateCcw size={15} color={colors.sage} />
-                <Text style={styles.resetButtonText}>Yeni sohbet başlat</Text>
-              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
 
         {/* ========== FIXED BOTTOM INPUT AREA ========== */}
         <View style={styles.inputContainer}>
-          {!hasMessages && !isHistoryLoading && (
+          {!hasMessages && (
             <View style={styles.quickPromptsRow}>
               {QUICK_PROMPTS.map((prompt) => (
                 <TouchableOpacity
@@ -471,14 +512,14 @@ export default function AssistantScreen({ navigation }: Props) {
               style={styles.input}
               multiline={false}
               maxLength={500}
-              editable={!isLoading && !isHistoryLoading}
+              editable={!isLoading}
               blurOnSubmit={false}
               returnKeyType="send"
               autoCorrect={false}
             />
             <TouchableOpacity
               onPress={(e) => handleSendMessage(e)}
-              disabled={isLoading || !inputValue.trim() || isHistoryLoading}
+              disabled={isLoading || !inputValue.trim()}
               activeOpacity={0.75}
               hitSlop={TOUCH_SLOP}
               accessibilityRole="button"
@@ -486,7 +527,7 @@ export default function AssistantScreen({ navigation }: Props) {
             >
               <LinearGradient
                 colors={
-                  isLoading || !inputValue.trim() || isHistoryLoading
+                  isLoading || !inputValue.trim()
                     ? ['#B8BFB8', '#A7AFA7']
                     : ['#1C4630', '#0F2919']
                 }
@@ -503,6 +544,115 @@ export default function AssistantScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* ========== GEÇMİŞ SOHBETLER MODALI (CHATGPT STYLE) ========== */}
+        <Modal
+          visible={isHistoryModalOpen}
+          animationType="slide"
+          onRequestClose={() => setIsHistoryModalOpen(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
+            {/* MODAL HEADER */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.line,
+              }}
+            >
+              <Text style={{ fontFamily: fonts.sansBold, fontSize: 16, color: colors.ink }}>
+                Geçmiş Sohbetler
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                {historySessions.length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleClearHistory}
+                    hitSlop={TOUCH_SLOP}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Trash2 size={16} color={colors.danger} />
+                    <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.danger }}>
+                      Temizle
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setIsHistoryModalOpen(false)} hitSlop={TOUCH_SLOP}>
+                  <X size={22} color={colors.ink} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* MODAL CONTENT */}
+            <ScrollView style={{ flex: 1, padding: 16 }}>
+              {isHistoryLoading ? (
+                <View style={{ marginTop: 30, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={colors.sage} />
+                  <Text style={{ marginTop: 8, fontFamily: fonts.sans, fontSize: 12, color: colors.inkMuted }}>
+                    Geçmiş yükleniyor...
+                  </Text>
+                </View>
+              ) : historyError ? (
+                <Text style={{ fontFamily: fonts.sans, fontSize: 13, color: colors.danger, textAlign: 'center', marginTop: 30 }}>
+                  Geçmiş sohbetler yüklenemedi.
+                </Text>
+              ) : groupedSessions.length === 0 ? (
+                <Text style={{ fontFamily: fonts.sans, fontSize: 13, color: colors.inkMuted, textAlign: 'center', marginTop: 30 }}>
+                  Henüz geçmiş sohbet bulunmuyor.
+                </Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.inkMuted, marginBottom: 4 }}>
+                    Önceki Konuşmaların ({groupedSessions.length} Sohbet)
+                  </Text>
+
+                  {groupedSessions.map((sessionMsgs, index) => {
+                    const firstUserMsg = sessionMsgs.find((m) => m.from === 'user');
+                    const sessionTitle = firstUserMsg ? firstUserMsg.text : `Sohbet #${index + 1}`;
+
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={{
+                          padding: 14,
+                          backgroundColor: colors.surfaceSage,
+                          borderRadius: radius.md,
+                          borderWidth: 1,
+                          borderColor: colors.lineSage,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 10,
+                        }}
+                        onPress={() => {
+                          setMessages(sessionMsgs);
+                          setIsHistoryModalOpen(false);
+                        }}
+                      >
+                        <MessageSquare size={18} color={colors.forest} />
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            numberOfLines={1}
+                            style={{ fontFamily: fonts.sansBold, fontSize: 13.5, color: colors.forest }}
+                          >
+                            {sessionTitle}
+                          </Text>
+                          <Text
+                            style={{ fontFamily: fonts.sans, fontSize: 11, color: colors.inkMuted, marginTop: 2 }}
+                          >
+                            {sessionMsgs.length} mesaj içeriyor
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +26,7 @@ import {
   Plus,
   X,
   RotateCcw,
+  Calendar,
 } from 'lucide-react-native';
 import { useProducts } from '../context/ProductContext';
 import { analyzeProductIngredients, ProductIngredientAnalysis } from '../services/productAnalysisService';
@@ -59,7 +61,14 @@ const categoryOptions: Category[] = [
   'Diğer',
 ];
 
-// Dokunma alanlarını genişletmek için standart hitSlop
+const MONTH_NAMES = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+];
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 7 }, (_, i) => currentYear + i); // Bulunduğumuz yıl + 6 yıl geleceği listeler
+
 const TOUCH_SLOP = { top: 12, bottom: 12, left: 12, right: 12 };
 
 export default function ProductReviewScreen({ navigation, route }: Props) {
@@ -74,6 +83,11 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
+
+  // TARİH SEÇİCİ MODAL STATE'LERİ
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(currentYear + 1);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   const [conflictData, setConflictData] = useState<{
     hasConflict: boolean;
@@ -183,6 +197,22 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     setProductData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleConfirmDate = (year: number, month: number) => {
+    const formattedMonth = String(month).padStart(2, '0');
+    updateProductField('expiryDate', `${year}-${formattedMonth}`);
+    setIsDatePickerOpen(false);
+  };
+
+  const formatExpiryDisplay = (expiryDate?: string) => {
+    if (!expiryDate || !/^\d{4}-(0[1-9]|1[0-2])$/.test(expiryDate)) {
+      return 'Tarih Seçin (Ay / Yıl)';
+    }
+    const [year, monthStr] = expiryDate.split('-');
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const monthName = MONTH_NAMES[monthIndex] || monthStr;
+    return `${monthName} ${year}`;
+  };
+
   const handleAddIngredient = () => {
     const nextIngredient = ingredientInput.trim();
     if (!nextIngredient) return;
@@ -208,7 +238,6 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   };
 
   const handleSave = async () => {
-    // 1. Çift Kayıt / Çift Tıklama Koruması
     if (loading) return;
 
     if (!productData.name.trim() || !productData.brand.trim()) {
@@ -217,16 +246,13 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
     }
 
     const expiryDate = productData.expiryDate?.trim();
-    if (expiryDate && !/^\d{4}-(0[1-9]|1[0-2])$/.test(expiryDate)) {
-      Alert.alert('Geçersiz Tarih', 'Son kullanma tarihini YYYY-AA biçiminde girin (Örn: 2026-08).');
-      return;
-    }
 
     setLoading(true);
 
     try {
       const productToSave = {
         ...productData,
+        // imageUrl: productData.imageUrl || previewImageUri || '', // Fotoğraftan gelen resmi korur
         name: productData.name.trim(),
         brand: productData.brand.trim(),
         description: productData.description?.trim() || '',
@@ -382,19 +408,20 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
             </View>
             <View style={styles.separator} />
 
-            {/* SON KULLANMA TARİHİ */}
+            {/* SON KULLANMA TARİHİ (BUTON + MODAL İLE SEÇİM) */}
             <View style={styles.detailRow}>
               <Text style={styles.label}>Son Kullanma</Text>
-              <TextInput
-                style={styles.inputValue}
-                value={productData.expiryDate || ''}
-                onChangeText={(value) => updateProductField('expiryDate', value)}
-                placeholder="YYYY-AA"
-                placeholderTextColor="#9aa49d"
-                keyboardType="numbers-and-punctuation"
-                maxLength={7}
-                editable={!loading}
-              />
+              <TouchableOpacity
+                style={styles.datePickerTrigger}
+                onPress={() => setIsDatePickerOpen(true)}
+                disabled={loading}
+                hitSlop={TOUCH_SLOP}
+              >
+                <Calendar size={18} color={colors.sage} style={{ marginRight: 6 }} />
+                <Text style={[styles.datePickerText, !productData.expiryDate && { color: '#9aa49d' }]}>
+                  {formatExpiryDisplay(productData.expiryDate)}
+                </Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.separator} />
 
@@ -647,6 +674,71 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* AY / YIL SEÇİCİ MODAL */}
+        <Modal
+          visible={isDatePickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsDatePickerOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Son Kullanma Tarihi Seç</Text>
+                <TouchableOpacity onPress={() => setIsDatePickerOpen(false)} hitSlop={TOUCH_SLOP}>
+                  <X size={20} color={colors.ink} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Ay</Text>
+              <View style={styles.pickerGrid}>
+                {MONTH_NAMES.map((monthName, idx) => {
+                  const monthNum = idx + 1;
+                  const isSelected = selectedMonth === monthNum;
+                  return (
+                    <TouchableOpacity
+                      key={monthName}
+                      style={[styles.pickerChip, isSelected && styles.pickerChipActive]}
+                      onPress={() => setSelectedMonth(monthNum)}
+                    >
+                      <Text style={[styles.pickerChipText, isSelected && styles.pickerChipTextActive]}>
+                        {monthName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.modalSectionTitle, { marginTop: 14 }]}>Yıl</Text>
+              <View style={styles.pickerGrid}>
+                {YEARS.map((yr) => {
+                  const isSelected = selectedYear === yr;
+                  return (
+                    <TouchableOpacity
+                      key={yr}
+                      style={[styles.pickerChip, isSelected && styles.pickerChipActive]}
+                      onPress={() => setSelectedYear(yr)}
+                    >
+                      <Text style={[styles.pickerChipText, isSelected && styles.pickerChipTextActive]}>
+                        {yr}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={styles.modalConfirmButton}
+                onPress={() => handleConfirmDate(selectedYear, selectedMonth)}
+              >
+                <Text style={styles.modalConfirmText}>
+                  Seçimi Onayla ({MONTH_NAMES[selectedMonth - 1]} {selectedYear})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -743,6 +835,62 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   separator: { height: 1, backgroundColor: colors.surfaceMuted },
+
+  // TARİH SEÇİCİ STİLLERİ
+  datePickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surfaceSage,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.lineSage,
+  },
+  datePickerText: { fontFamily: fonts.sansBold, fontSize: 13.5, color: colors.forest },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: 20,
+    ...shadows.card,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.ink },
+  modalSectionTitle: { fontFamily: fonts.sansBold, fontSize: 11, color: colors.sage, textTransform: 'uppercase', marginBottom: 8 },
+  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pickerChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pickerChipActive: { backgroundColor: colors.forest, borderColor: colors.forest },
+  pickerChipText: { fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.inkSoft },
+  pickerChipTextActive: { color: colors.onDark, fontFamily: fonts.sansBold },
+  modalConfirmButton: {
+    backgroundColor: colors.forest,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  modalConfirmText: { fontFamily: fonts.sansBold, fontSize: 14, color: colors.onDark },
+
   categorySection: { paddingTop: 14 },
   categoryChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   categoryChip: {
@@ -835,7 +983,7 @@ const styles = StyleSheet.create({
   warningBadge: { backgroundColor: colors.surface, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
   highBadgeText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.danger },
   warningBadgeText: { fontFamily: fonts.sansBold, fontSize: 9, color: colors.warning },
-  warningLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 5 },
+  warningLine: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 },
   warningLineText: { flex: 1, fontFamily: fonts.sansSemiBold, fontSize: 11.5, lineHeight: 17, color: colors.inkSoft },
   routineSection: { marginBottom: 40 },
   routineTitleContainer: { marginBottom: 16 },
