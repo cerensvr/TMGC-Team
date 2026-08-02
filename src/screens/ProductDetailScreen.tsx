@@ -11,7 +11,6 @@ import {
   Switch,
   Platform,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -440,8 +439,6 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
     </View>
   );
 }
-
-const androidHeaderPadding = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 14 : 20;
 
 const styles = StyleSheet.create({
   overlay: {

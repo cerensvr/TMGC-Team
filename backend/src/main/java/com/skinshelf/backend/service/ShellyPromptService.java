@@ -581,6 +581,7 @@ public class ShellyPromptService {
             return ShellyMode.SKIN_REACTION;
         }
         if (containsAny(normalized, "haftalık plan", "haftalik plan", "haftalık rutin", "haftalik rutin",
+                "haftalık bakım", "haftalik bakim",
                 "haftaya yay", "günlere böl", "gunlere bol", "her gece", "önümüzdeki hafta",
                 "onumuzdeki hafta", "bir haftalık", "bir haftalik", "bakım takvimi", "bakim takvimi")) {
             return ShellyMode.WEEKLY_PLAN;

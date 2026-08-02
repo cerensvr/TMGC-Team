@@ -4,6 +4,8 @@
 >
 > Yapay zekâ destekli kişiselleştirilmiş cilt bakım asistanı geliştirmeyi amaçlayan mobil uygulama projesi.
 
+[![quality-check](https://github.com/cerensvr/TMGC-Team/actions/workflows/quality-check.yml/badge.svg)](https://github.com/cerensvr/TMGC-Team/actions/workflows/quality-check.yml)
+
 # 📌 Ürün Bilgileri
 
 ### **Ürün İsmi**: **`SkinShelf`**
@@ -19,13 +21,19 @@ SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shel
 | Çalışan mobil ürün | [Sprint 3 final Android ekranları](Project_Management_Files/Sprint_3/Product_Screenshots) |
 | Kurulabilir Android APK | [SkinShelf 1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25), [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
 | Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
-| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md), [100 senaryolu otomatik değerlendirme](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
+| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md), [100 yönlendirme + 12 yanıt kalitesi değerlendirmesi](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
 | Gerçek kullanıcı kanıtı | [10 günlük anonim kullanıcı pilotu](docs/user-research/README.md): 10 katılımcı, 91 aktif kullanıcı-günü, %75,3 rutin tamamlama |
+| Pazar ve ürün stratejisi | [Rakip haritası, TAM/SAM/SOM yaklaşımı ve gelir senaryosu](docs/market/README.md) |
 | Scrum/board kanıtı | [Sprint 3 kanıt indeksi](Project_Management_Files/Sprint_3/README.md), [102/102 SP dağılımı](Project_Management_Files/Sprint_3/sprint3-story-points.md), [burndown](Project_Management_Files/Sprint_3/Burndown_Chart) |
-| Teknik kalite | 63 backend + 19 mobil test, 4 profilli full-stack smoke; [GitHub Actions](.github/workflows/quality-check.yml), [güncel doğrulama raporu](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
+| Teknik kalite | 67 backend + 19 mobil test, %75,55 satır kapsamı, 24 endpoint contract ve 4 profilli smoke; [kalite kapıları](docs/engineering-quality.md) |
 | Final demo akışı | [Gerçek cihaz, demo akışı ve video kanıtı](Project_Management_Files/Sprint_3/demo-and-device-evidence.md) |
 
 **Rakiplerden ayrışan taraf:** SkinShelf yalnızca sohbet eden bir AI ekranı değildir. Ürün dolabı, ürün içerikleri, aktif/pasif rutin seçimi, haftalık rutin planı, cilt takibi ve Shelly yorumları aynı veri akışına bağlanmıştır. Bu nedenle demo sırasında bir ürünün dolaptaki durumu değiştiğinde rutin ve Shelly bağlamı da anlamlı şekilde değişir.
+
+**Doğrulanmış kullanım sinyali:** 10 günlük pilotta ilk rutine ulaşma medyanı
+`3:05`, 10. gün aktifliği `%80`, bildirim sonrası tamamlama oranı `%68,7`
+olarak ölçüldü. Örneklem sınırları ve anonimleştirme yöntemi
+[pilot raporunda](docs/user-research/README.md) açıklanır.
 
 ---
 
@@ -703,7 +711,7 @@ Sprint 3 Scrum kanıtları: [board](Project_Management_Files/Sprint_3/Sprint_Boa
 
 Sprint 3 final kontrol listesi: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
 
-Shelly otomatik değerlendirme sonucu: [100/100 yönlendirme, 63 backend ve 19 mobil test](Project_Management_Files/Sprint_3/shelly-evaluation-report.md)
+Shelly otomatik değerlendirme sonucu: [100/100 yönlendirme, 12/12 yanıt kalitesi, 67 backend ve 19 mobil test](Project_Management_Files/Sprint_3/shelly-evaluation-report.md)
 
 Android preview APK: [1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25) · [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697) · [iki temiz emülatör doğrulaması](Project_Management_Files/Sprint_3/android-preview-apk-verification.md)
 

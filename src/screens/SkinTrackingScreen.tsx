@@ -13,9 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from '@react-navigation/native';
+import { CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AlertCircle, Camera, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { MainTabParamList, RootStackParamList, SkinLogEntry, SkinWeeklySummary } from '../types';
@@ -267,7 +266,7 @@ export default function SkinTrackingScreen({ navigation }: Props) {
         <View style={styles.privacyRow}>
           <ShieldCheck size={15} color={colors.sage} />
           <Text style={styles.privacyText}>
-            Fotoğrafların analiz için Shelly'ye iletilir; sunucuda saklanmaz, yalnızca analiz sonucu
+            Fotoğrafların analiz için Shelly’ye iletilir; sunucuda saklanmaz, yalnızca analiz sonucu
             kaydedilir. İstersen geçmiş kayıtlarını silebilirsin (karta uzun bas).
           </Text>
         </View>

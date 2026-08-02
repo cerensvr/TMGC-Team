@@ -17,8 +17,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  repository-security:
+    name: Tracked secret scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan tracked files for high-confidence secrets
+        run: node scripts/check-secrets.mjs
+
   frontend-build:
-    name: Frontend TypeScript build
+    name: Frontend lint, test and build
     runs-on: ubuntu-latest
 
     steps:
@@ -43,6 +54,9 @@ jobs:
       - name: TypeScript build
         run: npm run build
 
+      - name: ESLint
+        run: npm run lint
+
       - name: Mobile unit tests
         run: npm test
 
@@ -64,8 +78,8 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Run Maven tests
-        run: ./mvnw -B test
+      - name: Run Maven tests and coverage gates
+        run: ./mvnw -B verify
 
       - name: Upload Shelly evaluation report
         if: always()
@@ -73,6 +87,22 @@ jobs:
         with:
           name: shelly-evaluation-report
           path: backend/target/shelly-eval-report.json
+          if-no-files-found: error
+
+      - name: Upload Shelly response-quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shelly-response-quality-report
+          path: backend/target/shelly-response-quality-report.json
+          if-no-files-found: error
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: backend/target/site/jacoco
           if-no-files-found: error
 
   api-smoke:

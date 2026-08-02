@@ -191,7 +191,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
             {/* Başlık Alanı */}
             <View style={styles.header}>
-              <Text style={styles.overline}>SKINSHELF'E KATIL</Text>
+              <Text style={styles.overline}>SKINSHELF’E KATIL</Text>
               <Text style={styles.title}>Hesap Oluştur</Text>
               <Text style={styles.subtitle}>
                 Cilt bakımını kişiselleştirmeye birkaç adımda başla.

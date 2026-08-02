@@ -107,6 +107,10 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
   const recognitionConfidence = route.params?.recognitionConfidence;
   const activeIngredients = productData.activeIngredients || [];
   const ingredientKey = activeIngredients.join('|');
+  const analysisName = productData.name;
+  const analysisBrand = productData.brand;
+  const analysisCategory = productData.category;
+  const analysisDescription = productData.description;
 
   const sourceBadgeLabel = editingProductId
     ? 'Dolaptan Düzenleniyor'
@@ -136,7 +140,7 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
 
   // AI İÇERİK ANALİZİ
   useEffect(() => {
-    if (!productData.name.trim() || !productData.brand.trim()) {
+    if (!analysisName.trim() || !analysisBrand.trim()) {
       setAiAnalysis(null);
       setConflictData(null);
       setAnalysisWarnings([]);
@@ -152,7 +156,13 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
       setAnalysisLoading(true);
       setAnalysisError(null);
       try {
-        const analysis = await analyzeProductIngredients(productData);
+        const analysis = await analyzeProductIngredients({
+          name: analysisName,
+          brand: analysisBrand,
+          category: analysisCategory,
+          description: analysisDescription,
+          activeIngredients: ingredientKey ? ingredientKey.split('|') : [],
+        });
         if (cancelled) return;
 
         setAiAnalysis(analysis.summary);
@@ -184,14 +194,7 @@ export default function ProductReviewScreen({ navigation, route }: Props) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [
-    productData.name,
-    productData.brand,
-    productData.category,
-    productData.description,
-    ingredientKey,
-    retryTrigger,
-  ]);
+  }, [analysisName, analysisBrand, analysisCategory, analysisDescription, ingredientKey, retryTrigger]);
 
   const updateProductField = <K extends keyof ProductDraft>(field: K, value: ProductDraft[K]) => {
     setProductData((prev) => ({ ...prev, [field]: value }));

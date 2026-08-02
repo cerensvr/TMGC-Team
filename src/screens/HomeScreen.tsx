@@ -390,7 +390,7 @@ export default function HomeScreen({ navigation }: Props) {
       return () => {
         active = false;
       };
-    }, [notifications, userId])
+    }, [userId])
   );
 
   const expiringCount = useMemo(

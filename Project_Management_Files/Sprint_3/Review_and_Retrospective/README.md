@@ -33,7 +33,7 @@ sonunda 102/102 SP tamamlandı ve Sprint 4'e PBI devredilmedi.
 | Tamamlanan | 102 SP |
 | Kalan | 0 SP |
 | Shelly golden set | 100/100 |
-| Backend otomatik test | 63/63 |
+| Backend otomatik test | 67/67 |
 | Mobil servis/regresyon testi | 19/19 |
 | Full-stack smoke profili | 4/4 |
 | Production dependency açığı | 0 |

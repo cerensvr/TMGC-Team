@@ -16,6 +16,8 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 - [Sprint_1/README.md](Sprint_1/README.md): Sprint 1 teslim kanitlarinin tek sayfalik indeksi.
 - [Sprint_2/README.md](Sprint_2/README.md): Sprint 2 fullstack entegrasyon ve Scrum kanit indeksi.
 - [Sprint_3/README.md](Sprint_3/README.md): Final ürün, Scrum, test, cihaz ve demo kanıt indeksi.
+- [../docs/engineering-quality.md](../docs/engineering-quality.md): CI, kapsam, API sözleşmesi ve AI kalite kapıları.
+- [../docs/market/README.md](../docs/market/README.md): Pazar potansiyeli, rakip haritası ve iş modeli.
 
 ## Sprint 1 Kanit Checklist
 
@@ -70,6 +72,8 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 | Test ve doğrulama | Hazır | [Sprint_3/Test_and_Verification.md](Sprint_3/Test_and_Verification.md) |
 | Backend test profili | Hazır | [Sprint_3/backend-test-profile-report.md](Sprint_3/backend-test-profile-report.md) |
 | Shelly otomatik eval | Hazır | [Sprint_3/shelly-evaluation-report.md](Sprint_3/shelly-evaluation-report.md) |
+| Pazar potansiyeli ve ürün stratejisi | Hazır | [../docs/market/README.md](../docs/market/README.md) |
+| Mühendislik kalite kapıları | Hazır | [../docs/engineering-quality.md](../docs/engineering-quality.md) |
 | Gerçek cihaz ve demo | Hazır | [Sprint_3/demo-and-device-evidence.md](Sprint_3/demo-and-device-evidence.md) |
 | Deployment ve APK | Hazır | [Sprint_3/Deployment_Notes.md](Sprint_3/Deployment_Notes.md) |
 | Final hazırlık kontrolü | Hazır | [Sprint_3/Final_Readiness.md](Sprint_3/Final_Readiness.md) |

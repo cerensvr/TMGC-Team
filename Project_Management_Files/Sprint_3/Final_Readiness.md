@@ -25,7 +25,7 @@ Final demoda anlatilacak ana hikaye:
 | Board ve backlog | Status, Sprint, Point, Assignee ve issue kabul kanıtları | [Tamamlandı](Sprint_Board/README.md) |
 | Sprint 3 burndown | 102 hedef, 102 tamamlanan, 0 kalan | [Tamamlandı](Burndown_Chart/README.md) |
 | Daily Scrum kanıtları | Tarihli, repository ile doğrulanabilir özet | [Tamamlandı](Daily_Scrum/README.md) |
-| Final test | 19 mobil, 63 backend, 100 Shelly ve 4 smoke senaryosu | [Tamamlandı](Test_and_Verification.md) |
+| Final test | 19 mobil, 67 backend, 100 yönlendirme, 12 yanıt kalitesi ve 4 smoke | [Tamamlandı](Test_and_Verification.md) |
 | Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
 | Shelly otomatik eval | 100 senaryo, rutin politika motoru, 4 profilli full-stack smoke | [Tamamlandı](shelly-evaluation-report.md) |
 | Gerçek cihaz | POCO X6 Pro ana ve hata akışları | [Tamamlandı](RELEASE-CANDIDATE-TEST.md) |
@@ -43,6 +43,8 @@ Sprint 2'de tamamlanan fullstack altyapi final teslimin teknik temelini olusturu
 | Shelly AI davranis senaryolari | [../Sprint_2/Shelly_AI_Scenarios.md](../Sprint_2/Shelly_AI_Scenarios.md) |
 | Test ve CI dogrulama | [../Sprint_2/Test_and_Verification.md](../Sprint_2/Test_and_Verification.md) |
 | Güncel Shelly eval ve rutin politika kanıtı | [shelly-evaluation-report.md](shelly-evaluation-report.md) |
+| Pazar potansiyeli ve iş modeli | [../../docs/market/README.md](../../docs/market/README.md) |
+| Mühendislik kalite kapıları | [../../docs/engineering-quality.md](../../docs/engineering-quality.md) |
 | Canli Android ekran seti | [../Sprint_2/Product_Screenshots](../Sprint_2/Product_Screenshots) |
 | Canli Render/Supabase/Gemini smoke testi | [live-api-smoke-report.md](live-api-smoke-report.md) |
 | EAS preview APK ve temiz kurulum | [android-preview-apk-verification.md](android-preview-apk-verification.md) |
@@ -55,9 +57,11 @@ npm ci
 npm audit --omit=dev --audit-level=moderate
 npx expo-doctor
 npm run build
+npm run lint
 npm test
+npm run security:secrets
 cd backend
-./mvnw test
+./mvnw verify
 ```
 
 Canli backend acikken:

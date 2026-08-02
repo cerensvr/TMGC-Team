@@ -25,7 +25,7 @@ geliştirme faaliyetlerinden oluşturuldu.
 | 30 Temmuz | Loading/error/empty state geçişi, gizlilik, release candidate testi, Shelly validasyonu ve production deploy kanıtı tamamlandı. | Kullanıcı kanıtı, oturum güvenliği ve Android release sertleştirme. | P0/P1 hata bulunmadı; final kanıtların tek indekste toplanması kararlaştırıldı. |
 | 31 Temmuz | Bildirim metinleri, Shelly açıklanabilirliği, anonim kullanıcı pilotu, SecureStore oturumu, vision safety, CI, yasal metinler, izinler, ürün fotoğraf tanıma ve raf UI tamamlandı. | Son marka/UI düzeltmeleri ve teslim paketi. | Android imzalama materyali için anahtar rotasyonu release blokeri olarak kaydedildi. |
 | 1 Ağustos | Shelly ikon sistemi ile onboarding, sohbet geçmişi ve SKT deneyimi güncellendi. | Sprint 3 Scrum kanıtları ve final video. | Yeni özellik yerine release kalitesi ve kanıt kapsamına odaklanıldı. |
-| 2 Ağustos | Deterministik rutin politikası, 100 senaryolu Shelly eval, 19 mobil test, 63 backend test, 4 profilli smoke, Scrum kanıt paketi, demo videosu ve final release kontrolü tamamlandı. | Teslim paketini arşivlemek ve kapsamı dondurmak. | Açık PBI kalmadı; Sprint 3 toplam 102/102 SP ile kapatıldı. |
+| 2 Ağustos | Deterministik rutin politikası, 100 yönlendirme + 12 yanıt kalitesi senaryosu, 19 mobil test, 67 backend test, kapsam/contract/secret kapıları ve 4 profilli smoke tamamlandı. | Teslim paketini arşivlemek ve kapsamı dondurmak. | Açık PBI kalmadı; Sprint 3 toplam 102/102 SP ile kapatıldı. |
 
 ## Sprint Boyunca Alınan Ana Kararlar
 

@@ -155,11 +155,11 @@ export default function RoutineScreen({ navigation }: Props) {
     return products.filter((p) => (p as any).isActive ?? (p as any).is_active ?? true);
   }, [products]);
 
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [currentDay, setCurrentDay] = useState(() => new Date().getDay());
 
   useFocusEffect(
     useCallback(() => {
-      setUpdateTrigger((prev) => prev + 1);
+      setCurrentDay(new Date().getDay());
     }, [])
   );
 
@@ -171,14 +171,13 @@ export default function RoutineScreen({ navigation }: Props) {
 
   const weekPlan = useMemo(
     () => buildWeekPlan(activeProducts, concern, { isPregnant: profile.isPregnant }),
-    [products, updateTrigger, concern, profile.isPregnant]
+    [activeProducts, concern, profile.isPregnant]
   );
-  const currentDay = new Date().getDay();
   const todayPlan = weekPlan[currentDay === 0 ? 6 : currentDay - 1];
 
   const routineReview = useMemo(
     () => getRoutineReview(todayPlan?.morning || [], todayPlan?.evening || []),
-    [todayPlan, updateTrigger]
+    [todayPlan]
   );
 
   const handleRecovery = () => {
@@ -299,7 +298,7 @@ export default function RoutineScreen({ navigation }: Props) {
           <View style={styles.summaryHeader}>
             <ShellyIcon size={42} style={styles.summaryIcon} />
             <View style={styles.summaryTextBlock}>
-              <Text style={styles.summaryTitle}>Shelly'nin Yorumu</Text>
+              <Text style={styles.summaryTitle}>Shelly’nin Yorumu</Text>
               <Text style={styles.summarySubtitle}>
                 Cilt tipi: {profile.skinType || 'Belirlenmedi'} • Kaynak: Dolabım
               </Text>
@@ -330,7 +329,7 @@ export default function RoutineScreen({ navigation }: Props) {
             <MessageCircle size={20} color={colors.sage} />
           </View>
           <View style={styles.composerTextBlock}>
-            <Text style={styles.composerLabel}>SHELLY'YE SOR</Text>
+            <Text style={styles.composerLabel}>SHELLY’YE SOR</Text>
             <Text style={styles.composerPlaceholder} numberOfLines={1}>
               Bugün cildimde bir değişiklik var...
             </Text>

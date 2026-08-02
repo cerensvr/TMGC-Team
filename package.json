@@ -8,7 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "tsc --noEmit",
+    "lint": "eslint src scripts tests --max-warnings=0",
     "test": "node --test tests/*.test.mjs",
+    "security:secrets": "node scripts/check-secrets.mjs",
     "dev": "expo start --web --port 3000",
     "smoke:api": "node scripts/smoke-api.mjs",
     "seed:demo": "node scripts/seed-demo-user.mjs",
@@ -48,6 +50,8 @@
     "@types/node": "^26.1.1",
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.12",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
   "overrides": {

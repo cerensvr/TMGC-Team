@@ -16,9 +16,11 @@ kurallarla güvenli biçimde dağıttığını tekrarlanabilir testlerle doğrul
 | Doğru yönlendirilen senaryo | 100 |
 | Yönlendirme doğruluğu | %100 |
 | Shelly cevap modu | 6 |
-| Backend otomatik testi | 63 / 63 geçti |
+| Yanıt-kalitesi senaryosu | 12 / 12 geçti |
+| Backend otomatik testi | 67 / 67 geçti |
 | Mobil servis/regresyon testi | 19 / 19 geçti |
 | İzole full-stack smoke profili | 4 / 4 geçti |
+| Backend satır / branch kapsamı | %75,55 / %51,32 |
 | `npm audit --omit=dev` | 0 açık |
 
 ### Mod Bazlı Golden Set
@@ -36,6 +38,36 @@ Golden set günlük Türkçe, yazım varyasyonları, ürün satın alma niyeti, 
 içerik soruları, cilt tepkileri ve haftalık plan taleplerini kapsar. Test her
 Maven koşusunda `backend/target/shelly-eval-report.json` dosyasını üretir ve CI
 bu dosyayı `shelly-evaluation-report` artifact'i olarak saklar.
+
+## Yanıt Kalitesi ve Red-team Sözleşmesi
+
+`ShellyResponseQualityEvaluationTest`, yalnız sınıflandırıcıyı değil gerçek
+`AssistantService` fallback yanıtını 12 uçtan uca servis senaryosunda çalıştırır.
+
+| Boyut | Sonuç |
+| --- | ---: |
+| Mod yönlendirmesi | 12/12 |
+| Yanıt alanlarının tamamlığı | 12/12 |
+| Neden içeren açıklama | 12/12 |
+| Raf dışı/pasif ürün üretmeme | 12/12 |
+| Rutin güvenliği | 12/12 |
+| Profil, raf, hafıza ve cilt günlüğü bağlamı | 12/12 |
+| Eksik kategoride marka uydurmama | 12/12 |
+| Ciddi belirtiyi profesyonele yönlendirme | 2/2 |
+
+Senaryolar; boş raf, pasif ürün, satın alma niyeti, sohbet sırasında alakasız
+aktif içerik, retinoid + AHA/BHA, birden fazla güçlü tedavi, gebelik profili,
+önceki kızarıklık hafızası, cilt günlüğü, şiddetli yanma, yüz şişmesi ve nefes
+darlığı gibi red-team girdilerini kapsar. CI çıktısı
+`backend/target/shelly-response-quality-report.json` olarak ayrıca saklanır.
+
+### Rutin Policy Ablation
+
+Üç senaryoda aday ürün havuzu retinoid ile güçlü asit/akne ürününü birlikte
+içeriyordu. Bütün aktifleri aynı zaman dilimine alan kontrol yaklaşımında üç
+aday çakışma varken deterministik policy çıktısında çakışma `0` oldu. Bu,
+üretken model kalitesine ilişkin bir karşılaştırma değil; policy katmanının
+somut etkisini ölçen tekrarlanabilir bir ablation testidir.
 
 ## Deterministik Rutin Politikası
 
@@ -74,7 +106,7 @@ npm audit --omit=dev --audit-level=moderate
 npm run build
 npm test
 cd backend
-./mvnw test
+./mvnw verify
 ```
 
 Full-stack smoke testi için izole backend çalışırken:
@@ -85,7 +117,7 @@ API_BASE_URL=http://localhost:8080/api npm run smoke:api
 
 ## Sınırlar
 
-Bu değerlendirme klinik doğruluk iddiası taşımaz. Golden set yönlendirme ve
-iş kuralı davranışlarını ölçer; üretken model çıktısının dermatolojik teşhis
-veya tedavi doğruluğunu ölçmez. Riskli belirtiler üretken modele gönderilmeden
-`SafetyGuard` tarafından profesyonel desteğe yönlendirilir.
+Bu değerlendirme klinik doğruluk iddiası taşımaz. Golden set, yanıt sözleşmesi
+ve policy ablation iş kuralı davranışlarını ölçer; canlı Gemini çıktısının
+dermatolojik teşhis veya tedavi doğruluğunu ölçmez. Riskli belirtiler üretken
+modele gönderilmeden `SafetyGuard` tarafından profesyonel desteğe yönlendirilir.

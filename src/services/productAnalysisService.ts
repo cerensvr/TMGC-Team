@@ -18,7 +18,12 @@ export type ProductIngredientAnalysis = {
   }[];
 };
 
-export const analyzeProductIngredients = async (product: ProductDraft): Promise<ProductIngredientAnalysis> => {
+type ProductAnalysisInput = Pick<
+  ProductDraft,
+  'name' | 'brand' | 'category' | 'description' | 'activeIngredients'
+>;
+
+export const analyzeProductIngredients = async (product: ProductAnalysisInput): Promise<ProductIngredientAnalysis> => {
   return apiFetch<ProductIngredientAnalysis>(`${API_BASE_URL}/assistant/analyze-ingredients`, {
     method: 'POST',
     body: {

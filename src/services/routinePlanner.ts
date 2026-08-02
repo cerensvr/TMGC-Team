@@ -16,7 +16,7 @@ export type DayPlan = {
   evening: Product[];
 };
 
-export const concernOptions: Array<{ key: Exclude<ConcernKey, 'standard' | 'custom'>; label: string; prompt: string }> = [
+export const concernOptions: { key: Exclude<ConcernKey, 'standard' | 'custom'>; label: string; prompt: string }[] = [
   { key: 'acne', label: 'Sivilce', prompt: 'Sivilce ve komedon görünümünü sakinleştirmeye odaklan.' },
   { key: 'sensitivity', label: 'Hassasiyet', prompt: 'Cildi yormayan, bariyer destekleyen ürünleri seç.' },
   { key: 'dryness', label: 'Kuruluk', prompt: 'Nem ve bariyer desteğini artır.' },
@@ -77,7 +77,7 @@ const concernTerms: Record<ConcernKey, string[]> = {
   custom: ['niacinamide', 'hyaluronic', 'glycerin', 'spf'],
 };
 
-const concernKeywords: Array<{ key: ConcernKey; words: string[] }> = [
+const concernKeywords: { key: ConcernKey; words: string[] }[] = [
   { key: 'acne', words: ['sivilce', 'akne', 'komedon', 'yağlanma', 'yaglanma'] },
   { key: 'sensitivity', words: ['hassas', 'yanma', 'batma', 'tahriş', 'tahris'] },
   { key: 'dryness', words: ['kuru', 'kuruluk', 'gergin', 'pul pul'] },

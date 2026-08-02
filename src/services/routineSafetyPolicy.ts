@@ -63,7 +63,7 @@ export const validateRoutinePlan = (
   const violations: RoutinePolicyViolation[] = [];
 
   for (const day of plan) {
-    const slots: Array<[RoutineSlot, Product[]]> = [
+    const slots: [RoutineSlot, Product[]][] = [
       ['morning', day.morning],
       ['evening', day.evening],
     ];

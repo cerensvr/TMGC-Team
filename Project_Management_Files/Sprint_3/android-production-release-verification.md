@@ -13,7 +13,7 @@ Android kabul kapsamından geçirildi. Test edilen son uygulama kaynak commit'i
 | TypeScript | `npm run build` geçti |
 | Artifact commit'indeki mobil testler | `12/12` geçti |
 | Artifact commit'indeki backend testleri | `53/53` geçti |
-| Final kaynak kalite kapıları | `19/19` mobil, `63/63` backend; [güncel test indeksi](Test_and_Verification.md) |
+| Final kaynak kalite kapıları | `19/19` mobil, `67/67` backend; [güncel test indeksi](Test_and_Verification.md) |
 | Expo Doctor | `20/20` geçti |
 | Production dependency audit | `0` bilinen açık |
 

@@ -49,7 +49,9 @@ AI davranışı ölçülmüş ve uçtan uca demo edilebilir final ürüne taşı
 | Kanıt | Sonuç | Dosya |
 | --- | ---: | --- |
 | Shelly otomatik yönlendirme eval | 100/100 | [shelly-evaluation-report.md](shelly-evaluation-report.md) |
-| Backend otomatik test | 63/63 | [Test indeksi](Test_and_Verification.md) |
+| Shelly yanıt kalitesi / red-team | 12/12 | [shelly-evaluation-report.md](shelly-evaluation-report.md) |
+| Backend otomatik test | 67/67 | [Test indeksi](Test_and_Verification.md) |
+| Backend JaCoCo | %75,55 satır / %51,32 branch | [Kalite kapıları](../../docs/engineering-quality.md) |
 | Mobil servis/regresyon testi | 19/19 | [Test indeksi](Test_and_Verification.md) |
 | İzole full-stack smoke | 4/4 profil | [Test indeksi](Test_and_Verification.md) |
 | Production dependency audit | 0 açık | [CI workflow](../../.github/workflows/quality-check.yml) |
@@ -80,6 +82,7 @@ Sprint 3'te 10 anonim katılımcıyla 10 günlük kullanıcı pilotu raporlandı
 
 - [GitHub'da okunabilir pilot özeti](../../docs/user-research/README.md)
 - [Anonim tam PDF raporu](../../docs/user-research/skinshelf-10-day-anonymous-user-pilot.pdf)
+- [Pazar potansiyeli ve ürün stratejisi](../../docs/market/README.md)
 
 ## Definition of Done
 

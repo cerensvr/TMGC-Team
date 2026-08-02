@@ -274,7 +274,7 @@ export default function AddSkinPhotoScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <Text style={styles.privacyText}>
-            Fotoğrafın analiz için güvenli şekilde Shelly'ye iletilir; sunucuda saklanmaz. Yalnızca analiz sonucu
+            Fotoğrafın analiz için güvenli şekilde Shelly’ye iletilir; sunucuda saklanmaz. Yalnızca analiz sonucu
             kaydedilir.
           </Text>
         </ScrollView>
