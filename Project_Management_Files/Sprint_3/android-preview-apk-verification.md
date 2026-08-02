@@ -1,8 +1,38 @@
 # Android Preview APK Doğrulama Raporu
 
-Issue [#19](https://github.com/gismo-o/TMGC-Team/issues/19) için production API'ye bağlı preview APK, 29 Temmuz 2026 tarihinde iki temiz Android emülatöründe doğrulandı. Güncel release candidate 30 Temmuz 2026 tarihinde yeniden üretildi ve aynı kabul kapsamından geçirildi.
+Issue [#19](https://github.com/gismo-o/TMGC-Team/issues/19) için production API'ye bağlı preview APK, temiz Android emülatörlerinde ve gerçek cihazda doğrulandı. Son dağıtılabilir artifact 2 Ağustos 2026 tarihinde döndürülmüş imzalama anahtarıyla yeniden üretildi.
 
-## Güncel Release Candidate Yeniden Doğrulaması
+## Dağıtılabilir Android Preview: 1.0.0 (27)
+
+| Alan | Değer |
+| --- | --- |
+| Durum | `FINISHED` |
+| Profil | `preview` / `INTERNAL` / APK |
+| Kaynak commit | `d8062e69b05931e0219b880c974a5e1dc6df0f61` |
+| EAS build | [75234d48-047b-4d23-9e61-1ef7fc0a0b78](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/75234d48-047b-4d23-9e61-1ef7fc0a0b78) |
+| Kalıcı release | [v1.0.0-preview.27](https://github.com/cerensvr/TMGC-Team/releases/tag/v1.0.0-preview.27) |
+| Doğrudan APK | [skinshelf-1.0.0-preview-v27.apk](https://github.com/cerensvr/TMGC-Team/releases/download/v1.0.0-preview.27/skinshelf-1.0.0-preview-v27.apk) |
+| Dosya boyutu | `101.871.867` bayt |
+| APK SHA-256 | `ef02edf2b083e51fe44e5437573cf9bf6db9b18a2c4656aea9536986400ef60c` |
+| Paket / SDK | `com.skinshelf.app` / min `24`, target `36` |
+| İmza | v2, RSA 2048, tek signer |
+| Sertifika SHA-256 | `35ea976c8034bb37b6aa9dbb23a635ba00c35926af18d947271f67b91656b85b` |
+| CI | [quality-check geçti](https://github.com/cerensvr/TMGC-Team/actions/runs/30765588548) |
+
+### Artifact Kabul Sonuçları
+
+- GitHub Release asset digest'i ile indirilen APK'nın SHA-256 değeri eşleşti.
+- `aapt` paket adını, `1.0.0 (27)` sürümünü ve SDK sınırlarını doğruladı.
+- `apksigner`, APK Signature Scheme v2 imzasını ve tek RSA-2048 signer'ı doğruladı.
+- Manifestte kullanılan kamera, bildirim, ağ, biyometri ve çalışma zamanı izinleri var.
+- `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, `RECORD_AUDIO` ve
+  `SYSTEM_ALERT_WINDOW` manifestte bulunmuyor.
+- Bu artifact için emülatör yeniden kurulmadı; uygulamanın gerçek cihaz ve temiz
+  emülatör akışları aşağıdaki önceki kabul koşularında ayrıca doğrulandı.
+- [QR kodu ve kurulum yönergesi](../../docs/release/README.md) kalıcı release
+  asset'ine bağlıdır.
+
+## Geçmiş Temiz Kurulum Kanıtı: 1.0.0 (8)
 
 | Alan | Değer |
 | --- | --- |
@@ -16,11 +46,11 @@ Issue [#19](https://github.com/gismo-o/TMGC-Team/issues/19) için production API
 | Paket / imza | `com.skinshelf.app` / APK Signature Scheme v2 |
 | Production API | `https://skinshelf-backend.onrender.com/api/auth` |
 
-Yerel EAS build'i 372 Gradle göreviyle 3 dakika 33 saniyede tamamlandı. Aynı
-commit için EAS cloud build'i de başlatıldı; ücretsiz sıra tamamlandığında
-indirilebilir artifact yukarıdaki kalıcı build sayfasında görünecektir.
+Yerel EAS build'i 372 Gradle göreviyle 3 dakika 33 saniyede tamamlandı ve aynı
+commit için cloud build kaydı oluşturuldu. Bu bölüm temiz kurulum geçmişidir;
+güncel indirme kaynağı `1.0.0 (27)` GitHub Release asset'idir.
 
-### Güncel Temiz Kurulum Matrisi
+### 1.0.0 (8) Temiz Kurulum Matrisi
 
 | Emülatör oturumu | Ekran | Temiz kurulum | Açılış | Canlı login |
 | --- | --- | --- | --- | --- |
@@ -31,7 +61,7 @@ indirilebilir artifact yukarıdaki kalıcı build sayfasında görünecektir.
 sıfırdan kuruldu. İkinci oturum ayrıca 720×1280 compact görünümde yeniden
 açıldı. Paket yöneticisi her iki kurulumda `1.0.0 (8)` sürümünü doğruladı.
 
-### Güncel Kabul Sonuçları
+### 1.0.0 (8) Kabul Sonuçları
 
 - Canlı Render hesabıyla login, profil ve ürün yükleme tamamlandı; ana ekranda
   `Cilt Bakım Dolabı` görüntülendi.
@@ -48,10 +78,10 @@ açıldı. Paket yöneticisi her iki kurulumda `1.0.0 (8)` sürümünü doğrula
   ANR bulunmadı.
 - Sentetik test hesapları test sonunda silindi; silme sonrası login `401`
   döndü.
-- Fiziksel Android cihaz ve fiziksel barkod testi, kullanıcının talebiyle bu
-  çalışmanın dışında bırakıldı.
+- Fiziksel Android cihaz ve fiziksel barkod testi bu doğrulama koşusunun
+  dışındaydı; sonraki gerçek cihaz kabulü ayrı raporda tamamlandı.
 
-## Tamamlanmış EAS Build Bazı
+## Geçmiş Tamamlanmış EAS Build: 1.0.0 (7)
 
 | Alan | Değer |
 | --- | --- |

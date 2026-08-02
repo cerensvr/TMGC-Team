@@ -66,13 +66,13 @@ Rutin politika motoru, model cevabından bağımsız olarak yalnız aktif raf
 ## Gerçek Cihaz, Build ve Demo
 
 - [POCO X6 Pro gerçek cihaz regression testi](RELEASE-CANDIDATE-TEST.md)
-- [EAS preview APK ve temiz kurulum](android-preview-apk-verification.md)
+- [Kalıcı Android APK, QR ve kurulum](../../docs/release/README.md)
+- [EAS preview APK ve doğrulama](android-preview-apk-verification.md)
 - [Deployment ve build notları](Deployment_Notes.md)
 - [Demo akışı, ekran seti ve video durumu](demo-and-device-evidence.md)
 - [Final Android ekranları](Product_Screenshots/README.md)
 
-Final demo videosu ekip teslim paketinde tamamlandı. Public video URL'si bu
-repository kopyasında bulunmadığı için tahmini bir URL eklenmedi.
+Final demo videosu: [SkinShelf tanıtım videosunu YouTube'da izle](https://youtu.be/HhQa0vlM9QA).
 
 ## Kullanıcı Değeri Kanıtı
 

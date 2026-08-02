@@ -19,14 +19,14 @@ SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shel
 | Değerlendirme başlığı | Kanıt |
 | --- | --- |
 | Çalışan mobil ürün | [Sprint 3 final Android ekranları](Project_Management_Files/Sprint_3/Product_Screenshots) |
-| Kurulabilir Android APK | [SkinShelf 1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25), [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
+| Kurulabilir Android APK | [SkinShelf 1.0.0 (27) APK](https://github.com/cerensvr/TMGC-Team/releases/download/v1.0.0-preview.27/skinshelf-1.0.0-preview-v27.apk), [QR ve kurulum](docs/release/README.md), [doğrulama raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
 | Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
 | AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md), [100 yönlendirme + 12 yanıt kalitesi değerlendirmesi](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
 | Gerçek kullanıcı kanıtı | [10 günlük anonim kullanıcı pilotu](docs/user-research/README.md): 10 katılımcı, 91 aktif kullanıcı-günü, %75,3 rutin tamamlama |
 | Pazar ve ürün stratejisi | [Rakip haritası, TAM/SAM/SOM yaklaşımı ve gelir senaryosu](docs/market/README.md) |
 | Scrum/board kanıtı | [Sprint 3 kanıt indeksi](Project_Management_Files/Sprint_3/README.md), [102/102 SP dağılımı](Project_Management_Files/Sprint_3/sprint3-story-points.md), [burndown](Project_Management_Files/Sprint_3/Burndown_Chart) |
 | Teknik kalite | 67 backend + 19 mobil test, %75,55 satır kapsamı, 24 endpoint contract ve 4 profilli smoke; [kalite kapıları](docs/engineering-quality.md) |
-| Final demo akışı | [Gerçek cihaz, demo akışı ve video kanıtı](Project_Management_Files/Sprint_3/demo-and-device-evidence.md) |
+| Final demo | [SkinShelf tanıtım videosu](https://youtu.be/HhQa0vlM9QA), [gerçek cihaz ve demo kanıtı](Project_Management_Files/Sprint_3/demo-and-device-evidence.md) |
 
 **Rakiplerden ayrışan taraf:** SkinShelf yalnızca sohbet eden bir AI ekranı değildir. Ürün dolabı, ürün içerikleri, aktif/pasif rutin seçimi, haftalık rutin planı, cilt takibi ve Shelly yorumları aynı veri akışına bağlanmıştır. Bu nedenle demo sırasında bir ürünün dolaptaki durumu değiştiğinde rutin ve Shelly bağlamı da anlamlı şekilde değişir.
 
@@ -713,6 +713,8 @@ Sprint 3 final kontrol listesi: [Project_Management_Files/Sprint_3/Final_Readine
 
 Shelly otomatik değerlendirme sonucu: [100/100 yönlendirme, 12/12 yanıt kalitesi, 67 backend ve 19 mobil test](Project_Management_Files/Sprint_3/shelly-evaluation-report.md)
 
-Android preview APK: [1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25) · [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697) · [iki temiz emülatör doğrulaması](Project_Management_Files/Sprint_3/android-preview-apk-verification.md)
+Android preview APK: [1.0.0 (27) doğrudan indir](https://github.com/cerensvr/TMGC-Team/releases/download/v1.0.0-preview.27/skinshelf-1.0.0-preview-v27.apk) · [QR ve kurulum](docs/release/README.md) · [manifest, imza ve SHA-256 doğrulaması](Project_Management_Files/Sprint_3/android-preview-apk-verification.md)
+
+Final tanıtım videosu: [YouTube'da izle](https://youtu.be/HhQa0vlM9QA)
 
 ---

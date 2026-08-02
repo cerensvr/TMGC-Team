@@ -7,12 +7,8 @@
 | Gerçek Android cihaz testi | Tamamlandı | [POCO X6 Pro RC testi](RELEASE-CANDIDATE-TEST.md) |
 | Temiz preview APK kurulumu | Tamamlandı | [APK doğrulama raporu](android-preview-apk-verification.md) |
 | Final ekran seti | Tamamlandı | [Ürün galerisi](Product_Screenshots/README.md) |
-| Final demo videosu | Tamamlandı | Ekip teslim paketinde saklanıyor |
+| Final demo videosu | Tamamlandı | [YouTube'da izle](https://youtu.be/HhQa0vlM9QA) |
 | Demo yedeği | Tamamlandı | Ekran seti + APK/build kaydı |
-
-Public video URL'si bu repository kopyasında bulunmadığı için sahte
-veya tahmini bağlantı eklenmedi. Teslim formunda kullanılan URL public olarak
-paylaşılacaksa bu tablodaki final video satırına eklenmelidir.
 
 ## 3 Dakikalık Demo Akışı
 

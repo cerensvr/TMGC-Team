@@ -98,6 +98,9 @@ Preview Android build:
 npx eas-cli build --profile preview --platform android
 ```
 
+Doğrulanmış preview APK, kalıcı [GitHub Release](https://github.com/cerensvr/TMGC-Team/releases/tag/v1.0.0-preview.27)
+ve [kurulum/QR sayfasında](release/README.md) bulunur.
+
 Production Android build:
 
 ```bash

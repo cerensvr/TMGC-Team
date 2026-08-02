@@ -29,7 +29,8 @@ Final demoda anlatilacak ana hikaye:
 | Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
 | Shelly otomatik eval | 100 senaryo, rutin politika motoru, 4 profilli full-stack smoke | [Tamamlandı](shelly-evaluation-report.md) |
 | Gerçek cihaz | POCO X6 Pro ana ve hata akışları | [Tamamlandı](RELEASE-CANDIDATE-TEST.md) |
-| Final demo videosu | 3 dakikalık final akışı ve yedek ekran seti | [Tamamlandı](demo-and-device-evidence.md) |
+| Dağıtılabilir APK | Kalıcı asset, QR, imza, manifest ve SHA-256 | [Tamamlandı](../../docs/release/README.md) |
+| Final demo videosu | 3 dakikalık final akışı ve yedek ekran seti | [YouTube](https://youtu.be/HhQa0vlM9QA) |
 | Review ve retrospective | Sonuçlar, katılımcılar ve aksiyonlar | [Tamamlandı](Review_and_Retrospective/README.md) |
 
 ## Zaten Hazir Teknik Kanitlar

@@ -13,10 +13,8 @@ alınmıştır; durumlar 2 Ağustos 2026 kapanış kontrolüne aittir.
 | Kalan | 0 SP | Sprint 4'e devreden PBI yok |
 | Tamamlanma oranı | %100 | Kod, test, cihaz, video ve kapanış teslimleri tamamlandı |
 
-Son 13 SP; Sprint 3 kanıt paketi, demo videosu ve final release kabulüyle
-2 Ağustos kapanışında tamamlandı. Demo videosunun public URL'si bu repository
-kopyasında bulunmadığı için link uydurulmadı; video ekip teslim paketinde
-saklanır.
+Son 13 SP; Sprint 3 kanıt paketi, [demo videosu](https://youtu.be/HhQa0vlM9QA)
+ve final release kabulüyle 2 Ağustos kapanışında tamamlandı.
 
 ## Issue Bazlı Backlog
 

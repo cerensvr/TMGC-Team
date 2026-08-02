@@ -28,6 +28,7 @@
 - [Güvenlik ve gizlilik](Security-and-Privacy-Validation.md)
 - [Gerçek cihaz release candidate testi](RELEASE-CANDIDATE-TEST.md)
 - [Android preview APK kurulumu](android-preview-apk-verification.md)
+- [Kalıcı APK, QR ve checksum](../../docs/release/README.md)
 
 ## Tekrarlama
 

@@ -4,6 +4,20 @@
 Android kabul kapsamından geçirildi. Test edilen son uygulama kaynak commit'i
 `ddec3930b4cbcc6f0764ded2f7d97200d3f3c4f3`'tür.
 
+## 2 Ağustos 2026 İmzalama Güncellemesi
+
+31 Temmuz raporunda kayıt altına alınan sertifika
+`9741345f...` kullanımdan kaldırıldı. `d8062e6` kaynak commit'i, yeni EAS remote
+keystore ile `1.0.0 (27)` preview APK olarak yeniden üretildi. Yeni sertifika
+SHA-256 değeri `35ea976c8034bb37b6aa9dbb23a635ba00c35926af18d947271f67b91656b85b`'dir.
+
+Yeni artifact'in imzası, manifesti ve SHA-256 değeri bağımsız araçlarla
+doğrulandı ve kalıcı [GitHub Release](https://github.com/cerensvr/TMGC-Team/releases/tag/v1.0.0-preview.27)
+üzerinden preview dağıtımına açıldı. Ayrıntılar
+[güncel APK raporundadır](android-preview-apk-verification.md). Aşağıdaki
+`1.0.0 (18)` APK ve `1.0.0 (19)` AAB bölümleri geçmiş teknik kayıt olarak
+korunur ve dağıtım için kullanılmaz.
+
 ## Kaynak ve Kalite Kapıları
 
 | Kontrol | Sonuç |
@@ -69,11 +83,12 @@ doğrulandı.
 | Manifest kontrolü | `RECORD_AUDIO` ve `SYSTEM_ALERT_WINDOW` yok |
 | Build provenance | Detached, temiz `ddec393` worktree; 23,4 MB EAS kaynak arşivi |
 
-## İmzalama Güvenliği Blokeri
+## Geçmiş İmzalama Güvenliği Olayı
 
 Yerel EAS build süreci durdurulurken Android imzalama materyali terminal hata
 çıktısında göründü. Gizli değerler bu rapora veya repository'ye yazılmadı;
-ancak mevcut keystore güvenli kabul edilemez. Bu nedenle yukarıdaki APK ve AAB
+ancak o tarihteki keystore güvenli kabul edilemezdi. Bu nedenle yukarıdaki
+`1.0.0 (18)` APK ve `1.0.0 (19)` AAB
 yalnız teknik build/test kanıtıdır ve public dağıtıma verilmemelidir.
 
 - Uygulama Google Play'e hiç yüklenmediyse EAS Android keystore yenilenmeli.
@@ -82,13 +97,11 @@ yalnız teknik build/test kanıtıdır ve public dağıtıma verilmemelidir.
 - Yeni anahtardan sonra preview APK ve production AAB yeniden üretilmeli;
   imza, manifest, temiz kurulum ve SHA-256 doğrulamaları tekrarlanmalı.
 
-Bu nedenle daha önce başlatılan tüm cloud Android buildleri iptal edildi. Anahtar
-rotasyonu tamamlanmadan aktif cloud release build'i yoktur.
+Bu nedenle o tarihte başlatılan cloud Android buildleri iptal edildi. Anahtar
+rotasyonu daha sonra tamamlandı ve güncel `1.0.0 (27)` artifact'i üretildi.
 
-## Release Sınırı
+## Geçmiş Artifact Sınırı
 
-Bu doğrulama Android artifact içeriğini kapsar; mevcut artifactler imzalama
-blokeri nedeniyle dağıtıma uygun değildir. Legal sayfalar kaynak kodda ve mobil
-bağlantılarda hazırdır; public URL'lerin canlı doğrulaması için bu commitlerin
-remote `main`'e pushlanması ve Render deployunun tamamlanması gerekir. Google
-Play yükleme/gönderim işlemi bu doğrulamanın parçası değildir.
+Bu bölümdeki `1.0.0 (18)` ve `1.0.0 (19)` artifactleri imzalama olayı nedeniyle
+dağıtıma uygun değildir. Güncel preview dağıtımı `1.0.0 (27)` ile yapılır.
+Google Play yükleme/gönderim işlemi bu doğrulamanın parçası değildir.
