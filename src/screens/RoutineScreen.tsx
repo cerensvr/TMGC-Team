@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp, useFocusEffect } from '@react-navigation/native';
@@ -170,10 +170,11 @@ export default function RoutineScreen({ navigation }: Props) {
   }, [activeIssue, profile.mainGoal]);
 
   const weekPlan = useMemo(
-    () => buildWeekPlan(activeProducts, concern),
-    [products, updateTrigger, concern]
+    () => buildWeekPlan(activeProducts, concern, { isPregnant: profile.isPregnant }),
+    [products, updateTrigger, concern, profile.isPregnant]
   );
-  const todayPlan = weekPlan[0];
+  const currentDay = new Date().getDay();
+  const todayPlan = weekPlan[currentDay === 0 ? 6 : currentDay - 1];
 
   const routineReview = useMemo(
     () => getRoutineReview(todayPlan?.morning || [], todayPlan?.evening || []),

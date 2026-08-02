@@ -3,6 +3,8 @@ node_modules/
 dist/
 build/
 ios/build-device/
+/ios/
+assets/shelly-icon-v*.png
 output/
 tmp/
 coverage/

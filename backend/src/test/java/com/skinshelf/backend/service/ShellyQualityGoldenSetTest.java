@@ -7,11 +7,16 @@ import com.skinshelf.backend.service.ShellyPromptService.ShellyMode;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,12 +40,25 @@ class ShellyQualityGoldenSetTest {
             });
         }
 
-        assertEquals(42, cases.size());
-        assertAll(cases.stream()
-                .map(testCase -> () -> assertEquals(
-                        testCase.expectedMode(),
-                        promptService.detectMode(testCase.message()).name(),
-                        testCase.message())));
+        assertEquals(100, cases.size());
+
+        int correct = 0;
+        Map<String, ModeMetric> modeMetrics = new LinkedHashMap<>();
+        List<EvaluationMismatch> mismatches = new ArrayList<>();
+        for (GoldenCase testCase : cases) {
+            String actualMode = promptService.detectMode(testCase.message()).name();
+            ModeMetric metric = modeMetrics.computeIfAbsent(testCase.expectedMode(), ignored -> new ModeMetric());
+            metric.total++;
+            if (testCase.expectedMode().equals(actualMode)) {
+                correct++;
+                metric.correct++;
+            } else {
+                mismatches.add(new EvaluationMismatch(testCase.message(), testCase.expectedMode(), actualMode));
+            }
+        }
+
+        writeEvaluationArtifact(cases.size(), correct, modeMetrics, mismatches);
+        assertTrue(mismatches.isEmpty(), "Yanlış sınıflanan senaryolar: " + mismatches);
     }
 
     @Test
@@ -79,5 +97,40 @@ class ShellyQualityGoldenSetTest {
     }
 
     private record GoldenCase(String message, String expectedMode) {
+    }
+
+    private void writeEvaluationArtifact(
+            int total,
+            int correct,
+            Map<String, ModeMetric> metrics,
+            List<EvaluationMismatch> mismatches) throws Exception {
+        var report = objectMapper.createObjectNode();
+        report.put("schemaVersion", 1);
+        report.put("generatedAt", Instant.now().toString());
+        report.put("dataset", "shelly-golden-cases.json");
+        report.put("totalScenarios", total);
+        report.put("correctScenarios", correct);
+        report.put("routingAccuracy", total == 0 ? 0 : (double) correct / total);
+
+        var byMode = report.putObject("byMode");
+        metrics.forEach((mode, metric) -> {
+            var value = byMode.putObject(mode);
+            value.put("total", metric.total);
+            value.put("correct", metric.correct);
+            value.put("accuracy", metric.total == 0 ? 0 : (double) metric.correct / metric.total);
+        });
+        report.set("mismatches", objectMapper.valueToTree(mismatches));
+
+        Path output = Path.of("target", "shelly-eval-report.json");
+        Files.createDirectories(output.getParent());
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(output.toFile(), report);
+    }
+
+    private static final class ModeMetric {
+        private int total;
+        private int correct;
+    }
+
+    private record EvaluationMismatch(String message, String expectedMode, String actualMode) {
     }
 }

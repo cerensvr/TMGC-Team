@@ -1,67 +1,95 @@
-# Sprint 3 Final Kapanis Hazirligi
+# Sprint 3 - Final Ürünleştirme ve Teslim
 
-Sprint 3, SkinShelf'in final demo ve gelismis kullanici deneyimi katmanina getirildigi kapanis sprintidir. Bu klasor, Sprint 3 tamamlanirken eklenecek final kanitlari ve kalite kontrol notlari icin kullanilir.
+**Sprint tarihleri:** 20 Temmuz - 2 Ağustos 2026
+**Sprint hedefi:** SkinShelf'i kurulabilir, gerçek cihazda test edilmiş,
+AI davranışı ölçülmüş ve uçtan uca demo edilebilir final ürüne taşımak.
+**Sonuç:** 102/102 SP tamamlandı, kalan iş 0 SP.
 
-## Sprint Hedefi
+<img src="Sprint_Board/sprint3-board-summary.svg" width="1000" alt="Sprint 3 board summary">
 
-- Rutin onerilerini gelistirmek
-- Analiz gecmisi ekranlarini tamamlamak
-- Bildirim ve urun bitis hatirlaticilarini eklemek
-- AI yanitlarini daha acik ve kullanici dostu gostermek
-- Mobil cihazlarda final UI/UX kontrollerini yapmak
-- Final sunum ve demo hazirligini tamamlamak
+## Sprint Sonu Beklentileri
 
-## Kapanis Kanitlari
+| Beklenti | Durum | Kanıt |
+| --- | --- | --- |
+| Backlog dağıtma mantığı | Tamamlandı | [102 SP issue bazlı plan](sprint3-story-points.md) |
+| Daily Scrum notları | Tamamlandı | [Repository ile doğrulanabilir daily kaydı](Daily_Scrum/README.md) |
+| Sprint board updates | Tamamlandı | [Başlangıç, orta ve kapanış board kanıtı](Sprint_Board/README.md) |
+| Ürün durumu | Tamamlandı | [Final Android ekran galerisi](Product_Screenshots/README.md) |
+| Sprint Review | Tamamlandı | [Review ve kabul sonuçları](Review_and_Retrospective/README.md) |
+| Sprint Retrospective | Tamamlandı | [İyi gidenler, zorluklar ve aksiyonlar](Review_and_Retrospective/README.md) |
 
-Sprint 3 kapanirken asagidaki kanitlar bu klasore eklenmelidir:
+## Scrum ve Kapanış Kanıtları
 
-- Sprint 3 board baslangic / orta / son ekran goruntuleri
-- Daily scrum kanitlari
-- Sprint 3 burndown chart
-- Final product screenshots
-- Final demo linki veya sabit ekran kanit seti
-- Sprint 3 review ve retrospective
-- Final test ve deployment notlari
-- [10 gunluk anonim kullanici pilotu](../../docs/user-research/README.md)
+- [Sprint board ve backlog takibi](Sprint_Board/README.md)
+- [Sprint 3 story point dağılımı](sprint3-story-points.md)
+- [Daily Scrum kaydı](Daily_Scrum/README.md)
+- [102 SP'den 0 SP'ye burndown](Burndown_Chart/README.md)
+- [Sprint Review ve Retrospective](Review_and_Retrospective/README.md)
+- [Final hazırlık ve Definition of Done](Final_Readiness.md)
 
-Final kontrol listesi: [Final_Readiness.md](Final_Readiness.md)
+## Tamamlanan Ürün Artımı
 
-## Final Kalite Hedefleri
+- Production API, Supabase PostgreSQL ve migration altyapısı doğrulandı.
+- Auth, onboarding, güvenli oturum ve hesap/veri silme akışları kapatıldı.
+- Kalıcı ürün dolabı; barkod, fotoğraf ve manuel ekleme akışlarıyla
+  tamamlandı.
+- Dolaptaki aktif ürünlerle günlük/haftalık rutin senkronizasyonu tamamlandı.
+- Shelly'nin profil, dolap, bilgi tabanı ve sohbet hafızasını kullanan
+  yapılandırılmış cevap akışı tamamlandı.
+- Güçlü aktifleri aynı geceye yerleştirmeyen deterministik rutin politikası
+  mobil ve backend katmanlarında uygulandı.
+- Cilt fotoğraf analizi, geçmiş, haftalık özet ve rutin/bitme bildirimleri
+  tamamlandı.
+- Loading, error, empty state, erişilebilirlik ve compact Android ekran geçişi
+  yapıldı.
+- Preview APK, temiz emülatör ve gerçek Android cihazda kabul testinden geçti.
 
-- Uygulama temel akislarda demo edilebilir olmali
-- AI analiz ve rutin onerisi calisir gosterilmeli
-- Kullanici urun dolabi kalici veriyle calismali
-- README ve proje yonetimi klasorleri eksiksiz baglanmali
-- GitHub Actions build/test kontrolleri gecmeli
-- Notion kartlarinda point, status, sprint ve assignee alanlari okunur olmali
+## AI ve Teknik Kalite
 
-## Gercek Kullanici Pilotu
+| Kanıt | Sonuç | Dosya |
+| --- | ---: | --- |
+| Shelly otomatik yönlendirme eval | 100/100 | [shelly-evaluation-report.md](shelly-evaluation-report.md) |
+| Backend otomatik test | 63/63 | [Test indeksi](Test_and_Verification.md) |
+| Mobil servis/regresyon testi | 19/19 | [Test indeksi](Test_and_Verification.md) |
+| İzole full-stack smoke | 4/4 profil | [Test indeksi](Test_and_Verification.md) |
+| Production dependency audit | 0 açık | [CI workflow](../../.github/workflows/quality-check.yml) |
+| Canlı API smoke | Geçti | [live-api-smoke-report.md](live-api-smoke-report.md) |
+| Güvenlik ve gizlilik | Geçti | [Security-and-Privacy-Validation.md](Security-and-Privacy-Validation.md) |
 
-Sprint 3 kapsaminda 10 anonim katilimciyla 10 gunluk kullanici pilotu
-raporlanmistir. Calismada 91 aktif kullanici-gunu, 137/182 tamamlanan rutin,
-%75,3 rutin tamamlama ve %80 G10 aktiflik kaydedilmistir. Ham kayitlar katilimci
-mahremiyeti nedeniyle herkese acik depoda yayimlanmamistir.
+Shelly eval seti; product analysis, routine check, ingredient analysis, skin
+reaction, weekly plan ve general chat olmak üzere altı cevap modunu kapsar.
+Rutin politika motoru, model cevabından bağımsız olarak yalnız aktif raf
+ürünlerini kullanır; retinoid ve güçlü asitleri ayrı gecelere yerleştirir.
 
-- [GitHub'da okunabilir pilot ozeti](../../docs/user-research/README.md)
-- [Tam PDF raporu](../../docs/user-research/skinshelf-10-day-anonymous-user-pilot.pdf)
+## Gerçek Cihaz, Build ve Demo
 
-## Shelly Yanit Kalitesi
+- [POCO X6 Pro gerçek cihaz regression testi](RELEASE-CANDIDATE-TEST.md)
+- [EAS preview APK ve temiz kurulum](android-preview-apk-verification.md)
+- [Deployment ve build notları](Deployment_Notes.md)
+- [Demo akışı, ekran seti ve video durumu](demo-and-device-evidence.md)
+- [Final Android ekranları](Product_Screenshots/README.md)
 
-Final demo ve regression testinde kullanilacak kişisellestirme, urun dogrulugu,
-guvenlik ve fallback senaryolari:
+Final demo videosu ekip teslim paketinde tamamlandı. Public video URL'si bu
+repository kopyasında bulunmadığı için tahmini bir URL eklenmedi.
 
-- [Shelly tutarli ve kisisel yanit senaryolari](../../docs/shelly-demo-scenarios.md)
-- [Sprint 2 Shelly AI kanit senaryolari](../Sprint_2/Shelly_AI_Scenarios.md)
-- [Shelly yanit kalitesi ve ucretsiz kota dogrulama raporu](shelly-quality-verification.md)
+## Kullanıcı Değeri Kanıtı
 
-## Backend Test Kaniti
+Sprint 3'te 10 anonim katılımcıyla 10 günlük kullanıcı pilotu raporlandı.
+91 aktif kullanıcı-gününde 137/182 rutin tamamlandı; rutin tamamlama oranı
+`%75,3`, 10. gün aktifliği `%80` oldu.
 
-- [Izole backend test profili ve Flyway dogrulama raporu](backend-test-profile-report.md)
-- [Canli Render/Supabase/Gemini API smoke test raporu](live-api-smoke-report.md)
+- [GitHub'da okunabilir pilot özeti](../../docs/user-research/README.md)
+- [Anonim tam PDF raporu](../../docs/user-research/skinshelf-10-day-anonymous-user-pilot.pdf)
 
-## Android Preview APK
+## Definition of Done
 
-- [EAS build ve iki temiz emulator dogrulama raporu](android-preview-apk-verification.md)
-- [SkinShelf 1.0.0 (8) guncel EAS build kaydi](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25)
-- [SkinShelf 1.0.0 (7) EAS build sayfasi](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697)
-- [Final Android kanit ekranlari](Product_Screenshots)
+Bir Sprint 3 PBI'ı ancak aşağıdaki koşullarda Done kabul edildi:
+
+- Kabul kriterleri karşılandı.
+- Kod TypeScript veya Maven testlerinden geçti.
+- Kullanıcı akışı gerekiyorsa emülatör/gerçek cihazda doğrulandı.
+- Secret veya kişisel veri repoya eklenmedi.
+- Test, ekran, build veya doküman kanıtı linklendi.
+- Issue kapanışı ve story point tablosu aynı kapsamı gösterdi.
+
+Sprint 3, 102/102 SP ve 0 kalan PBI ile tamamlandı.

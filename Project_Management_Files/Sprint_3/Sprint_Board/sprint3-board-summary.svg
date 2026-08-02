@@ -1,0 +1,58 @@
+<svg width="1100" height="760" viewBox="0 0 1100 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="760" fill="#F7F8F4"/>
+  <text x="40" y="54" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#143E25">SkinShelf Sprint 3 Board Snapshot</text>
+  <text x="40" y="84" font-family="Arial, sans-serif" font-size="16" fill="#506458">2 August 2026 - 102 SP completed - 0 SP remaining</text>
+
+  <rect x="40" y="110" width="245" height="600" rx="8" fill="#EEF5EF" stroke="#B8D0BD"/>
+  <rect x="300" y="110" width="245" height="600" rx="8" fill="#F2F5F2" stroke="#CFD9D1"/>
+  <rect x="560" y="110" width="245" height="600" rx="8" fill="#FFF6E7" stroke="#E7C77C"/>
+  <rect x="820" y="110" width="240" height="600" rx="8" fill="#FFF1F2" stroke="#E7BFC4"/>
+
+  <text x="60" y="148" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#245C39">DONE</text>
+  <text x="227" y="148" text-anchor="end" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#245C39">102 SP</text>
+  <text x="320" y="148" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#4D6254">REVIEW</text>
+  <text x="487" y="148" text-anchor="end" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#4D6254">0 SP</text>
+  <text x="580" y="148" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#785A16">PROGRESS</text>
+  <text x="747" y="148" text-anchor="end" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#785A16">0 SP</text>
+  <text x="840" y="148" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#81404A">TO DO</text>
+  <text x="1017" y="148" text-anchor="end" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#81404A">0 SP</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="58" y="172" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="197" font-size="15" font-weight="700" fill="#143E25">#5-#8 Platform / API</text>
+    <text x="74" y="220" font-size="14" fill="#506458">API, DB, smoke</text>
+    <text x="244" y="220" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">21 SP</text>
+
+    <rect x="58" y="254" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="279" font-size="15" font-weight="700" fill="#143E25">#9-#10 Core product</text>
+    <text x="74" y="302" font-size="14" fill="#506458">Auth + cabinet</text>
+    <text x="244" y="302" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">13 SP</text>
+
+    <rect x="58" y="336" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="361" font-size="15" font-weight="700" fill="#143E25">#11-#13 AI experience</text>
+    <text x="74" y="384" font-size="14" fill="#506458">Shelly + routine</text>
+    <text x="244" y="384" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">21 SP</text>
+
+    <rect x="58" y="418" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="443" font-size="15" font-weight="700" fill="#143E25">#14-#16 Product quality</text>
+    <text x="74" y="466" font-size="14" fill="#506458">Notify, UX, privacy</text>
+    <text x="244" y="466" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">18 SP</text>
+
+    <rect x="58" y="500" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="525" font-size="15" font-weight="700" fill="#143E25">#17-#19 Release proof</text>
+    <text x="74" y="548" font-size="14" fill="#506458">Tests, device, APK</text>
+    <text x="244" y="548" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">16 SP</text>
+
+    <rect x="58" y="582" width="209" height="70" rx="6" fill="#FFFFFF" stroke="#C5D7C8"/>
+    <text x="74" y="607" font-size="15" font-weight="700" fill="#143E25">#20-#22 Final delivery</text>
+    <text x="74" y="630" font-size="14" fill="#506458">Docs + video</text>
+    <text x="244" y="630" text-anchor="end" font-size="14" font-weight="700" fill="#245C39">13 SP</text>
+
+    <text x="422" y="220" text-anchor="middle" font-size="16" fill="#75847A">No cards</text>
+    <text x="682" y="220" text-anchor="middle" font-size="16" fill="#8B712F">No cards</text>
+    <text x="940" y="220" text-anchor="middle" font-size="16" fill="#9B6870">No cards</text>
+  </g>
+
+  <line x1="40" y1="730" x2="1060" y2="730" stroke="#D5DED6"/>
+  <text x="40" y="751" font-family="Arial, sans-serif" font-size="13" fill="#506458">Definition of Done: acceptance criteria passed + evidence linked + sprint closure approved</text>
+</svg>

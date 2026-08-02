@@ -1,6 +1,6 @@
 # Sprint 1 Example Repository Comparison
 
-Bu dosya, Sprint 1 teslim yapisini bootcamp ornek repolarindaki Scrum kanit duzeniyle karsilastirir. Amac, README ve proje yonetimi klasorlerinin juri tarafindan beklenen basliklari net sekilde karsiladigini gostermektir.
+Bu dosya, Sprint 1 teslim yapisini bootcamp ornek repolarindaki Scrum kanit duzeniyle karsilastirir. Amac, README ve proje yonetimi klasorlerinin degerlendirme icin beklenen basliklari net sekilde karsiladigini gostermektir.
 
 ## Incelenen Ornekler
 

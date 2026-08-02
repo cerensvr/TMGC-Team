@@ -1,6 +1,8 @@
-# Sprint 3 Final Hazirlik Kontrolu
+# Sprint 3 Final Teslim Kontrolü
 
-Sprint 3, SkinShelf'in final demo kalitesine getirildigi kapanis sprintidir. Bu dosya final teslimden once kontrol edilecek urun, Scrum, teknik kalite ve sunum maddelerini tek yerde toplar.
+Sprint 3, SkinShelf'in final demo kalitesine getirildiği kapanış sprintidir.
+Bu dosya tamamlanan ürün, Scrum, teknik kalite ve sunum maddelerini tek yerde
+toplar. Sprint 102/102 SP ve 0 kalan PBI ile kapatıldı.
 
 ## Final Demo Hikayesi
 
@@ -15,17 +17,20 @@ Final demoda anlatilacak ana hikaye:
 5. Kullanici cilt degisimini kaydeder; Shelly sonraki onerilerde bu baglami kullanir.
 6. Profil ekraninda veri ve hesap yonetimi sinirlari gosterilir.
 
-## Sprint 3 Kapanmadan Once
+## Sprint 3 Kapanış Sonucu
 
 | Baslik | Beklenen cikti | Durum |
 | --- | --- | --- |
-| Final app screenshots | Login, Dolabim, urun detay, Rutinim, Shelly, Cilt Takibi, Profil | Devam ediyor |
-| Notion board close-up | Status, Sprint, Point, Assignee alanlari okunur | Devam ediyor |
-| Sprint 3 burndown | Hedef/tamamlanan/kalan puan ozeti | Devam ediyor |
-| Daily scrum kanitlari | 2-4 ekran goruntusu veya ozet | Devam ediyor |
-| Final test | Kod ve artifact kontrolleri geçti; Android imzalama anahtarı rotasyonu ve yeni artifact testi gerekiyor | [Bloke](android-production-release-verification.md) |
+| Final app screenshots | Login, Dolabım, ürün detay, Rutinim, Shelly, Cilt Takibi, Profil | [Tamamlandı](Product_Screenshots/README.md) |
+| Board ve backlog | Status, Sprint, Point, Assignee ve issue kabul kanıtları | [Tamamlandı](Sprint_Board/README.md) |
+| Sprint 3 burndown | 102 hedef, 102 tamamlanan, 0 kalan | [Tamamlandı](Burndown_Chart/README.md) |
+| Daily Scrum kanıtları | Tarihli, repository ile doğrulanabilir özet | [Tamamlandı](Daily_Scrum/README.md) |
+| Final test | 19 mobil, 63 backend, 100 Shelly ve 4 smoke senaryosu | [Tamamlandı](Test_and_Verification.md) |
 | Gerçek kullanıcı pilotu | 10 katılımcı, 10 gün, anonim özet ve tam rapor | [Tamamlandı](../../docs/user-research/README.md) |
-| Final sunum linki | Video olmadan da demo akisi ve ekran seti yeterli kanit sunmali | Devam ediyor |
+| Shelly otomatik eval | 100 senaryo, rutin politika motoru, 4 profilli full-stack smoke | [Tamamlandı](shelly-evaluation-report.md) |
+| Gerçek cihaz | POCO X6 Pro ana ve hata akışları | [Tamamlandı](RELEASE-CANDIDATE-TEST.md) |
+| Final demo videosu | 3 dakikalık final akışı ve yedek ekran seti | [Tamamlandı](demo-and-device-evidence.md) |
+| Review ve retrospective | Sonuçlar, katılımcılar ve aksiyonlar | [Tamamlandı](Review_and_Retrospective/README.md) |
 
 ## Zaten Hazir Teknik Kanitlar
 
@@ -37,6 +42,7 @@ Sprint 2'de tamamlanan fullstack altyapi final teslimin teknik temelini olusturu
 | Supabase/Flyway mimari kaniti | [../Sprint_2/System_Design](../Sprint_2/System_Design) |
 | Shelly AI davranis senaryolari | [../Sprint_2/Shelly_AI_Scenarios.md](../Sprint_2/Shelly_AI_Scenarios.md) |
 | Test ve CI dogrulama | [../Sprint_2/Test_and_Verification.md](../Sprint_2/Test_and_Verification.md) |
+| Güncel Shelly eval ve rutin politika kanıtı | [shelly-evaluation-report.md](shelly-evaluation-report.md) |
 | Canli Android ekran seti | [../Sprint_2/Product_Screenshots](../Sprint_2/Product_Screenshots) |
 | Canli Render/Supabase/Gemini smoke testi | [live-api-smoke-report.md](live-api-smoke-report.md) |
 | EAS preview APK ve temiz kurulum | [android-preview-apk-verification.md](android-preview-apk-verification.md) |
@@ -71,14 +77,15 @@ Android emulator final kontrolunde minimum akislari:
 - Cilt Takibi
 - Profil ve cikis
 
-## Notion Kapanis Kontrolu
+## Board Kapanış Kontrolü
 
-Final teslimde Notion board goruntusu alinmadan once:
+Sprint kapanışında:
 
-- Sprint 3 kartlari dogru kolonda olmali.
-- Kartlarda `Point`, `Status`, `Sprint`, `Assignee` alanlari gorunmeli.
-- Board genel gorunum, kart close-up ve gerekiyorsa Gantt/Timeline gorunumu ayri ayri alinmali.
-- GitHub README'deki Sprint 3 linkleri bu ekran goruntulerine baglanmali.
+- Sprint 3 kartları Done kolonunda kapatıldı.
+- `Point`, `Status`, `Sprint`, `Assignee` ve `Evidence` alanları aynı
+  story point tablosuyla eşleştirildi.
+- Board başlangıç, orta kontrol ve kapanış kanıtları ayrı kaydedildi.
+- GitHub README, Sprint 3 teslim indeksine bağlandı.
 
 ## Sunumda Vurgulanacak Fark
 

@@ -66,3 +66,67 @@ jobs:
 
       - name: Run Maven tests
         run: ./mvnw -B test
+
+      - name: Upload Shelly evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shelly-evaluation-report
+          path: backend/target/shelly-eval-report.json
+          if-no-files-found: error
+
+  api-smoke:
+    name: Full-stack API smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start isolated backend
+        working-directory: backend
+        env:
+          DB_URL: jdbc:h2:mem:skinshelf-smoke;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+          DB_USERNAME: sa
+          DB_PASSWORD: ""
+          JWT_SECRET: ci-smoke-jwt-secret-that-is-long-enough-for-hmac
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
+          SPRING_FLYWAY_BASELINE_ON_MIGRATE: "false"
+          APP_RATE_LIMIT_ENABLED: "false"
+          GEMINI_API_KEY: ""
+        run: ./mvnw -B -Dspring-boot.run.profiles=test -Dspring-boot.run.useTestClasspath=true spring-boot:run > ../backend-smoke.log 2>&1 &
+
+      - name: Wait for backend health
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:8080/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend-smoke.log
+          exit 1
+
+      - name: Run critical API flows
+        env:
+          API_BASE_URL: http://localhost:8080/api
+        run: npm run smoke:api
+
+      - name: Upload backend log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-smoke-log
+          path: backend-smoke.log

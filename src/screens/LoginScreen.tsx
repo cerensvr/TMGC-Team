@@ -6,10 +6,10 @@ import {
   StyleSheet,
   ImageBackground,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowRight, Sparkles } from 'lucide-react-native';

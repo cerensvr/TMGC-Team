@@ -16,14 +16,14 @@ SkinShelf, kullanıcının cilt bakım ürünlerini dijital rafa eklediği; Shel
 
 | Değerlendirme başlığı | Kanıt |
 | --- | --- |
-| Çalışan mobil ürün | [Sprint 2 canlı Android ekranları](Project_Management_Files/Sprint_2/Product_Screenshots) |
+| Çalışan mobil ürün | [Sprint 3 final Android ekranları](Project_Management_Files/Sprint_3/Product_Screenshots) |
 | Kurulabilir Android APK | [SkinShelf 1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25), [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697), [temiz kurulum raporu](Project_Management_Files/Sprint_3/android-preview-apk-verification.md) |
 | Fullstack mimari | React Native/Expo + Spring Boot + Supabase PostgreSQL + Gemini |
-| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md) |
+| AI farkı | [Shelly AI kanıt senaryoları](Project_Management_Files/Sprint_2/Shelly_AI_Scenarios.md), [100 senaryolu otomatik değerlendirme](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
 | Gerçek kullanıcı kanıtı | [10 günlük anonim kullanıcı pilotu](docs/user-research/README.md): 10 katılımcı, 91 aktif kullanıcı-günü, %75,3 rutin tamamlama |
-| Scrum/board kanıtı | [Sprint 2 kanıt indeksi](Project_Management_Files/Sprint_2/README.md), [story point dağılımı](Project_Management_Files/Sprint_2/sprint2-story-points.md) |
-| Teknik kalite | [GitHub Actions kalite kontrolü](.github/workflows/quality-check.yml), [test doğrulama](Project_Management_Files/Sprint_2/Test_and_Verification.md) |
-| Final demo akışı | [Sprint 3 final hazırlık kontrolü](Project_Management_Files/Sprint_3/Final_Readiness.md) |
+| Scrum/board kanıtı | [Sprint 3 kanıt indeksi](Project_Management_Files/Sprint_3/README.md), [102/102 SP dağılımı](Project_Management_Files/Sprint_3/sprint3-story-points.md), [burndown](Project_Management_Files/Sprint_3/Burndown_Chart) |
+| Teknik kalite | 63 backend + 19 mobil test, 4 profilli full-stack smoke; [GitHub Actions](.github/workflows/quality-check.yml), [güncel doğrulama raporu](Project_Management_Files/Sprint_3/shelly-evaluation-report.md) |
+| Final demo akışı | [Gerçek cihaz, demo akışı ve video kanıtı](Project_Management_Files/Sprint_3/demo-and-device-evidence.md) |
 
 **Rakiplerden ayrışan taraf:** SkinShelf yalnızca sohbet eden bir AI ekranı değildir. Ürün dolabı, ürün içerikleri, aktif/pasif rutin seçimi, haftalık rutin planı, cilt takibi ve Shelly yorumları aynı veri akışına bağlanmıştır. Bu nedenle demo sırasında bir ürünün dolaptaki durumu değiştiğinde rutin ve Shelly bağlamı da anlamlı şekilde değişir.
 
@@ -121,6 +121,12 @@ Product Backlog Notion üzerinde tutulmaktadır.
 Sprint 1'de backlog; kullanıcı hikayeleri, UI/UX tasarımı, kimlik doğrulama, cilt profili, ürün yönetimi, AI analiz modülleri, backend, database, test, dokümantasyon ve sunum başlıklarına ayrılmıştır.
 
 Sprint 2 backlog'u; kullanıcı akışları, UI/UX–veri entegrasyonu, kimlik doğrulama ve güvenlik mekanizmaları, cilt profili modülü, akıllı ürün dolabı (CRUD) servisleri, yapay zekâ (AI) destekli asistan ve analiz servisleri, Backend API geliştirmeleri, veritabanı tasarımı, güvenliği ve migration süreçleri, test ve hata ayıklama çalışmaları ile teknik dokümantasyon ve sprint kapanış sunumu başlıkları altında planlanmıştır.
+
+Sprint 3 backlog'u; production/deployment kararlılığı, kalıcı ürün ve
+barkod akışı, Shelly kalite ve güvenli rutin politikaları, cilt takibi,
+bildirimler, güvenlik/gizlilik, otomatik test, gerçek cihaz kabulü, kullanıcı
+pilotu ve final demo başlıklarında 102 SP olarak planlanmış ve 102/102 SP
+tamamlanmıştır.
 
 # 🧩 Sistem Tasarımı
 
@@ -243,7 +249,7 @@ Proje yönetimi dosyaları sprint bazlı olarak [Project_Management_Files](Proje
 | -------- | ---------- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Sprint 1 | Tamamlandı | Mobil prototip, temel ekranlar, ürün dolabı, AI/tarama demo akışı, Scrum dokümantasyonu | [Sprint_1](Project_Management_Files/Sprint_1) |
 | Sprint 2 | Tamamlandı | Backend, database, Open Beauty Facts barkod akışı, Gemini AI analiz servisleri          | [Sprint_2](Project_Management_Files/Sprint_2) |
-| Sprint 3 | Devam Ediyor | Gelişmiş rutin önerileri, analiz geçmişi, bildirimler, final demo ve testler          | [Sprint_3](Project_Management_Files/Sprint_3) |
+| Sprint 3 | Tamamlandı | Gelişmiş rutin, cilt takibi, bildirimler, gerçek cihaz, kullanıcı pilotu ve final demo | [Sprint_3](Project_Management_Files/Sprint_3) |
 
 Sprint 1 kanıt indeksi: [Project_Management_Files/Sprint_1/README.md](Project_Management_Files/Sprint_1/README.md)
 
@@ -495,7 +501,7 @@ Sprint 2 kanit dosyalari:
 | Urun durumu ve ekran akislari | [Product_Screenshots](Project_Management_Files/Sprint_2/Product_Screenshots) |
 | Review ve retrospective | [Review_and_Retrospective](Project_Management_Files/Sprint_2/Review_and_Retrospective) |
 | Test dogrulama | [Test_and_Verification.md](Project_Management_Files/Sprint_2/Test_and_Verification.md), [smoke-api-result.json](Project_Management_Files/Sprint_2/Backend_API/smoke-api-result.json) |
-| Sprint 2 demo hazirligi | [Jury_Readiness.md](Project_Management_Files/Sprint_2/Jury_Readiness.md) |
+| Sprint 2 demo hazirligi | [Demo_Readiness.md](Project_Management_Files/Sprint_2/Demo_Readiness.md) |
 
 ## Sprint Notları
 
@@ -621,6 +627,7 @@ Sprint 2 sonunda kod yapısı; mobil ekranlar, context state, client servisleri,
 | Client services | `src/services`, `src/api` | Auth, product, assistant, skin analysis ve Open Beauty Facts istekleri |
 | Backend controllers | `backend/src/main/java/com/skinshelf/backend/controller` | HTTP endpoint sözleşmeleri |
 | Backend services | `backend/src/main/java/com/skinshelf/backend/service` | İş kuralları, AI enrichment, guardrail ve analiz mantığı |
+| Routine policy | `RoutinePolicyEngine`, `src/services/routineSafetyPolicy.ts` | Güçlü aktifleri modelden bağımsız planlama ve son plan doğrulaması |
 | Persistence | `backend/src/main/java/com/skinshelf/backend/repository`, `backend/src/main/resources/db/migration` | Supabase PostgreSQL veri erişimi ve migration |
 
 ---
@@ -673,23 +680,30 @@ Sprint 2 sonunda ekip, backend veritabanı bağlantısını ve otonom yapay zek�
   Ücretsiz Gemini API kotasının, özellikle geliştirme ve ardışık arayüz testleri sırasında dakikalık istek limiti (15 RPM) nedeniyle hızlıca dolması ve Google sunucularının geçici olarak 503 (Servis Meşgul) hatası döndürmesi ekibi zorlamıştır.
   - _Çözüm:_ Bu zorluk, sistemimizi çökmekten korumak için kod tarafında çok güçlü ve kararlı bir **Yedek/Cankurtaran (Fallback) Motoru** kurgulamamızı zorunlu kılmış ve uygulama kararlılığını en üst düzeye çıkarmıştır. Ayrıca testler için yedek API anahtarlarıyla çalışma pratikleri edinilmiştir.
 
-## 📌 Sprint - 3 (Devam Ediyor)
+## 📌 Sprint - 3 (Tamamlandı)
 
-Sprint 3'ün ana hedefi final demo kalitesine ulaşmak, gelişmiş AI/rutin özelliklerini tamamlamak ve test/deployment hazırlığını kapatmaktır.
+Sprint 3'ün ana hedefi final demo kalitesine ulaşmak, gelişmiş AI/rutin
+özelliklerini tamamlamak ve test/deployment hazırlığını kapatmaktı. Sprint
+102/102 SP ve 0 kalan PBI ile tamamlandı.
 
-Kapanışa getirilen işler:
+Tamamlanan işler:
 
 - Analiz geçmişi ekranı
 - Bildirim ve ürün bitiş hatırlatmaları
 - Gelişmiş rutin öneri ekranları
 - AI yanıtlarının kullanıcı dostu hale getirilmesi
 - Final mobil UI/UX kontrolleri
-- Final demo linki veya sabit ekran kanıt seti ve sunum hazırlığı
-- Sprint 3 board, burndown, daily scrum ve final ürün kanıtlarının eklenmesi
+- Gerçek cihaz testi, final ekran seti, demo videosu ve sunum hazırlığı
+- Sprint 3 board, burndown, daily scrum, review ve retrospective kanıtları
+- Shelly için 100 senaryolu golden set, deterministik rutin politikası ve CI full-stack smoke testi
 
 Sprint 3 dosyası: [Project_Management_Files/Sprint_3/README.md](Project_Management_Files/Sprint_3/README.md)
 
+Sprint 3 Scrum kanıtları: [board](Project_Management_Files/Sprint_3/Sprint_Board) · [daily](Project_Management_Files/Sprint_3/Daily_Scrum) · [burndown](Project_Management_Files/Sprint_3/Burndown_Chart) · [review ve retrospective](Project_Management_Files/Sprint_3/Review_and_Retrospective)
+
 Sprint 3 final kontrol listesi: [Project_Management_Files/Sprint_3/Final_Readiness.md](Project_Management_Files/Sprint_3/Final_Readiness.md)
+
+Shelly otomatik değerlendirme sonucu: [100/100 yönlendirme, 63 backend ve 19 mobil test](Project_Management_Files/Sprint_3/shelly-evaluation-report.md)
 
 Android preview APK: [1.0.0 (8) EAS build kaydı](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/30a32ca1-0cab-44b6-b95e-e68ec4e1ab25) · [tamamlanmış 1.0.0 (7) APK](https://expo.dev/accounts/cernsvr/projects/skinshelf/builds/b6cc54e2-f03d-4c32-9298-7607fb794697) · [iki temiz emülatör doğrulaması](Project_Management_Files/Sprint_3/android-preview-apk-verification.md)
 

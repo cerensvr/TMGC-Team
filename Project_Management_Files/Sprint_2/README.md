@@ -19,7 +19,7 @@ Sprint 2'de Sprint 1 prototipi; React Native/Expo istemci, Spring Boot API, Supa
 | Build, backend ve API smoke testleri | Tamamlandi | [Test_and_Verification.md](Test_and_Verification.md), [Backend_API/smoke-api-result.json](Backend_API/smoke-api-result.json) |
 | Canli Android emulator kanitlari | Tamamlandi | [Product_Screenshots/live](Product_Screenshots/live) |
 | Shelly AI senaryo kaniti | Tamamlandi | [Shelly_AI_Scenarios.md](Shelly_AI_Scenarios.md) |
-| Juri demo ve kalite kontrol rehberi | Tamamlandi | [Jury_Readiness.md](Jury_Readiness.md) |
+| Demo ve kalite kontrol rehberi | Tamamlandi | [Demo_Readiness.md](Demo_Readiness.md) |
 
 ## Tamamlanan Hedefler
 
@@ -61,11 +61,11 @@ Incelenen ornek repolarda Sprint 2 bolumleri genellikle su kanitlarla destekleni
 | Review/retro | [Review_and_Retrospective](Review_and_Retrospective) |
 | Build/test kaniti | [Test_and_Verification.md](Test_and_Verification.md) |
 | AI deger senaryolari | [Shelly_AI_Scenarios.md](Shelly_AI_Scenarios.md) |
-| Juriye hazir demo akisi | [Jury_Readiness.md](Jury_Readiness.md) |
+| Degerlendirmeye hazir demo akisi | [Demo_Readiness.md](Demo_Readiness.md) |
 
-## Juriye Hazirlik Notu
+## Demo Hazirlik Notu
 
-Sprint 2 teslimi, yalnizca gelistirme listesini degil, projenin nasil degerlendirilecegini de aciklar. [Jury_Readiness.md](Jury_Readiness.md) dosyasinda 30 saniyelik urun ozeti, demo sirasi, smoke test hesap seti, dogrulama komutlari ve guvenlik/etik sinirlar tek yerde toplanmistir.
+Sprint 2 teslimi, yalnizca gelistirme listesini degil, projenin nasil degerlendirilecegini de aciklar. [Demo_Readiness.md](Demo_Readiness.md) dosyasinda 30 saniyelik urun ozeti, demo sirasi, smoke test hesap seti, dogrulama komutlari ve guvenlik/etik sinirlar tek yerde toplanmistir.
 
 Shelly'nin AI degeri ayrica [Shelly_AI_Scenarios.md](Shelly_AI_Scenarios.md) ile senaryolara bolunmustur. Bu dosya; rutin yogunlugu, aktif icerik ayirma, cilt tepkisi, bos raf, barkod verisi eksigi ve haftalik plan akislari icin beklenen davranisi tanimlar.
 

@@ -513,6 +513,16 @@ public class ShellyPromptService {
         return false;
     }
 
+    private boolean containsToken(String text, String... terms) {
+        String searchable = " " + text.replaceAll("[^\\p{L}\\p{N}]+", " ") + " ";
+        for (String term : terms) {
+            if (searchable.contains(" " + term + " ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String normalize(String value) {
         return value == null ? "" : value.toLowerCase(Locale.forLanguageTag("tr-TR"));
     }
@@ -567,17 +577,19 @@ public class ShellyPromptService {
                 "tepki verdi", "kızardı", "kizardi", "kızarıklık", "kizariklik", "yandı", "yandi",
                 "yanıyor", "yaniyor", "sivilce yaptı", "sivilce yapti", "akne arttı", "akne artti",
                 "pullanma", "pullandı", "pullandi", "kaşın", "kasin", "batma", "tahriş", "tahris",
-                "kurudu", "kuruluk", "çok kuru", "cok kuru", "gerginlik", "yağlanıyor", "yaglaniyor")) {
+                "yanma", "kurudu", "kuruluk", "çok kuru", "cok kuru", "gerginlik", "yağlanıyor", "yaglaniyor")) {
             return ShellyMode.SKIN_REACTION;
         }
         if (containsAny(normalized, "haftalık plan", "haftalik plan", "haftalık rutin", "haftalik rutin",
-                "haftaya yay", "günlere böl", "gunlere bol", "her gece")) {
+                "haftaya yay", "günlere böl", "gunlere bol", "her gece", "önümüzdeki hafta",
+                "onumuzdeki hafta", "bir haftalık", "bir haftalik", "bakım takvimi", "bakim takvimi")) {
             return ShellyMode.WEEKLY_PLAN;
         }
         if (containsAny(normalized, "birlikte kullan", "aynı anda", "ayni anda", "içerik analizi", "icerik analizi",
-                "içerik listesi", "icerik listesi", "inci", "bu iki ürün", "bu iki urun",
-                "retinol", "retinal", "tretinoin", "aha", "bha", "salisilik", "salicylic", "glikolik",
-                "glycolic", "niasinamid", "niacinamide", "c vitamini", "azelaik", "benzoyl", "benzoil")) {
+                "içerik listesi", "icerik listesi", "inci", "ıncı", "bu iki ürün", "bu iki urun",
+                "retinol", "retinal", "tretinoin", "salisilik", "salicylic", "glikolik",
+                "glycolic", "niasinamid", "niacinamide", "c vitamini", "azelaik", "benzoyl", "benzoil")
+                || containsToken(normalized, "aha", "bha")) {
             return ShellyMode.INGREDIENT_ANALYSIS;
         }
         if (containsAny(normalized, "yeni ürün", "yeni urun", "eklediğim ürün", "ekledigim urun", "bu ürün",

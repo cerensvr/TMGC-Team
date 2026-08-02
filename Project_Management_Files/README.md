@@ -8,13 +8,14 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 | -------- | ---------- | -------------------------------------------------------------------------------------------------------------- | -------------------- |
 | Sprint 1 | Tamamlandi | Proje iskeleti, temel mobil ekranlar, onboarding, urun dolabi prototipi, AI/tarama demo akisi, dokumantasyon   | [Sprint_1](Sprint_1) |
 | Sprint 2 | Tamamlandi | Backend/database entegrasyonu, Open Beauty Facts barkod akisi, Gemini AI analiz servisleri, kalici urun verisi | [Sprint_2](Sprint_2) |
-| Sprint 3 | Devam Ediyor | Gelismis AI rutin onerileri, bildirimler, analiz gecmisi, test iyilestirmeleri, final demo                   | [Sprint_3](Sprint_3) |
+| Sprint 3 | Tamamlandı | AI/rutin güvenliği, bildirimler, cilt takibi, gerçek cihaz testi, kullanıcı pilotu ve final demo | [Sprint_3](Sprint_3) |
 
 ## Genel Dokumanlar
 
 - [General_Documents](General_Documents): Urun vizyonu, hedef kitle, teknik kararlar ve sprint yol haritasi icin genel referanslar.
 - [Sprint_1/README.md](Sprint_1/README.md): Sprint 1 teslim kanitlarinin tek sayfalik indeksi.
 - [Sprint_2/README.md](Sprint_2/README.md): Sprint 2 fullstack entegrasyon ve Scrum kanit indeksi.
+- [Sprint_3/README.md](Sprint_3/README.md): Final ürün, Scrum, test, cihaz ve demo kanıt indeksi.
 
 ## Sprint 1 Kanit Checklist
 
@@ -52,14 +53,23 @@ Bu klasor SkinShelf projesinin sprint bazli Scrum kanitlarini, teknik tasarim do
 | Story Point Dağılımı                                      | Hazır | [Sprint_2/sprint2-story-points.md](Sprint_2/sprint2-story-points.md) |
 | Test Doğrulama                                            | Hazır | [Sprint_2/Test_and_Verification.md](Sprint_2/Test_and_Verification.md) |
 | Shelly AI Kanıt Senaryoları                               | Hazır | [Sprint_2/Shelly_AI_Scenarios.md](Sprint_2/Shelly_AI_Scenarios.md) |
-| Jüri Demo ve Kalite Kontrol Rehberi                       | Hazır | [Sprint_2/Jury_Readiness.md](Sprint_2/Jury_Readiness.md) |
+| Sprint 2 Demo ve Kalite Kontrol Rehberi                   | Hazır | [Sprint_2/Demo_Readiness.md](Sprint_2/Demo_Readiness.md) |
 | GitHub Actions Kalite Kontrolü                            | Hazır | [../.github/workflows/quality-check.yml](../.github/workflows/quality-check.yml) |
 
 ## Sprint 3 Kapanis Checklist
 
 | Kanit | Durum | Dosya |
 | --- | --- | --- |
-| Final hazirlik kontrolu | Hazir | [Sprint_3/Final_Readiness.md](Sprint_3/Final_Readiness.md) |
-| Backend test profili | Hazir | [Sprint_3/backend-test-profile-report.md](Sprint_3/backend-test-profile-report.md) |
-| Final ekran goruntuleri | Devam ediyor | [Sprint_3](Sprint_3) |
-| Sprint 3 board / burndown / review | Devam ediyor | [Sprint_3](Sprint_3) |
+| Sprint 3 teslim indeksi | Hazır | [Sprint_3/README.md](Sprint_3/README.md) |
+| Story point dağılımı (102/102) | Hazır | [Sprint_3/sprint3-story-points.md](Sprint_3/sprint3-story-points.md) |
+| Board / backlog takibi | Hazır | [Sprint_3/Sprint_Board](Sprint_3/Sprint_Board) |
+| Daily Scrum kaydı | Hazır | [Sprint_3/Daily_Scrum](Sprint_3/Daily_Scrum) |
+| Burndown chart | Hazır | [Sprint_3/Burndown_Chart](Sprint_3/Burndown_Chart) |
+| Final ekran görüntüleri | Hazır | [Sprint_3/Product_Screenshots](Sprint_3/Product_Screenshots) |
+| Review ve retrospective | Hazır | [Sprint_3/Review_and_Retrospective](Sprint_3/Review_and_Retrospective) |
+| Test ve doğrulama | Hazır | [Sprint_3/Test_and_Verification.md](Sprint_3/Test_and_Verification.md) |
+| Backend test profili | Hazır | [Sprint_3/backend-test-profile-report.md](Sprint_3/backend-test-profile-report.md) |
+| Shelly otomatik eval | Hazır | [Sprint_3/shelly-evaluation-report.md](Sprint_3/shelly-evaluation-report.md) |
+| Gerçek cihaz ve demo | Hazır | [Sprint_3/demo-and-device-evidence.md](Sprint_3/demo-and-device-evidence.md) |
+| Deployment ve APK | Hazır | [Sprint_3/Deployment_Notes.md](Sprint_3/Deployment_Notes.md) |
+| Final hazırlık kontrolü | Hazır | [Sprint_3/Final_Readiness.md](Sprint_3/Final_Readiness.md) |

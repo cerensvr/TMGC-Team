@@ -1,12 +1,12 @@
-# Juri Hazirlik ve Demo Akisi
+# Demo Hazirlik ve Kalite Kontrol Akisi
 
-Bu dosya Sprint 2 tesliminde jurinin projeyi hizli anlamasi, calistirmasi ve teknik kanitlari tek yerden kontrol etmesi icin hazirlandi.
+Bu dosya Sprint 2 tesliminde projenin hizli anlasilmasi, calistirilmasi ve teknik kanitlarin tek yerden kontrol edilmesi icin hazirlandi.
 
 ## 30 Saniyelik Urun Ozeti
 
 SkinShelf, kullanicinin cilt bakim urunlerini dijital bir rafa tasiyan ve Shelly araciligiyla urun-cilt-rutin uyumunu takip eden AI destekli mobil uygulamadir. Shelly sadece genel cevap veren bir chatbot degil; kullanicinin cilt profilini, dolabindaki urunleri, aktif icerikleri, kullanim zamanini ve cilt takibi kayitlarini birlikte degerlendiren bir cilt bakim danismanidir.
 
-## Juri Icin En Guclu Kanitlar
+## En Guclu Degerlendirme Kanitlari
 
 | Degerlendirme noktasi | Kanit |
 | --- | --- |
@@ -65,7 +65,7 @@ npm run smoke:api
 
 Smoke test Supabase uzerinde test kullanicisi, test urunu ve Shelly mesajlari olusturdugu icin GitHub Actions'ta otomatik calistirilmez. CI, her push ve pull request icin frontend build ile backend testlerini calistirir.
 
-## Juri Demo Konusma Metni
+## Demo Konusma Metni
 
 SkinShelf'in farki, kullanicinin sahip oldugu urunleri merkeze almasidir. Uygulama once urunleri dijital rafa kaydeder; sonra Shelly bu raf, cilt profili ve rutin gecmisini birlikte okuyarak bugun hangi urunlerin kullanilacagini, hangi aktiflerin ayrilmasi gerektigini ve kullanicinin cilt degisimlerini takip eder. Bu nedenle proje sadece "AI chatbot" degil, mobil urun dolabi + rutin planlayici + guvenli AI yorum katmani olarak calisir.
 
@@ -81,7 +81,7 @@ SkinShelf'in farki, kullanicinin sahip oldugu urunleri merkeze almasidir. Uygula
 
 | Baslik | Durum | Kanit |
 | --- | --- | --- |
-| README ilk bakista urunu anlatiyor | Tamam | Kok README juri ozeti |
+| README ilk bakista urunu anlatiyor | Tamam | Kok README hizli ozeti |
 | Sprint 2 point mantigi gorunur | Tamam | [sprint2-story-points.md](sprint2-story-points.md) |
 | Notion board kaniti var | Tamam | [Sprint_Board](Sprint_Board) |
 | App ekranlari repo ana sayfasinda gorunur | Tamam | Kok README Sprint 2 screenshots |

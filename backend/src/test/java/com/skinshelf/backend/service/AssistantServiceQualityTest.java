@@ -59,7 +59,8 @@ class AssistantServiceQualityTest {
                 skinLogRepository,
                 promptService,
                 safetyGuard,
-                knowledgeBase);
+                knowledgeBase,
+                new RoutinePolicyEngine());
 
         User user = new User();
         user.setId(7L);
@@ -317,7 +318,9 @@ class AssistantServiceQualityTest {
         assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.period().equals("MONDAY_EVENING")));
         assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.period().equals("THURSDAY_EVENING")));
         assertTrue(response.getRoutineSteps().stream().anyMatch(step -> step.status().equals("MISSING")));
-        assertTrue(response.getSafetyWarnings().stream().anyMatch(warning -> warning.contains("aynı gece")));
+        assertTrue(response.getSafetyWarnings().stream().noneMatch(warning -> warning.contains("aynı gece")));
+        assertTrue(response.getWarning() == null || response.getWarning().isBlank());
+        assertEquals("low", response.getRiskLevel());
     }
 
     @Test
@@ -359,7 +362,8 @@ class AssistantServiceQualityTest {
                 skinLogRepository,
                 new ShellyPromptService(knowledgeBase),
                 safetyGuard,
-                knowledgeBase);
+                knowledgeBase,
+                new RoutinePolicyEngine());
     }
 
     private void stubFallbackContext(User user, UserProfile profile, List<Product> products) {

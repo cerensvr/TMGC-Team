@@ -40,7 +40,7 @@ Sprint 2 sonunda proje, Sprint 1'deki frontend prototipinden fullstack mimariye 
 
 ## Degerlendirilebilir Kod Yapisi
 
-Kod, juri veya dis degerlendiricinin proje mimarisini hizli okuyabilmesi icin asagidaki sinirlara ayrilmistir:
+Kod, dis degerlendiricinin proje mimarisini hizli okuyabilmesi icin asagidaki sinirlara ayrilmistir:
 
 | Soru | Bakilacak yer |
 | --- | --- |

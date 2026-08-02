@@ -11,8 +11,9 @@ Android kabul kapsamından geçirildi. Test edilen son uygulama kaynak commit'i
 | Test edilen kaynak commit'i | `ddec3930b4cbcc6f0764ded2f7d97200d3f3c4f3` |
 | Expo / React Native | SDK `57.0.0` / React Native `0.86.2` |
 | TypeScript | `npm run build` geçti |
-| Mobil testler | `12/12` geçti |
-| Backend testleri | `53/53` geçti |
+| Artifact commit'indeki mobil testler | `12/12` geçti |
+| Artifact commit'indeki backend testleri | `53/53` geçti |
+| Final kaynak kalite kapıları | `19/19` mobil, `63/63` backend; [güncel test indeksi](Test_and_Verification.md) |
 | Expo Doctor | `20/20` geçti |
 | Production dependency audit | `0` bilinen açık |
 

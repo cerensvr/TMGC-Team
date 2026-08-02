@@ -63,11 +63,11 @@ da üretken AI yanıtının devam etmesi.
 
 ```text
 ./mvnw test
-Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 63, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-- 42 altın sohbet cümlesinin 42'si doğru cevap moduna ayrıldı.
+- 100 golden sohbet cümlesinin 100'ü doğru cevap moduna ayrıldı.
 - Altı sohbet modunun her biri için iki örneğin JSON sözleşmesi doğrulandı.
 - Uydurma ürün ID'si, çelişkili öneri/kaçınma kararı, yüksek riskte boş uyarı ve
   yanlış model modu senaryoları test edildi.
@@ -84,7 +84,7 @@ npm run build
 tsc --noEmit: başarılı
 
 npm test
-Tests: 5 passed, 0 failed
+Tests: 19 passed, 0 failed
 
 npx expo-doctor
 18/18 checks passed

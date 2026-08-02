@@ -94,6 +94,48 @@ const scenarios = [
     prompt: 'Bugünkü rutinim ağır mı?',
     expectedMode: 'ROUTINE_CHECK',
   },
+  {
+    emailPrefix: 'test-haftalik',
+    firstName: 'Test',
+    lastName: 'Haftalik',
+    profile: {
+      displayName: 'Test Haftalik',
+      ageRange: '25-34',
+      experienceLevel: 'Aktif içerikleri biliyorum',
+      skinFeel: 'Normal / dengeli',
+      postWashFeel: 'Pek değişmiyor',
+      mainGoal: 'Daha düzenli rutin oluşturmak',
+      sensitivityLevel: 'Bazen',
+      skinType: 'Normal Cilt',
+      currentRoutine: ['Serum', 'Nemlendirici'],
+      reminderPreferences: ['Akşam rutinim için'],
+      isOnboarded: true,
+    },
+    product: {
+      name: 'Retinol Serum',
+      brand: 'SkinShelf Test',
+      category: 'Serum',
+      timeOfDay: 'evening',
+      imageUrl: '',
+      description: 'Haftalık plan güvenlik kontrolü için retinoid ürün.',
+      activeIngredients: ['Retinol'],
+      isFavorite: false,
+    },
+    additionalProducts: [
+      {
+        name: 'BHA Tonik',
+        brand: 'SkinShelf Test',
+        category: 'Tonik',
+        timeOfDay: 'evening',
+        imageUrl: '',
+        description: 'Haftalık plan güvenlik kontrolü için eksfolyan ürün.',
+        activeIngredients: ['Salicylic Acid'],
+        isFavorite: false,
+      },
+    ],
+    prompt: 'Retinol ve BHA ürünlerimi günlere bölerek haftalık plan hazırla.',
+    expectedMode: 'WEEKLY_PLAN',
+  },
 ];
 
 class ApiError extends Error {
@@ -207,6 +249,14 @@ for (const scenario of scenarios) {
       headers,
       body: scenario.product,
     });
+    const createdProducts = [product];
+    for (const additionalProduct of scenario.additionalProducts ?? []) {
+      createdProducts.push(await request('/products', {
+        method: 'POST',
+        headers,
+        body: additionalProduct,
+      }));
+    }
     const updatedProduct = await request(`/products/${product.id}`, {
       method: 'PUT',
       headers,
@@ -217,10 +267,8 @@ for (const scenario of scenarios) {
       `Product update failed for ${email}`,
     );
     const products = await request('/products', { headers });
-    assert(
-      products.some((item) => item.id === product.id),
-      `Product is missing from product list for ${email}`,
-    );
+    assert(createdProducts.every(created => products.some(item => item.id === created.id)),
+      `A created product is missing from product list for ${email}`);
 
     const ingredientAnalysis = await request('/assistant/analyze-ingredients', {
       method: 'POST',
@@ -281,6 +329,26 @@ for (const scenario of scenarios) {
       assert(assistant.routineSteps.length > 0, `Routine steps are missing for ${email}`);
       assert(assistant.missingCategories.length > 0, `Routine gaps are missing for ${email}`);
     }
+    if (scenario.expectedMode === 'WEEKLY_PLAN') {
+      const mondayIds = assistant.routineSteps
+        .filter(step => step.period === 'MONDAY_EVENING')
+        .map(step => String(step.productId));
+      const thursdayIds = assistant.routineSteps
+        .filter(step => step.period === 'THURSDAY_EVENING')
+        .map(step => String(step.productId));
+      assert(
+        mondayIds.includes(String(createdProducts[0].id)),
+        `Retinoid was not scheduled on Monday for ${email}: ${JSON.stringify(assistant.routineSteps)}`,
+      );
+      assert(
+        thursdayIds.includes(String(createdProducts[1].id)),
+        `BHA was not scheduled on Thursday for ${email}: ${JSON.stringify(assistant.routineSteps)}`,
+      );
+      assert(
+        !assistant.safetyWarnings.some(warning => warning.includes('aynı gece')),
+        `Safely separated actives produced a redundant conflict warning for ${email}`,
+      );
+    }
     const assistantHistory = await request('/assistant/history', { headers });
     assert(
       assistantHistory.some((entry) => entry.prompt === scenario.prompt),
@@ -326,10 +394,12 @@ for (const scenario of scenarios) {
       `Skin log delete failed for ${email}`,
     );
 
-    await request(`/products/${product.id}`, { method: 'DELETE', headers });
+    for (const createdProduct of createdProducts) {
+      await request(`/products/${createdProduct.id}`, { method: 'DELETE', headers });
+    }
     const productsAfterDelete = await request('/products', { headers });
     assert(
-      !productsAfterDelete.some((item) => item.id === product.id),
+      createdProducts.every(created => !productsAfterDelete.some(item => item.id === created.id)),
       `Product delete failed for ${email}`,
     );
 
@@ -346,7 +416,7 @@ for (const scenario of scenarios) {
       displayName: profile.displayName,
       skinType: profile.skinType,
       mainGoal: profile.mainGoal,
-      productName: product.name,
+      productName: createdProducts.map(item => item.name).join(', '),
       ingredientAnalysisLevel: ingredientAnalysis.compatibilityLevel,
       suggestedTimeOfDay: ingredientAnalysis.suggestedTimeOfDay,
       assistantIntent: assistant.intentType,

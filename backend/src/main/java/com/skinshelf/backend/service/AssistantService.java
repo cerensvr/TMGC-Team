@@ -6,7 +6,6 @@ import com.skinshelf.backend.dto.AssistantChatResponse;
 import com.skinshelf.backend.dto.AssistantContextEvidence;
 import com.skinshelf.backend.dto.AssistantMessageResponse;
 import com.skinshelf.backend.dto.AssistantProductInsight;
-import com.skinshelf.backend.dto.AssistantRoutineStep;
 import com.skinshelf.backend.entity.AssistantMessage;
 import com.skinshelf.backend.entity.Product;
 import com.skinshelf.backend.entity.SkinLog;
@@ -17,6 +16,7 @@ import com.skinshelf.backend.repository.ProductRepository;
 import com.skinshelf.backend.repository.SkinLogRepository;
 import com.skinshelf.backend.repository.UserProfileRepository;
 import com.skinshelf.backend.service.ShellyPromptService.ShellyMode;
+import com.skinshelf.backend.service.RoutinePolicyEngine.RoutinePlan;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +38,7 @@ public class AssistantService {
     private final ShellyPromptService shellyPromptService;
     private final SafetyGuard safetyGuard;
     private final IngredientKnowledgeBase knowledgeBase;
+    private final RoutinePolicyEngine routinePolicyEngine;
 
     public AssistantService(
             AssistantMessageRepository assistantMessageRepository,
@@ -47,7 +48,8 @@ public class AssistantService {
             SkinLogRepository skinLogRepository,
             ShellyPromptService shellyPromptService,
             SafetyGuard safetyGuard,
-            IngredientKnowledgeBase knowledgeBase) {
+            IngredientKnowledgeBase knowledgeBase,
+            RoutinePolicyEngine routinePolicyEngine) {
         this.assistantMessageRepository = assistantMessageRepository;
         this.geminiApiClient = geminiApiClient;
         this.productRepository = productRepository;
@@ -56,6 +58,7 @@ public class AssistantService {
         this.shellyPromptService = shellyPromptService;
         this.safetyGuard = safetyGuard;
         this.knowledgeBase = knowledgeBase;
+        this.routinePolicyEngine = routinePolicyEngine;
     }
 
     public AssistantChatResponse chat(User user, AssistantChatRequest request) {
@@ -285,9 +288,11 @@ public class AssistantService {
             }
         }
 
-        // Eğer yapay zekâ aynı anda hem retinol hem de asit/peroksit önerdiyse, cevabı
-        // sabote edip düzeltiyoruz!
-        if (hasRetinoid && hasAcidOrPeroxide) {
+        // Model güçlü aktifleri tek kullanım anında birleştirirse yanıtı güvenli
+        // zamanlamaya çekeriz. Rutin modlarında ayrıştırmayı policy engine yapar.
+        if (hasRetinoid && hasAcidOrPeroxide
+                && expectedMode != ShellyMode.ROUTINE_CHECK
+                && expectedMode != ShellyMode.WEEKLY_PLAN) {
             warning = "Shelly Güvenlik Uyarısı: Önerilen ürünleriniz arasında Retinol ve güçlü aktifler (Asit/Akne ürünü: "
                     + clashingProductName
                     + ") bulunmaktadır. Cilt bariyerinizin zarar görmemesi için bu ürünleri kesinlikle aynı gece üst üste kullanmayın, farklı günlere dağıtın.";
@@ -476,6 +481,10 @@ public class AssistantService {
                 suggestion = "Temizleyici + nemlendirici + gündüz SPF temelini kur; yeni ürünleri tek tek ekle.";
             }
             boolean conflict = hasStrongActiveConflict(productContext);
+            boolean plannedAcrossSeparateDays = mode == ShellyMode.WEEKLY_PLAN;
+            String warning = conflict && !plannedAcrossSeparateDays
+                    ? "Retinoid ve peeling/asit ürünlerini aynı gece kullanma."
+                    : "";
             return fallbackResponse(
                     "INFO",
                     null,
@@ -484,10 +493,8 @@ public class AssistantService {
                     personalizedSummary,
                     reason,
                     suggestion,
-                    conflict
-                            ? "Retinoid ve peeling/asit ürünlerini aynı gece kullanma."
-                            : "",
-                    conflict ? "medium" : "low",
+                    warning,
+                    warning.isBlank() ? "low" : "medium",
                     List.of("Rutin", "SPF"));
         }
 
@@ -585,12 +592,13 @@ public class AssistantService {
             ShellyMode mode,
             boolean fallbackUsed) {
         List<String> missingCategories = buildMissingCategories(prompt, mode, products);
+        RoutinePlan routinePlan = routinePolicyEngine.buildPlan(mode, products, profile);
         return response.withDecisionDetails(
                 buildContextEvidence(profile, products, recentLogs, conversationHistory, prompt),
                 buildProductInsights(response, prompt, mode, products),
                 missingCategories,
-                buildRoutineSteps(mode, products),
-                buildSafetyWarnings(response, profile, products),
+                routinePlan.steps(),
+                buildSafetyWarnings(response, profile, products, routinePlan),
                 fallbackUsed);
     }
 
@@ -756,67 +764,22 @@ public class AssistantService {
         return missing;
     }
 
-    private List<AssistantRoutineStep> buildRoutineSteps(ShellyMode mode, List<Product> products) {
-        if (mode != ShellyMode.ROUTINE_CHECK && mode != ShellyMode.WEEKLY_PLAN) {
-            return List.of();
-        }
-
-        List<Product> activeProducts = products == null
-                ? List.of()
-                : products.stream()
-                        .filter(this::isRoutineActive)
-                        .sorted(Comparator.comparingInt(this::routineOrder))
-                        .toList();
-        String productContext = activeProducts.stream()
-                .map(this::productSearchText)
-                .reduce((left, right) -> left + " " + right)
-                .orElse("");
-        boolean splitStrongActives = hasStrongActiveConflict(productContext);
-        List<AssistantRoutineStep> steps = new ArrayList<>();
-        Map<String, Integer> periodOrder = new LinkedHashMap<>();
-
-        for (Product product : activeProducts) {
-            for (String period : routinePeriods(product, mode, splitStrongActives)) {
-                int order = periodOrder.merge(period, 1, Integer::sum);
-                steps.add(new AssistantRoutineStep(
-                        period,
-                        order,
-                        product.getId(),
-                        productName(product),
-                        "IN_SHELF",
-                        routineInstruction(product, period)));
-            }
-        }
-
-        if (!hasProductCategory(activeProducts, "temizley", "cleanser", "cleansing")) {
-            addMissingRoutineStep(steps, periodOrder, "MORNING", "Nazik temizleyici", "Temel temizleme adımı eksik.");
-            addMissingRoutineStep(steps, periodOrder, "EVENING", "Nazik temizleyici", "Gün sonu temizleme adımı eksik.");
-        }
-        if (!hasProductCategory(activeProducts, "nemlendir", "moistur", "cream", "krem")) {
-            addMissingRoutineStep(steps, periodOrder, "MORNING", "Nemlendirici", "Bariyer desteği adımı eksik.");
-            addMissingRoutineStep(steps, periodOrder, "EVENING", "Nemlendirici", "Aktiflerden sonra nem desteği eksik.");
-        }
-        if (!hasProductCategory(activeProducts, "güneş", "gunes", "sunscreen", "spf")) {
-            addMissingRoutineStep(steps, periodOrder, "MORNING", "Güneş koruyucu (SPF)", "Sabah rutininin son koruma adımı eksik.");
-        }
-
-        return steps.stream().limit(14).toList();
-    }
-
     private List<String> buildSafetyWarnings(
             AssistantChatResponse response,
             UserProfile profile,
-            List<Product> products) {
-        List<String> warnings = new ArrayList<>();
+            List<Product> products,
+            RoutinePlan routinePlan) {
+        List<String> warnings = new ArrayList<>(routinePlan.warnings());
+        boolean pregnancyAlreadyHandled = warnings.stream()
+                .map(warning -> warning.toLowerCase(Locale.forLanguageTag("tr-TR")))
+                .anyMatch(warning -> warning.contains("gebelik"));
         String productContext = products == null ? "" : products.stream()
                 .map(this::productSearchText)
                 .reduce((left, right) -> left + " " + right)
                 .orElse("");
 
-        if (hasStrongActiveConflict(productContext)) {
-            warnings.add("Retinoid ile AHA/BHA veya benzoil peroksit içeren ürünleri aynı gece üst üste kullanma; farklı gecelere dağıt.");
-        }
         if (profile != null && Boolean.TRUE.equals(profile.getPregnant())
+                && !pregnancyAlreadyHandled
                 && matchesAny(productContext, List.of("retinol", "retinal", "retinoid", "tretinoin"))) {
             warnings.add("Profilindeki gebelik bilgisi nedeniyle retinoid içeren ürünleri kullanmadan önce sağlık profesyoneline danış.");
         }
@@ -833,62 +796,6 @@ public class AssistantService {
             warnings.add("Belirti hızla artarsa uygulama önerisiyle yetinme ve sağlık profesyoneline başvur.");
         }
         return warnings.stream().distinct().limit(4).toList();
-    }
-
-    private void addMissingRoutineStep(
-            List<AssistantRoutineStep> steps,
-            Map<String, Integer> periodOrder,
-            String period,
-            String label,
-            String instruction) {
-        int order = periodOrder.merge(period, 1, Integer::sum);
-        steps.add(new AssistantRoutineStep(period, order, null, label, "MISSING", instruction));
-    }
-
-    private List<String> routinePeriods(Product product, ShellyMode mode, boolean splitStrongActives) {
-        String text = productSearchText(product);
-        boolean retinoid = matchesAny(text, List.of("retinol", "retinal", "retinoid", "tretinoin"));
-        boolean acid = matchesAny(text, List.of(
-                "aha", "bha", "salicylic", "salisilik", "glycolic", "glikolik",
-                "lactic", "laktik", "mandelic", "benzoyl", "benzoil", "peeling"));
-        if (splitStrongActives && retinoid) {
-            return List.of(mode == ShellyMode.WEEKLY_PLAN ? "MONDAY_EVENING" : "ALTERNATE_EVENING");
-        }
-        if (splitStrongActives && acid) {
-            return List.of(mode == ShellyMode.WEEKLY_PLAN ? "THURSDAY_EVENING" : "OTHER_EVENING");
-        }
-
-        String time = normalizeTimeOfDay(product.getTimeOfDay());
-        if ("MORNING".equals(time)) {
-            return List.of("MORNING");
-        }
-        if ("EVENING".equals(time) || retinoid || acid) {
-            return List.of("EVENING");
-        }
-        if (hasProductCategory(List.of(product), "güneş", "gunes", "sunscreen", "spf")) {
-            return List.of("MORNING");
-        }
-        return List.of("MORNING", "EVENING");
-    }
-
-    private String routineInstruction(Product product, String period) {
-        String text = productSearchText(product);
-        if (matchesAny(text, List.of("temizley", "cleanser", "cleansing"))) {
-            return "Rutinin ilk adımında nazikçe temizle.";
-        }
-        if (matchesAny(text, List.of("güneş", "gunes", "sunscreen", "spf"))) {
-            return "Sabah rutininin son adımı olarak uygula.";
-        }
-        if (matchesAny(text, List.of("nemlendir", "moistur", "cream", "krem", "ceramide", "seramid"))) {
-            return "Aktiflerden sonra bariyer desteği için uygula.";
-        }
-        if (period.contains("MONDAY") || period.contains("ALTERNATE")) {
-            return "Tek güçlü aktif olarak planlanan gecede kullan; toleransını izle.";
-        }
-        if (period.contains("THURSDAY") || period.contains("OTHER")) {
-            return "Diğer güçlü aktiften ayrı bir gecede kullan.";
-        }
-        return "İnce yapıdan yoğun yapıya doğru uygula.";
     }
 
     private int routineOrder(Product product) {

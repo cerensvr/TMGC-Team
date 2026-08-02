@@ -16,7 +16,7 @@ Bu set Spring Boot API ve Supabase baglantisi acikken Android emulator uzerinden
 | --- | --- | --- |
 | <img src="live/android-live-shelly.png" width="180"> | <img src="live/android-live-skin-tracking.png" width="180"> | <img src="live/android-live-profile.png" width="180"> |
 
-Bu teslimde GIF/video yerine sabit PNG kanit seti kullanilir. PNG'ler GitHub README icinde dogrudan gorundugu icin juri repo sayfasinda ek dosya indirmeden urun durumunu inceleyebilir.
+Bu teslimde GIF/video yerine sabit PNG kanit seti kullanilir. PNG'ler GitHub README icinde dogrudan gorundugu icin degerlendiren kisi repo sayfasinda ek dosya indirmeden urun durumunu inceleyebilir.
 
 ### UI Baseline Screenshots
 

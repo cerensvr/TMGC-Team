@@ -1,5 +1,10 @@
 import { Product } from '../types';
 import { getProductRole } from './shellyInsights';
+import {
+  getScheduledActiveRole,
+  isRoutineProductEligible,
+  RoutineSafetyContext,
+} from './routineSafetyPolicy';
 
 export type ConcernKey = 'standard' | 'acne' | 'sensitivity' | 'dryness' | 'spot' | 'redness' | 'custom';
 export type RoutineSlot = 'morning' | 'evening';
@@ -105,12 +110,19 @@ const rankProductForRoutine = (product: Product, concern: ConcernKey, slot: Rout
   return rank;
 };
 
-export const selectRoutineProducts = (products: Product[], concern: ConcernKey, slot: RoutineSlot, dayIndex: number) => {
+export const selectRoutineProducts = (
+  products: Product[],
+  concern: ConcernKey,
+  slot: RoutineSlot,
+  dayIndex: number,
+  context: RoutineSafetyContext = {}
+) => {
   const selectedIds = new Set<string>();
 
   return slotCategories[concern][slot]
     .map(category => {
       const candidates = products
+        .filter(product => isRoutineProductEligible(product, concern, context))
         .filter(product => product.category === category && !selectedIds.has(product.id))
         .filter(product => product.timeOfDay === slot || product.timeOfDay === 'both' || product.category === 'Güneş Kremi');
 
@@ -121,22 +133,49 @@ export const selectRoutineProducts = (products: Product[], concern: ConcernKey, 
     .filter(Boolean) as Product[];
 };
 
-const separateConflictingActives = (products: Product[], dayIndex: number) => {
-  const hasRetinol = products.some(product => getProductRole(product) === 'retinol');
-  const hasPeeling = products.some(product => getProductRole(product) === 'peeling');
+const buildEveningProducts = (
+  products: Product[],
+  concern: ConcernKey,
+  dayIndex: number,
+  context: RoutineSafetyContext
+) => {
+  const eligibleProducts = products.filter(product => isRoutineProductEligible(product, concern, context));
+  const selected = selectRoutineProducts(eligibleProducts, concern, 'evening', dayIndex, context);
+  const scheduledRole = getScheduledActiveRole(dayIndex, concern, context);
+  const withoutStrongActives = selected.filter(product => {
+    const role = getProductRole(product);
+    return role !== 'retinol' && role !== 'peeling';
+  });
 
-  if (!hasRetinol || !hasPeeling) return products;
+  if (!scheduledRole) return withoutStrongActives;
 
-  const isRetinolNight = dayIndex === 0 || dayIndex === 5;
-  const blockedRole = isRetinolNight ? 'peeling' : 'retinol';
+  const scheduledActive = eligibleProducts.find(product => {
+    const isAvailableInEvening = product.timeOfDay === 'evening' || product.timeOfDay === 'both';
+    return isAvailableInEvening && getProductRole(product) === scheduledRole;
+  });
 
-  return products.filter(product => getProductRole(product) !== blockedRole);
+  if (!scheduledActive) return withoutStrongActives;
+
+  const moisturizerIndex = withoutStrongActives.findIndex(
+    product => product.category === 'Nemlendirici' || product.category === 'Maske'
+  );
+  const insertIndex = moisturizerIndex === -1 ? withoutStrongActives.length : moisturizerIndex;
+
+  return [
+    ...withoutStrongActives.slice(0, insertIndex),
+    scheduledActive,
+    ...withoutStrongActives.slice(insertIndex),
+  ];
 };
 
-export const buildWeekPlan = (products: Product[], concern: ConcernKey): DayPlan[] =>
+export const buildWeekPlan = (
+  products: Product[],
+  concern: ConcernKey,
+  context: RoutineSafetyContext = {}
+): DayPlan[] =>
   weekDays.map((day, index) => {
-    const morning = selectRoutineProducts(products, concern, 'morning', index);
-    const evening = separateConflictingActives(selectRoutineProducts(products, concern, 'evening', index), index);
+    const morning = selectRoutineProducts(products, concern, 'morning', index, context);
+    const evening = buildEveningProducts(products, concern, index, context);
 
     return {
       day,

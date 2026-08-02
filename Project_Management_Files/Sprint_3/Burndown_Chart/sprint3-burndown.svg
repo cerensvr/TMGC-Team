@@ -1,0 +1,49 @@
+<svg width="1120" height="700" viewBox="0 0 1120 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1120" height="700" fill="#F7F8F4"/>
+  <text x="48" y="56" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#143E25">Sprint 3 Burndown</text>
+  <text x="48" y="86" font-family="Arial, sans-serif" font-size="16" fill="#506458">20 July - 2 August 2026 | GitHub issue closure dates | 102 SP target</text>
+
+  <rect x="78" y="120" width="982" height="450" rx="8" fill="#FFFFFF" stroke="#CADCCD"/>
+  <line x1="130" y1="160" x2="130" y2="500" stroke="#AFC4B3" stroke-width="2"/>
+  <line x1="130" y1="500" x2="1010" y2="500" stroke="#AFC4B3" stroke-width="2"/>
+
+  <line x1="130" y1="160" x2="1010" y2="160" stroke="#E5ECE6"/>
+  <line x1="130" y1="330" x2="1010" y2="330" stroke="#E5ECE6"/>
+  <line x1="130" y1="456.7" x2="1010" y2="456.7" stroke="#F0D7DA" stroke-dasharray="5 6"/>
+
+  <text x="92" y="165" font-family="Arial, sans-serif" font-size="14" fill="#506458">102</text>
+  <text x="101" y="335" font-family="Arial, sans-serif" font-size="14" fill="#506458">51</text>
+  <text x="101" y="462" font-family="Arial, sans-serif" font-size="14" fill="#81404A">13</text>
+  <text x="110" y="505" font-family="Arial, sans-serif" font-size="14" fill="#506458">0</text>
+
+  <line x1="130" y1="160" x2="1010" y2="500" stroke="#B6C4B8" stroke-width="3" stroke-dasharray="9 9"/>
+  <text x="858" y="449" font-family="Arial, sans-serif" font-size="13" fill="#75847A">Ideal</text>
+
+  <polyline points="130,160 570,256.7 680,266.7 790,456.7 1010,500" fill="none" stroke="#2F6B46" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="130" cy="160" r="8" fill="#2F6B46"/>
+  <circle cx="570" cy="256.7" r="8" fill="#2F6B46"/>
+  <circle cx="680" cy="266.7" r="8" fill="#2F6B46"/>
+  <circle cx="790" cy="456.7" r="8" fill="#2F6B46"/>
+  <circle cx="1010" cy="500" r="9" fill="#2F6B46"/>
+  <text x="988" y="487" text-anchor="end" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#2F6B46">0 SP remaining</text>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#143E25">
+    <text x="130" y="535" text-anchor="middle">20 Jul</text>
+    <text x="570" y="535" text-anchor="middle">28 Jul</text>
+    <text x="680" y="535" text-anchor="middle">29 Jul</text>
+    <text x="790" y="535" text-anchor="middle">30 Jul</text>
+    <text x="1010" y="535" text-anchor="middle">2 Aug</text>
+  </g>
+
+  <rect x="78" y="596" width="300" height="58" rx="8" fill="#EAF3EB" stroke="#C5D7C8"/>
+  <text x="98" y="621" font-family="Arial, sans-serif" font-size="14" fill="#506458">Sprint target</text>
+  <text x="98" y="644" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#245C39">102 SP</text>
+
+  <rect x="410" y="596" width="300" height="58" rx="8" fill="#F2F5F2" stroke="#CFD9D1"/>
+  <text x="430" y="621" font-family="Arial, sans-serif" font-size="14" fill="#506458">Completed</text>
+  <text x="430" y="644" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#4D6254">102 / 102 SP</text>
+
+  <rect x="742" y="596" width="318" height="58" rx="8" fill="#FFF1F2" stroke="#E7BFC4"/>
+  <text x="762" y="621" font-family="Arial, sans-serif" font-size="14" fill="#506458">Completion rate</text>
+  <text x="762" y="644" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#81404A">100% - 0 SP remaining</text>
+</svg>

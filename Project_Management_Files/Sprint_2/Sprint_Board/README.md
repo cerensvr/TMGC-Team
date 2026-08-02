@@ -35,7 +35,7 @@ Detayli puan dagilimi: [../sprint2-story-points.md](../sprint2-story-points.md)
 
 ## Notion Kart Ozellikleri Kontrol Listesi
 
-Juri Notion board icinde story point alanini dogrudan gormek isterse asagidaki property'ler kartlarda acik gorunmelidir. GitHub tarafinda puan dagilimi kalici olarak [../sprint2-story-points.md](../sprint2-story-points.md) dosyasinda tutulur; Notion tarafinda ise ayni mantigin kart property'leriyle gorunmesi beklenir.
+Notion board icinde story point alani dogrudan incelendiginde asagidaki property'ler kartlarda acik gorunmelidir. GitHub tarafinda puan dagilimi kalici olarak [../sprint2-story-points.md](../sprint2-story-points.md) dosyasinda tutulur; Notion tarafinda ise ayni mantigin kart property'leriyle gorunmesi beklenir.
 
 | Property | Beklenen kullanim |
 | --- | --- |
