@@ -3,12 +3,14 @@
 node_modules/
 .expo/
 .artifacts/
+/ios/
 backend/
 Project_Management_Files/
 docs/
 output/
 tmp/
 assets/screenshots/
+assets/shelly-icon-v*.png
 dist/
 build/
 coverage/
